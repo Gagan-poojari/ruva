@@ -1,5 +1,8 @@
+"use client"
 import Link from "next/link";
-import { Facebook, Instagram, Twitter } from "lucide-react";
+import { FaFacebook } from "react-icons/fa";
+import { FaInstagram } from "react-icons/fa";
+import { FaXTwitter } from "react-icons/fa6";
 
 export default function Footer() {
   return (
@@ -15,13 +18,13 @@ export default function Footer() {
             </p>
             <div className="flex space-x-4">
               <a href="#" className="text-slate-400 hover:text-primary-500 transition-colors">
-                <Facebook size={20} />
+                <FaFacebook size={20} />
               </a>
               <a href="#" className="text-slate-400 hover:text-primary-500 transition-colors">
-                <Instagram size={20} />
+                <FaInstagram size={20} />
               </a>
               <a href="#" className="text-slate-400 hover:text-primary-500 transition-colors">
-                <Twitter size={20} />
+                <FaXTwitter size={20} />
               </a>
             </div>
           </div>
