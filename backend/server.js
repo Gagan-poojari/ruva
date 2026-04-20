@@ -22,6 +22,8 @@ app.use(express.urlencoded({ extended: false }));
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/products', require('./routes/productRoutes'));
 app.use('/api/orders', require('./routes/orderRoutes'));
+app.use('/api/dashboard', require('./routes/dashboardRoutes'));
+app.use('/api/ai', require('./routes/aiRoutes'));
 
 app.get('/', (req, res) => {
     res.send('API is running...');
@@ -29,9 +31,17 @@ app.get('/', (req, res) => {
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-    const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
+    let statusCode = res.statusCode === 200 ? 500 : res.statusCode;
+    let message = err.message;
+
+    // Handle Mongoose/MongoDB Duplicate Key Error (Code 11000)
+    if (err.code === 11000) {
+        statusCode = 400;
+        message = 'A saree with this name already exists. Please use a unique name.';
+    }
+
     res.status(statusCode).json({
-        message: err.message,
+        message: message,
         stack: process.env.NODE_ENV === 'production' ? null : err.stack,
     });
 });

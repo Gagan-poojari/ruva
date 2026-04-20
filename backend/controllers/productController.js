@@ -1,4 +1,5 @@
 const Product = require('../models/Product');
+const { cloudinary } = require('../config/cloudinary');
 
 // @desc    Fetch all products
 // @route   GET /api/products
@@ -68,20 +69,22 @@ const createProduct = async (req, res, next) => {
             stock,
             sizes,
             tags,
+            colors,
             isFeatured,
         } = req.body;
 
-        const images = req.files.map((file) => ({
-            url: file.path,
-            publicId: file.filename,
-        }));
+        const images = req.files ? req.files.map((file) => ({
+            url: file.path || file.secure_url || file.url,
+            publicId: file.filename || file.public_id,
+        })) : [];
 
         const parsedSizes = sizes ? JSON.parse(sizes) : [];
         const parsedTags = tags ? JSON.parse(tags) : [];
+        const parsedColors = colors ? JSON.parse(colors) : [];
 
         const product = new Product({
             name,
-            slug,
+            slug: slug || name.toLowerCase().replace(/\s+/g, '-'),
             description,
             category,
             fabric,
@@ -92,6 +95,7 @@ const createProduct = async (req, res, next) => {
             images,
             sizes: parsedSizes,
             tags: parsedTags,
+            colors: parsedColors,
             isFeatured: isFeatured === 'true',
         });
 
@@ -119,6 +123,7 @@ const updateProduct = async (req, res, next) => {
             stock,
             sizes,
             tags,
+            colors,
             isFeatured,
         } = req.body;
 
@@ -126,7 +131,7 @@ const updateProduct = async (req, res, next) => {
 
         if (product) {
             product.name = name || product.name;
-            product.slug = slug || product.slug;
+            if (slug) product.slug = slug;
             product.description = description || product.description;
             product.category = category || product.category;
             product.fabric = fabric || product.fabric;
@@ -138,6 +143,7 @@ const updateProduct = async (req, res, next) => {
             
             if (sizes) product.sizes = JSON.parse(sizes);
             if (tags) product.tags = JSON.parse(tags);
+            if (colors) product.colors = JSON.parse(colors);
 
             if (req.files && req.files.length > 0) {
                 const newImages = req.files.map((file) => ({
@@ -166,7 +172,17 @@ const deleteProduct = async (req, res, next) => {
         const product = await Product.findById(req.params.id);
 
         if (product) {
-            // Optional: Remove images from cloudinary here using cloudinary.uploader.destroy
+            // Remove images from cloudinary
+            if (product.images && product.images.length > 0) {
+                for (const image of product.images) {
+                    try {
+                        await cloudinary.uploader.destroy(image.publicId);
+                    } catch (err) {
+                        console.error(`Failed to delete image ${image.publicId} from Cloudinary:`, err.message);
+                    }
+                }
+            }
+            
             await product.deleteOne();
             res.json({ message: 'Product removed' });
         } else {

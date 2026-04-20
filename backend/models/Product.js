@@ -8,7 +8,6 @@ const productSchema = mongoose.Schema(
         },
         slug: {
             type: String,
-            required: true,
             unique: true,
         },
         description: {
@@ -51,6 +50,7 @@ const productSchema = mongoose.Schema(
                 stock: { type: Number, default: 0 },
             },
         ],
+        colors: [String],
         tags: [String],
         isFeatured: {
             type: Boolean,
@@ -61,5 +61,35 @@ const productSchema = mongoose.Schema(
         timestamps: true,
     }
 );
+
+productSchema.pre('save', async function () {
+    if (!this.isModified('name')) {
+        return;
+    }
+
+    let baseSlug = this.name
+        .toLowerCase()
+        .replace(/\s+/g, '-')
+        .replace(/[^\w-]+/g, '')
+        .replace(/--+/g, '-');
+
+    let slug = baseSlug;
+    let count = 0;
+
+    // Ensure slug is unique
+    while (true) {
+        const existingProduct = await mongoose.model('Product').findOne({ 
+            slug, 
+            _id: { $ne: this._id } 
+        });
+        
+        if (!existingProduct) break;
+        
+        count++;
+        slug = `${baseSlug}-${count}`;
+    }
+
+    this.slug = slug;
+});
 
 module.exports = mongoose.model('Product', productSchema);

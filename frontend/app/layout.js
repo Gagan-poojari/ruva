@@ -1,3 +1,5 @@
+"use client";
+
 import { Inter, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "react-hot-toast";
@@ -5,6 +7,7 @@ import Navbar from "@/components/Navbar.jsx";
 import Footer from "@/components/Footer.jsx";
 import { AuthProvider } from "../context/AuthContext";
 import { CartProvider } from "../context/CartContext";
+import { usePathname } from "next/navigation";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -16,12 +19,10 @@ const playfair = Playfair_Display({
   subsets: ["latin"],
 });
 
-export const metadata = {
-  title: "RUVA - Premium Saree & Traditional Wear",
-  description: "Discover the finest collection of traditional sarees and wedding wear.",
-};
-
 export default function RootLayout({ children }) {
+  const pathname = usePathname();
+  const isAdminPath = pathname?.startsWith("/admin");
+
   return (
     <html
       lang="en"
@@ -30,11 +31,11 @@ export default function RootLayout({ children }) {
       <body className="min-h-full flex flex-col transition-colors duration-300">
         <AuthProvider>
           <CartProvider>
-            <Navbar />
-            <main className="flex-grow pt-16">
+            {!isAdminPath && <Navbar />}
+            <main className={`flex-grow ${!isAdminPath ? "pt-16" : ""}`}>
               {children}
             </main>
-            <Footer />
+            {!isAdminPath && <Footer />}
             <Toaster position="bottom-right" />
           </CartProvider>
         </AuthProvider>

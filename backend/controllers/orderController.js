@@ -20,11 +20,11 @@ const addOrderItems = async (req, res, next) => {
             throw new Error('No order items');
         } else {
             // Create Razorpay order
-            const options = {
+                const options = {
                 amount: Math.round(totalPrice * 100), // amount in the smallest currency unit (paise)
-                currency: 'INR',
-                receipt: `rcpt_${new Date().getTime()}`,
-            };
+                    currency: 'INR',
+                    receipt: `rcpt_${new Date().getTime()}`,
+                };
 
             const rzOrder = await razorpay.orders.create(options);
 
