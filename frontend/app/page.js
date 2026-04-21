@@ -9,7 +9,7 @@ export default function Home() {
       <HeroSection />
       <Categories />
       <About />
-      <Footer />
+      {/* <Footer /> */}
     </div>
   );
 }

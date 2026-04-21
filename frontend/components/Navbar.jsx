@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 import { Menu, X, ChevronDown } from "lucide-react";
 import { FaRegUser } from "react-icons/fa";
 import { PiUserCircleGearBold } from "react-icons/pi";
@@ -34,6 +35,7 @@ const NAV_LINKS = [
 ];
 
 export default function Navbar() {
+  const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -42,7 +44,7 @@ export default function Navbar() {
   const searchRef = useRef(null);
   const cartCount = useCartCount();
 
-  const overHero = !scrolled;
+  const overHero = pathname === "/" && !scrolled;
   const navColor = overHero ? "#f4e6ff" : "#3d0a0a";
 
   useEffect(() => {
@@ -250,7 +252,7 @@ export default function Navbar() {
               </div>
 
               {/* Account */}
-              <Link href="/login" className="transition-transform hover:scale-110" aria-label="Account" style={{ color: navColor }}>
+              <Link href="/profile" className="transition-transform hover:scale-110" aria-label="Account" style={{ color: navColor }}>
                 <FaRegUser/>
               </Link>
 
@@ -330,7 +332,7 @@ export default function Navbar() {
               { label: "Home", href: "/" },
               { label: "Shop", href: "/shop" },
               { label: "Collections", href: "/collections" },
-              { label: "Account", href: "/login" },
+              { label: "Account", href: "/profile" },
               { label: "Cart", href: "/cart" },
             ].map(({ label, href }) => (
               <div key={label} className="mlink">

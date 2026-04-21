@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useState, useEffect, useContext } from 'react';
-import axios from 'axios';
+import api from '@/utils/api';
 
 const AuthContext = createContext();
 
@@ -10,18 +10,35 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Check if user is logged in
-        const storedUser = localStorage.getItem('userInfo');
-        if (storedUser) {
-            setUser(JSON.parse(storedUser));
-        }
-        setLoading(false);
+        const bootstrapAuth = async () => {
+            const storedUser = localStorage.getItem('userInfo');
+            if (!storedUser) {
+                setLoading(false);
+                return;
+            }
+
+            try {
+                const parsed = JSON.parse(storedUser);
+                // Show cached user immediately, then refresh from backend.
+                setUser(parsed);
+                const { data } = await api.get('/auth/me');
+                const merged = { ...parsed, ...data, token: parsed.token };
+                setUser(merged);
+                localStorage.setItem('userInfo', JSON.stringify(merged));
+            } catch {
+                localStorage.removeItem('userInfo');
+                setUser(null);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        bootstrapAuth();
     }, []);
 
     const login = async (email, password) => {
         try {
-            const config = { headers: { 'Content-Type': 'application/json' } };
-            const { data } = await axios.post('/api/auth/login', { email, password }, config);
+            const { data } = await api.post('/auth/login', { email, password });
             
             setUser(data);
             localStorage.setItem('userInfo', JSON.stringify(data));
