@@ -1,13 +1,6 @@
-"use client";
-
 import { Inter, Playfair_Display } from "next/font/google";
 import "./globals.css";
-import { Toaster } from "react-hot-toast";
-import Navbar from "@/components/Navbar.jsx";
-import Footer from "@/components/Footer.jsx";
-import { AuthProvider } from "../context/AuthContext";
-import { CartProvider } from "../context/CartContext";
-import { usePathname } from "next/navigation";
+import ClientLayout from "@/components/ClientLayout";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -19,26 +12,22 @@ const playfair = Playfair_Display({
   subsets: ["latin"],
 });
 
-export default function RootLayout({ children }) {
-  const pathname = usePathname();
-  const isAdminPath = pathname?.startsWith("/admin");
+export const metadata = {
+  title: "Ruva Handlooms - Elegance Woven In Every Thread",
+  description: "Exclusive Kanchipuram, Banarasi & designer sarees, handcrafted for your most precious moments.",
+  icons: {
+    icon: "/favicon.png",
+  }
+};
 
+export default function RootLayout({ children }) {
   return (
     <html
       lang="en"
       className={`${inter.variable} ${playfair.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col transition-colors duration-300">
-        <AuthProvider>
-          <CartProvider>
-            {!isAdminPath && <Navbar />}
-            <main className={`flex-grow ${!isAdminPath ? "pt-16" : ""}`}>
-              {children}
-            </main>
-            {!isAdminPath && <Footer />}
-            <Toaster position="bottom-right" />
-          </CartProvider>
-        </AuthProvider>
+        <ClientLayout>{children}</ClientLayout>
       </body>
     </html>
   );

@@ -1,16 +1,41 @@
 "use client";
 
 import { Suspense, useEffect, useMemo, useState } from "react";
-import { Canvas } from "@react-three/fiber";
 import { OrbitControls, useGLTF } from "@react-three/drei";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
+import { useRef } from "react";
 
-function Model() {
+function Model({ scrollY }) {
   const { scene } = useGLTF("/models/saree-model.glb");
   const clonedScene = useMemo(() => scene.clone(true), [scene]);
 
+  const ref = useRef();
+
+  // store previous scroll to detect direction
+  const prevScroll = useRef(0);
+
+  useFrame(() => {
+    if (!ref.current) return;
+
+    const delta = scrollY - prevScroll.current;
+
+    // rotation (clockwise / counterclockwise)
+    ref.current.rotation.y += delta * 0.002;
+
+    // subtle tilt for richness
+    ref.current.rotation.x = Math.sin(scrollY * 0.002) * 0.1;
+
+    prevScroll.current = scrollY;
+  });
+
   return (
-    <primitive object={clonedScene} scale={2} position={[0, -1.5, 0]} />
+    <primitive
+      ref={ref}
+      object={clonedScene}
+      scale={2}
+      position={[0, -0.5, 0]} // position is the position of the model in the 3D space (x, y, z)
+    />
   );
 }
 
@@ -33,7 +58,20 @@ function ContextLossGuard({ onContextLost }) {
   return null;
 }
 
-export default function SareeModel3D() {
+function CameraController({ scrollY }) {
+  const { camera } = useThree();
+
+  useFrame(() => {
+    // zoom in slightly as user scrolls down
+    const targetZ = 5 - Math.min(scrollY / 500, 1.5);
+
+    camera.position.z += (targetZ - camera.position.z) * 0.05;
+  });
+
+  return null;
+}
+
+export default function SareeModel3D({ scrollY }) {
   const [contextLost, setContextLost] = useState(false);
 
   if (contextLost) {
@@ -48,9 +86,9 @@ export default function SareeModel3D() {
 
   return (
     <Canvas
-      camera={{ position: [0, 0, 5], fov: 40 }}
-      style={{ width: "100%", height: "100%" }}
-      dpr={[1, 1.25]}
+      camera={{ position: [0, 0, 5], fov: 40 }} // fov is the field of view, which is the angle of the camera
+      style={{ width: "100%", height: "100%" }} // style is the style of the canvas
+      dpr={[1, 1.25]} // dpr is the device pixel ratio, which is the ratio of the number of pixels on the screen to the number of pixels in the image
       gl={{
         antialias: false,
         powerPreference: "default",
@@ -63,8 +101,10 @@ export default function SareeModel3D() {
       <directionalLight position={[2, 5, 2]} intensity={1.5} />
 
       <Suspense fallback={null}>
-        <Model />
+        <Model scrollY={scrollY}/>
       </Suspense>
+
+      <CameraController scrollY={scrollY}/>
 
       <OrbitControls enableZoom={false} enablePan={false} />
     </Canvas>
