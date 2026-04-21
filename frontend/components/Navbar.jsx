@@ -43,7 +43,7 @@ export default function Navbar() {
   const cartCount = useCartCount();
 
   const overHero = !scrolled;
-  const navColor = overHero ? "#ffffff" : "#3d0a0a";
+  const navColor = overHero ? "#f4e6ff" : "#3d0a0a";
 
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 28);
@@ -123,7 +123,7 @@ export default function Navbar() {
       <nav
         className="fixed top-0 left-0 w-full z-50"
         style={{
-          "--hover-color": overHero ? "#ffffff" : "#7a1f1f",
+          "--hover-color": overHero ? "#ffd7a6" : "#7a1f1f",
           transition: "background .45s ease, border-color .45s ease, box-shadow .45s ease, backdrop-filter .45s ease",
           background: scrolled
             ? "rgba(255, 255, 255, 0.95)"
@@ -207,10 +207,10 @@ export default function Navbar() {
                     className="flex items-center gap-2 px-3 py-1.5 rounded-full border"
                     style={{
                       background: overHero
-                        ? "rgba(255,255,255,0.08)"
+                        ? "rgba(236,204,255,0.12)"
                         : "rgba(253,243,227,0.9)",
                       backdropFilter: "blur(12px)",
-                      borderColor: "rgba(200,125,26,0.3)",
+                      borderColor: overHero ? "rgba(242,218,255,0.34)" : "rgba(200,125,26,0.3)",
                       boxShadow: searchOpen
                         ? "0 4px 20px rgba(0,0,0,0.08)"
                         : "none",
