@@ -24,6 +24,7 @@ const orderSchema = mongoose.Schema(
             city: { type: String, required: true },
             state: { type: String, required: true },
             pincode: { type: String, required: true },
+            whatsappNumber: { type: String },
         },
         paymentMethod: {
             type: String,
@@ -56,6 +57,25 @@ const orderSchema = mongoose.Schema(
             type: Number,
             required: true,
             default: 0.0,
+        },
+        holdExpiresAt: {
+            type: Date,
+            index: true,
+        },
+        refundId: {
+            type: String,
+        },
+        refundReason: {
+            type: String,
+            default: '',
+        },
+        refundInitiatedBy: {
+            type: String,
+            enum: ['user', 'admin', ''],
+            default: '',
+        },
+        refundedAt: {
+            type: Date,
         },
     },
     {

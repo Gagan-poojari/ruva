@@ -7,6 +7,7 @@ import {
   LayoutDashboard, 
   ShoppingBag, 
   Package, 
+  HandCoins,
   Settings, 
   LogOut, 
   Menu, 
@@ -55,6 +56,7 @@ export default function AdminLayout({ children }) {
     { name: 'Dashboard', icon: LayoutDashboard, href: '/admin/dashboard' },
     { name: 'Orders', icon: ShoppingBag, href: '/admin/orders' },
     { name: 'Products', icon: Package, href: '/admin/products' },
+    { name: 'Admin Refund Panel', icon: HandCoins, href: '/admin/refund' },
     // { name: 'Settings', icon: Settings, href: '/admin/settings' },
   ];
 

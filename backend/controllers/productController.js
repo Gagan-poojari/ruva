@@ -1,4 +1,5 @@
 const Product = require('../models/Product');
+const Order = require('../models/Order');
 const { cloudinary } = require('../config/cloudinary');
 
 // @desc    Fetch all products
@@ -28,7 +29,45 @@ const getProducts = async (req, res, next) => {
             .limit(pageSize)
             .skip(pageSize * (page - 1));
 
-        res.json({ products, page, pages: Math.ceil(count / pageSize) });
+        // Calculate effective stock (subtracting active holds)
+        const productsWithHoldInfo = await Promise.all(products.map(async (product) => {
+            const activeHolds = await Order.find({
+                'items.product': product._id,
+                paymentStatus: 'pending',
+                holdExpiresAt: { $gt: new Date() }
+            });
+
+            const p = product.toObject();
+            
+            if (p.sizes && p.sizes.length > 0) {
+                p.sizes = p.sizes.map(size => {
+                    let reserved = 0;
+                    activeHolds.forEach(hold => {
+                        hold.items.forEach(item => {
+                            if (item.product.toString() === product._id.toString() && item.size === size.label) {
+                                reserved += item.qty;
+                            }
+                        });
+                    });
+                    return { ...size, stock: Math.max(0, size.stock - reserved) };
+                });
+                // Also update top-level stock if it exists as a sum
+                p.stock = p.sizes.reduce((acc, curr) => acc + curr.stock, 0);
+            } else {
+                let reserved = 0;
+                activeHolds.forEach(hold => {
+                    hold.items.forEach(item => {
+                        if (item.product.toString() === product._id.toString()) {
+                            reserved += item.qty;
+                        }
+                    });
+                });
+                p.stock = Math.max(0, p.stock - reserved);
+            }
+            return p;
+        }));
+
+        res.json({ products: productsWithHoldInfo, page, pages: Math.ceil(count / pageSize) });
     } catch (error) {
         next(error);
     }
@@ -42,7 +81,40 @@ const getProductById = async (req, res, next) => {
         const product = await Product.findById(req.params.id);
 
         if (product) {
-            res.json(product);
+            const activeHolds = await Order.find({
+                'items.product': product._id,
+                paymentStatus: 'pending',
+                holdExpiresAt: { $gt: new Date() }
+            });
+
+            const p = product.toObject();
+            
+            if (p.sizes && p.sizes.length > 0) {
+                p.sizes = p.sizes.map(size => {
+                    let reserved = 0;
+                    activeHolds.forEach(hold => {
+                        hold.items.forEach(item => {
+                            if (item.product.toString() === product._id.toString() && item.size === size.label) {
+                                reserved += item.qty;
+                            }
+                        });
+                    });
+                    return { ...size, stock: Math.max(0, size.stock - reserved) };
+                });
+                p.stock = p.sizes.reduce((acc, curr) => acc + curr.stock, 0);
+            } else {
+                let reserved = 0;
+                activeHolds.forEach(hold => {
+                    hold.items.forEach(item => {
+                        if (item.product.toString() === product._id.toString()) {
+                            reserved += item.qty;
+                        }
+                    });
+                });
+                p.stock = Math.max(0, p.stock - reserved);
+            }
+
+            res.json(p);
         } else {
             res.status(404);
             throw new Error('Product not found');
