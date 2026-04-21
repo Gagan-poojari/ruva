@@ -1,6 +1,9 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const { OAuth2Client } = require('google-auth-library');
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // Generate JWT
 const generateToken = (id) => {
@@ -110,6 +113,79 @@ const loginAdmin = async (req, res, next) => {
     }
 };
 
+// @desc    Authenticate with Google
+// @route   POST /api/auth/google
+// @access  Public
+const googleAuth = async (req, res, next) => {
+    try {
+        const { credential } = req.body;
+
+        if (!credential) {
+            return res.status(400).json({ message: 'Google credential is required' });
+        }
+
+        if (!process.env.GOOGLE_CLIENT_ID) {
+            return res.status(500).json({ message: 'Google auth is not configured on server' });
+        }
+
+        const ticket = await googleClient.verifyIdToken({
+            idToken: credential,
+            audience: process.env.GOOGLE_CLIENT_ID,
+        });
+
+        const payload = ticket.getPayload();
+        const email = payload?.email;
+        const googleId = payload?.sub;
+        const name = payload?.name || 'Google User';
+        const avatar = payload?.picture;
+
+        if (!email || !googleId) {
+            return res.status(400).json({ message: 'Invalid Google token payload' });
+        }
+
+        if (payload?.email_verified === false) {
+            return res.status(401).json({ message: 'Google email is not verified' });
+        }
+
+        let user = await User.findOne({ email });
+
+        if (user) {
+            if (user.googleId && user.googleId !== googleId) {
+                return res.status(409).json({ message: 'Google account mismatch for this email' });
+            }
+
+            // Link existing local account to Google on first Google sign-in.
+            if (!user.googleId || user.avatar !== avatar) {
+                user.googleId = googleId;
+                if (avatar) user.avatar = avatar;
+                await user.save();
+            }
+        } else {
+            // Phone is required in schema, so default until user updates profile.
+            user = await User.create({
+                name,
+                email,
+                googleId,
+                avatar,
+                phone: 'Not updated',
+            });
+        }
+
+        return res.json({
+            _id: user.id,
+            name: user.name,
+            email: user.email,
+            phone: user.phone,
+            role: user.role,
+            avatar: user.avatar,
+            token: generateToken(user._id),
+        });
+    } catch (error) {
+        console.error('Google Auth Error:', error);
+        next(error);
+    }
+};
+
 // @desc    Get user data
 // @route   GET /api/auth/me
 // @access  Private
@@ -125,5 +201,6 @@ module.exports = {
     registerUser,
     loginUser,
     loginAdmin,
+    googleAuth,
     getMe,
 };

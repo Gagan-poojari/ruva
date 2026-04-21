@@ -16,16 +16,19 @@ const protect = async (req, res, next) => {
             req.user = await User.findById(decoded.id).select('-passwordHash');
 
             next();
+            return;
         } catch (error) {
             console.error(error);
             res.status(401);
             next(new Error('Not authorized'));
+            return;
         }
     }
 
     if (!token) {
         res.status(401);
         next(new Error('Not authorized, no token'));
+        return;
     }
 };
 

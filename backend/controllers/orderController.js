@@ -535,7 +535,7 @@ const processAdminRefund = async (req, res, next) => {
         const message = `Hi ${order.user.name}, your refund for order #${order._id} was initiated by support. Refund reference: ${refund.id}.`;
         const recipientPhone = order.shippingAddress?.whatsappNumber || order.user.phone;
         await sendWhatsApp(recipientPhone, message);
-g
+
         res.json({
             message: 'Admin refund initiated successfully',
             order: updatedOrder,

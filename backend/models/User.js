@@ -14,7 +14,17 @@ const userSchema = mongoose.Schema(
         },
         passwordHash: {
             type: String,
-            required: [true, 'Please add a password'],
+            required: function () {
+                return !this.googleId;
+            },
+        },
+        googleId: {
+            type: String,
+            unique: true,
+            sparse: true,
+        },
+        avatar: {
+            type: String,
         },
         phone: {
             type: String, // WhatsApp number
@@ -46,9 +56,9 @@ userSchema.methods.matchPassword = async function (enteredPassword) {
 };
 
 // Encrypt password using bcrypt
-userSchema.pre('save', async function (next) {
-    if (!this.isModified('passwordHash')) {
-        next();
+userSchema.pre('save', async function () {
+    if (!this.isModified('passwordHash') || !this.passwordHash) {
+        return;
     }
 
     const salt = await bcrypt.genSalt(10);

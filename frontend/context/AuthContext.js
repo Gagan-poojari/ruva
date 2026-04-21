@@ -53,13 +53,47 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    const register = async (name, email, password, phone) => {
+        try {
+            const { data } = await api.post('/auth/register', { name, email, password, phone });
+            
+            setUser(data);
+            localStorage.setItem('userInfo', JSON.stringify(data));
+            return { success: true };
+        } catch (error) {
+            return { 
+                success: false, 
+                error: error.response && error.response.data.message 
+                    ? error.response.data.message 
+                    : error.message 
+            };
+        }
+    };
+
+    const googleLogin = async (credential) => {
+        try {
+            const { data } = await api.post('/auth/google', { credential });
+            
+            setUser(data);
+            localStorage.setItem('userInfo', JSON.stringify(data));
+            return { success: true };
+        } catch (error) {
+            return { 
+                success: false, 
+                error: error.response && error.response.data.message 
+                    ? error.response.data.message 
+                    : error.message 
+            };
+        }
+    };
+
     const logout = () => {
         localStorage.removeItem('userInfo');
         setUser(null);
     };
 
     return (
-        <AuthContext.Provider value={{ user, login, logout, loading }}>
+        <AuthContext.Provider value={{ user, login, register, googleLogin, logout, loading }}>
             {children}
         </AuthContext.Provider>
     );
