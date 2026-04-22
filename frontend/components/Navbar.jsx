@@ -235,19 +235,11 @@ export default function Navbar() {
           box-shadow: 0 2px 8px rgba(61,10,10,0.45);
         }
 
-        /* ── Scrolled mobile top bar ── */
-        .m-topbar-scrolled {
-          background: rgba(10,4,24,0.88) !important;
-          backdrop-filter: blur(24px) saturate(1.6) !important;
-          -webkit-backdrop-filter: blur(24px) saturate(1.6) !important;
-          border-bottom-color: rgba(240,192,64,0.18) !important;
-          box-shadow: 0 2px 24px rgba(0,0,0,0.28) !important;
-        }
       `}</style>
 
       {/* ══ NAVBAR ══════════════════════════════════════════════ */}
       <nav
-        className={`fixed top-0 left-0 w-full z-50 ${scrolled ? "m-topbar-scrolled" : ""}`}
+        className="fixed top-0 left-0 w-full z-50"
         style={{
           "--hover-color": overHero ? "#ffd7a6" : "#7a1f1f",
           transition: "background .45s ease, border-color .45s ease, box-shadow .45s ease, backdrop-filter .45s ease",
