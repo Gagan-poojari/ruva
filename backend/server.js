@@ -11,18 +11,43 @@ connectDB();
 
 const app = express();
 
+// CORS: allow configured frontend + local dev + vercel previews
+const normalizeOrigin = (value) => (value || "").replace(/\/+$/, "").trim();
+const envFrontendOrigin = normalizeOrigin(process.env.FRONTEND_URL);
+const allowedOrigins = new Set(
+    [
+        envFrontendOrigin,
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "https://ruva-five.vercel.app",
+    ].filter(Boolean)
+);
+
+const corsOptions = {
+    origin: (origin, callback) => {
+        // Allow non-browser tools (no Origin header) like curl/postman/server-to-server.
+        if (!origin) return callback(null, true);
+
+        const normalized = normalizeOrigin(origin);
+        let isVercelPreview = false;
+        try {
+            isVercelPreview = /\.vercel\.app$/i.test(new URL(normalized).hostname);
+        } catch {
+            isVercelPreview = false;
+        }
+        const isAllowed = allowedOrigins.has(normalized) || isVercelPreview;
+
+        if (isAllowed) return callback(null, true);
+        return callback(new Error(`CORS blocked for origin: ${origin}`));
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "x-admin-refund-token"],
+};
+
 // Middleware
-app.use(cors(
-    {
-        origin: [
-            process.env.FRONTEND_URL, 
-            'http://localhost:3000', 
-            'https://ruva.vercel.app', 
-            'http://localhost:3001'
-        ],
-        credentials: true,
-    }
-));
+app.use(cors(corsOptions));
+app.options(/.*/, cors(corsOptions));
 app.use(express.json({ limit: '200mb' }));
 app.use(express.urlencoded({ limit: '200mb', extended: true }));
 
