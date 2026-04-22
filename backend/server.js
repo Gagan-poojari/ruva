@@ -14,7 +14,12 @@ const app = express();
 // Middleware
 app.use(cors(
     {
-        origin: process.env.FRONTEND_URL || 'http://localhost:3000' || 'https://ruva.vercel.app' || 'https://localhost:3001',
+        origin: [
+            process.env.FRONTEND_URL, 
+            'http://localhost:3000', 
+            'https://ruva.vercel.app', 
+            'http://localhost:3001'
+        ],
         credentials: true,
     }
 ));

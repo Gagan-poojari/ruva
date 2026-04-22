@@ -177,8 +177,6 @@ export default function Navbar() {
           position: fixed;
           bottom: 0; left: 0; right: 0;
           z-index: 49;
-          display: flex;
-          align-items: stretch;
           height: 64px;
           /* clean white frosted base */
           background: rgba(255, 255, 255, 0.96);
@@ -397,7 +395,7 @@ export default function Navbar() {
       </nav>
 
       {/* ══ MOBILE BOTTOM TAB BAR ══════════════════════════════ */}
-      <div className="btab-bar sm:hidden md:hidden lg:hidden flex">
+      <div className="btab-bar sm:hidden md:hidden lg:hidden flex items-stretch">
 
         {BOTTOM_TABS.map(({ label, href, Icon, ActiveIcon }) => {
           const isActive = pathname === href || (href !== "/" && pathname.startsWith(href));
