@@ -397,7 +397,7 @@ export default function Navbar() {
       </nav>
 
       {/* ══ MOBILE BOTTOM TAB BAR ══════════════════════════════ */}
-      <div className="btab-bar md:hidden">
+      <div className="btab-bar sm:hidden md:hidden lg:hidden flex">
 
         {BOTTOM_TABS.map(({ label, href, Icon, ActiveIcon }) => {
           const isActive = pathname === href || (href !== "/" && pathname.startsWith(href));
