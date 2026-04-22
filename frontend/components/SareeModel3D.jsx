@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useMemo, useState } from "react";
-import { OrbitControls, useGLTF } from "@react-three/drei";
+import { useGLTF } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { useRef } from "react";
@@ -87,7 +87,12 @@ export default function SareeModel3D({ scrollY }) {
   return (
     <Canvas
       camera={{ position: [0, 0, 5], fov: 40 }} // fov is the field of view, which is the angle of the camera
-      style={{ width: "100%", height: "100%" }} // style is the style of the canvas
+      style={{
+        width: "100%",
+        height: "100%",
+        pointerEvents: "none",
+        touchAction: "pan-y",
+      }} // keep canvas touch-passive so mobile scroll works
       dpr={[1, 1.25]} // dpr is the device pixel ratio, which is the ratio of the number of pixels on the screen to the number of pixels in the image
       gl={{
         antialias: false,
@@ -106,7 +111,6 @@ export default function SareeModel3D({ scrollY }) {
 
       <CameraController scrollY={scrollY}/>
 
-      <OrbitControls enableZoom={false} enablePan={false} />
     </Canvas>
   );
 }
