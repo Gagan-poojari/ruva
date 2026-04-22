@@ -232,7 +232,10 @@ const getMyOrders = async (req, res, next) => {
 // @access  Private/Admin
 const getOrders = async (req, res, next) => {
     try {
-        const orders = await Order.find({}).populate('user', 'id name').sort({ createdAt: -1 });
+        const orders = await Order.find({})
+            .populate('user', 'id name phone email')
+            .populate('items.product', 'name images')
+            .sort({ createdAt: -1 });
         res.json(orders);
     } catch (error) {
         next(error);
@@ -407,6 +410,71 @@ const requestRefund = async (req, res, next) => {
     }
 };
 
+// @desc    User cancel order request (paid or unpaid)
+// @route   POST /api/orders/:id/cancel
+// @access  Private
+const cancelMyOrder = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const { reason } = req.body;
+
+        if (!isValidObjectId(id)) {
+            res.status(400);
+            throw new Error('Invalid order id');
+        }
+
+        const order = await Order.findById(id).populate('user', 'name phone');
+
+        if (!order || order.user._id.toString() !== req.user._id.toString()) {
+            res.status(404);
+            throw new Error('Order not found');
+        }
+
+        if (!USER_REFUNDABLE_STATUSES.includes(order.status) && order.status !== 'cancelled') {
+            res.status(400);
+            throw new Error('Order cannot be cancelled at this stage');
+        }
+
+        if (order.status === 'cancelled') {
+            res.status(400);
+            throw new Error('Order is already cancelled');
+        }
+
+        if (order.paymentStatus === 'paid') {
+            // Process refund
+            if (!order.razorpayPaymentId) {
+                res.status(400);
+                throw new Error('No captured payment found for refund');
+            }
+            const { updatedOrder, refund } = await processRefund({
+                order,
+                reason,
+                initiatedBy: 'user',
+            });
+            const message = `Hi ${order.user.name}, your order #${order._id} has been cancelled and refund initiated. Refund ref: ${refund.id}.`;
+            const recipientPhone = order.shippingAddress?.whatsappNumber || order.user.phone;
+            await sendWhatsApp(recipientPhone, message);
+
+            return res.json({ message: 'Order cancelled and refund initiated', order: updatedOrder });
+        } else {
+            // Simply cancel unpaid order
+            order.status = 'cancelled';
+            order.refundReason = reason || '';
+            order.refundInitiatedBy = 'user';
+            order.holdExpiresAt = undefined;
+            const updatedOrder = await order.save();
+
+            const message = `Hi ${order.user.name}, your order #${order._id} has been cancelled successfully.`;
+            const recipientPhone = order.shippingAddress?.whatsappNumber || order.user.phone;
+            await sendWhatsApp(recipientPhone, message);
+
+            return res.json({ message: 'Order cancelled successfully', order: updatedOrder });
+        }
+    } catch (error) {
+        next(error);
+    }
+};
+
 // @desc    Authorize admin for refund panel second step
 // @route   POST /api/orders/admin-refund/authorize
 // @access  Private/Admin
@@ -556,4 +624,5 @@ module.exports = {
     authorizeAdminRefundPanel,
     getRefundOrderDetails,
     processAdminRefund,
+    cancelMyOrder,
 };

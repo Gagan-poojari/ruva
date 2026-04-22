@@ -6,6 +6,7 @@ const {
     createProduct,
     updateProduct,
     deleteProduct,
+    createProductReview,
 } = require('../controllers/productController');
 const { protect, admin } = require('../middleware/authMiddleware');
 const { parser } = require('../config/cloudinary');
@@ -13,6 +14,8 @@ const { parser } = require('../config/cloudinary');
 router.route('/')
     .get(getProducts)
     .post(protect, admin, parser.array('images', 5), createProduct);
+
+router.route('/:id/reviews').post(protect, createProductReview);
 
 router.route('/:id')
     .get(getProductById)

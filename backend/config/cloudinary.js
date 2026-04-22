@@ -3,6 +3,9 @@ const cloudinaryStorageModule = require('multer-storage-cloudinary');
 const CloudinaryStorage =
   cloudinaryStorageModule.CloudinaryStorage || cloudinaryStorageModule;
 const multer = require('multer');
+const os = require('os');
+const path = require('path');
+const crypto = require('crypto');
 const dotenv = require('dotenv');
 
 dotenv.config();
@@ -23,5 +26,21 @@ const storage = new CloudinaryStorage({
 });
 
 const parser = multer({ storage: storage });
+/**
+ * For user submissions, avoid uploading to Cloudinary inside Multer.
+ * Cloudinary backpressure can stall the client upload at low %.
+ * Instead, write to a temp file and upload in the controller.
+ */
+const submissionDiskParser = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => cb(null, os.tmpdir()),
+    filename: (req, file, cb) => {
+      const ext = path.extname(file.originalname || '');
+      const id = crypto.randomUUID ? crypto.randomUUID() : crypto.randomBytes(16).toString('hex');
+      cb(null, `ruva_submission_${id}${ext}`);
+    },
+  }),
+  limits: { fileSize: 200 * 1024 * 1024 }, // 200MB
+});
 
-module.exports = { cloudinary, parser };
+module.exports = { cloudinary, parser, submissionDiskParser };
