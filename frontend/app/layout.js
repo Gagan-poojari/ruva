@@ -13,7 +13,7 @@ const playfair = Playfair_Display({
 });
 
 export const metadata = {
-  title: "Ruva Handlooms - Elegance Woven In Every Thread",
+  title: "RUVA - Outfits for every occasion",
   description: "Exclusive Kanchipuram, Banarasi & designer sarees, handcrafted for your most precious moments.",
   icons: {
     icon: "/favicon.png",

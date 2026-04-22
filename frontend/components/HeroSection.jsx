@@ -117,10 +117,28 @@ export default function HeroSection() {
           filter: "blur(28px)",
         }} />
 
+        {/* Side fill for widescreens */}
+        <div className="absolute inset-y-0 left-0 z-0 pointer-events-none hidden lg:block" style={{
+          width: "24vw",
+          background: "linear-gradient(to right, rgba(248,215,152,0.09) 0%, rgba(248,215,152,0.03) 40%, transparent 100%)",
+        }} />
+        <div className="absolute inset-y-0 right-0 z-0 pointer-events-none hidden lg:block" style={{
+          width: "24vw",
+          background: "linear-gradient(to left, rgba(216,180,255,0.1) 0%, rgba(216,180,255,0.03) 42%, transparent 100%)",
+        }} />
+
+        {/* Bottom light bed so mobile doesn't feel empty */}
+        <div className="absolute left-1/2 -translate-x-1/2 bottom-[-10vh] z-0 pointer-events-none" style={{
+          width: "120vw",
+          height: "34vh",
+          background: "radial-gradient(ellipse at center, rgba(255,220,150,0.20) 0%, rgba(189,121,255,0.16) 35%, rgba(26,10,46,0) 72%)",
+          filter: "blur(6px)",
+        }} />
+
         {/* ── Main content ── */}
         <div
           className="relative z-20 flex flex-col items-center justify-center text-center px-4"
-          style={{ minHeight: "100svh", paddingTop: "88px" }}
+          style={{ minHeight: "100svh", paddingTop: "88px", paddingBottom: "26px" }}
         >
 
           {/* Eyebrow */}
@@ -205,6 +223,28 @@ export default function HeroSection() {
             }} />
 
             {mounted && <SareeModel3D scrollY={scrollY} />}
+          </div>
+
+          {/* Bottom fill content */}
+          <div className="h3 mt-1 sm:mt-3 flex flex-wrap items-center justify-center gap-2.5 sm:gap-3">
+            {["Pure Silk", "Handwoven", "Bridal Edit"].map((tag) => (
+              <span
+                key={tag}
+                className="px-3.5 py-1.5 rounded-full"
+                style={{
+                  fontFamily: "'Cormorant Garamond',Georgia,serif",
+                  fontSize: "0.68rem",
+                  letterSpacing: "0.18em",
+                  textTransform: "uppercase",
+                  color: "rgba(248,232,255,0.9)",
+                  border: "1px solid rgba(239,205,138,0.38)",
+                  background: "rgba(25,9,45,0.34)",
+                  backdropFilter: "blur(6px)",
+                }}
+              >
+                {tag}
+              </span>
+            ))}
           </div>
         </div>
       </section>
