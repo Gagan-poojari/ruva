@@ -16,7 +16,7 @@ export default function ClientLayout({ children }) {
     <AuthProvider>
       <CartProvider>
         {!isAdminPath && <Navbar />}
-        <main className={`flex-grow ${!isAdminPath && !isHome ? "pt-16" : ""}`}>
+        <main className={`grow ${!isAdminPath && !isHome ? "pt-16" : ""}`}>
           {children}
         </main>
         {!isAdminPath && <Footer />}

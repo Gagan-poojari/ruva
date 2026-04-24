@@ -1,7 +1,12 @@
 import axios from 'axios';
 
+const isDev = process.env.NODE_ENV !== 'production';
+const resolvedBaseUrl = isDev
+  ? 'http://localhost:5000/api'
+  : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api');
+
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api',
+  baseURL: resolvedBaseUrl,
 });
 
 // Add a request interceptor to include the auth token

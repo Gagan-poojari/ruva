@@ -15,7 +15,8 @@ import {
   ChevronRight,
   Bell,
   User,
-  Video
+  Video,
+  Star
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -57,9 +58,9 @@ export default function AdminLayout({ children }) {
     { name: 'Dashboard', icon: LayoutDashboard, href: '/admin/dashboard' },
     { name: 'Orders', icon: ShoppingBag, href: '/admin/orders' },
     { name: 'Products', icon: Package, href: '/admin/products' },
+    { name: 'Reviews', icon: Star, href: '/admin/reviews' },
     { name: 'Approvals', icon: Video, href: '/admin/approvals' },
     { name: 'Admin Refund Panel', icon: HandCoins, href: '/admin/refund' },
-    // { name: 'Settings', icon: Settings, href: '/admin/settings' },
   ];
 
   return (

@@ -3,11 +3,15 @@ const router = express.Router();
 const {
     uploadSubmission,
     getSubmissions,
+    getApprovedSubmissions,
     approveSubmission,
     deleteSubmission,
 } = require('../controllers/submissionController');
 const { protect, admin } = require('../middleware/authMiddleware');
 const { submissionDiskParser } = require('../config/cloudinary');
+
+// Public – homepage review wall
+router.get('/approved', getApprovedSubmissions);
 
 router.route('/')
     .get(protect, admin, getSubmissions)

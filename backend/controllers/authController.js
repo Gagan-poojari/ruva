@@ -197,10 +197,45 @@ const getMe = async (req, res, next) => {
     }
 };
 
+// @desc    Update user profile
+// @route   PUT /api/auth/me
+// @access  Private
+const updateProfile = async (req, res, next) => {
+    try {
+        const user = await User.findById(req.user._id);
+        if (!user) { res.status(404); throw new Error('User not found'); }
+
+        if (req.body.name) user.name = req.body.name;
+        if (req.body.phone) user.phone = req.body.phone;
+
+        // Password change (only if not google user)
+        if (req.body.newPassword) {
+            if (!req.body.currentPassword) { res.status(400); throw new Error('Current password required'); }
+            if (!user.passwordHash) { res.status(400); throw new Error('Cannot set password for Google accounts'); }
+            const match = await user.matchPassword(req.body.currentPassword);
+            if (!match) { res.status(401); throw new Error('Current password is incorrect'); }
+            user.passwordHash = req.body.newPassword;
+        }
+
+        const updated = await user.save();
+        res.json({
+            _id: updated._id,
+            name: updated.name,
+            email: updated.email,
+            phone: updated.phone,
+            role: updated.role,
+            avatar: updated.avatar,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     registerUser,
     loginUser,
     loginAdmin,
     googleAuth,
     getMe,
+    updateProfile,
 };

@@ -22,13 +22,13 @@ const uploadSubmission = async (req, res, next) => {
         try {
             if (mediaType === 'video') {
                 uploadResult = await cloudinary.uploader.upload(req.file.path, {
-                    folder: 'ruva_user_submissions/pending',
+                    folder: 'ruva_user_submissions/approved',
                     resource_type: 'video',
                     public_id: publicId,
                 });
             } else {
                 uploadResult = await cloudinary.uploader.upload(req.file.path, {
-                    folder: 'ruva_user_submissions/pending',
+                    folder: 'ruva_user_submissions/approved',
                     resource_type: 'image',
                     public_id: publicId,
                 });
@@ -58,7 +58,7 @@ const uploadSubmission = async (req, res, next) => {
             publicId: resultPublicId,
             mediaType,
             description,
-            status: 'pending',
+            status: 'approved',
         });
 
         res.status(201).json({
@@ -84,6 +84,24 @@ const getSubmissions = async (req, res, next) => {
     }
 };
 
+// @desc    Get public submissions (approved, optionally pending)
+// @route   GET /api/submissions/approved
+// @access  Public
+const getApprovedSubmissions = async (req, res, next) => {
+    try {
+        const includePending = String(req.query.includePending || '').toLowerCase() === 'true';
+        const statuses = includePending ? ['approved', 'pending'] : ['approved'];
+
+        const submissions = await UserSubmission.find({ status: { $in: statuses } })
+            .select('userName mediaUrl mediaType description createdAt')
+            .sort({ createdAt: -1 })
+            .limit(50);
+        res.json(submissions);
+    } catch (error) {
+        next(error);
+    }
+};
+
 // @desc    Approve submission
 // @route   PUT /api/submissions/:id/approve
 // @access  Private/Admin
@@ -101,24 +119,30 @@ const approveSubmission = async (req, res, next) => {
             throw new Error('Submission is already approved');
         }
 
-        // Rename/Move file in Cloudinary to approved folder
+        // Move media from pending -> approved when possible.
+        // Some older docs may not include "/pending/" in publicId, so approval should still succeed.
         try {
-            const newPublicId = submission.publicId.replace('pending', 'approved');
-            await cloudinary.uploader.rename(submission.publicId, newPublicId, { overwrite: true });
-            
-            // Re-fetch the new secure URL
-            const result = await cloudinary.api.resource(newPublicId);
-            
-            submission.publicId = newPublicId;
-            submission.mediaUrl = result.secure_url;
+            const hasPendingFolder = submission.publicId.includes('/pending/');
+
+            if (hasPendingFolder) {
+                const newPublicId = submission.publicId.replace('/pending/', '/approved/');
+                await cloudinary.uploader.rename(submission.publicId, newPublicId, { overwrite: true });
+
+                // Re-fetch URL after rename
+                const result = await cloudinary.api.resource(newPublicId, {
+                    resource_type: submission.mediaType,
+                });
+                submission.publicId = newPublicId;
+                submission.mediaUrl = result.secure_url || submission.mediaUrl;
+            }
+
             submission.status = 'approved';
             await submission.save();
-
             res.json({ message: 'Submission approved successfully', submission });
         } catch (cloudinaryError) {
-            console.error('Cloudinary rename error:', cloudinaryError);
+            console.error('Cloudinary approve/rename error:', cloudinaryError);
             res.status(500);
-            throw new Error('Failed to move media to approved folder in Cloudinary');
+            throw new Error('Failed to approve submission media in Cloudinary');
         }
     } catch (error) {
         next(error);
@@ -153,6 +177,7 @@ const deleteSubmission = async (req, res, next) => {
 module.exports = {
     uploadSubmission,
     getSubmissions,
+    getApprovedSubmissions,
     approveSubmission,
     deleteSubmission,
 };

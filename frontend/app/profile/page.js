@@ -1,485 +1,243 @@
 "use client";
-
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { LogOut, ShoppingBag, UserRound, X, Star, AlertCircle, CheckCircle2, Clock, Package, Truck, Ban, Camera, Video, UploadCloud, CheckCircle } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
 import api from "@/utils/api";
 import toast from "react-hot-toast";
+import Link from "next/link";
+import { LogOut, ShoppingBag, User, Settings, Package, X, AlertCircle, ChevronRight, Save } from "lucide-react";
 
-const panelIn = {
-  initial: { opacity: 0, y: 30 },
-  whileInView: { opacity: 1, y: 0 },
-  transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] },
-  viewport: { once: true, amount: 0.25 },
-};
+const CG = { fontFamily:"'Cormorant Garamond',Georgia,serif" };
+const LB = { fontFamily:"'Cormorant Garamond',Georgia,serif",textTransform:"uppercase",letterSpacing:"0.2em",fontSize:"0.65rem",fontWeight:700 };
+const fd = { hidden:{opacity:0,y:24},show:(i=0)=>({opacity:1,y:0,transition:{duration:0.65,delay:i*0.08,ease:[0.22,1,0.36,1]}}) };
+const SC = {pending:"#f59e0b",confirmed:"#8b5cf6",packed:"#3b82f6",shipped:"#06b6d4",delivered:"#10b981",cancelled:"#ef4444"};
+const SB = {pending:"rgba(245,158,11,.1)",confirmed:"rgba(139,92,246,.1)",packed:"rgba(59,130,246,.1)",shipped:"rgba(6,182,212,.1)",delivered:"rgba(16,185,129,.1)",cancelled:"rgba(239,68,68,.1)"};
 
-export default function ProfilePage() {
-  const { user, logout, loading } = useAuth();
-  const { cartItems } = useCart();
-  const [orders, setOrders] = useState([]);
-  const [ordersLoading, setOrdersLoading] = useState(false);
+function Spin(){ return <span style={{width:16,height:16,border:"2px solid rgba(240,201,122,.3)",borderTopColor:"#f0c97a",borderRadius:"50%",display:"inline-block",animation:"spin .7s linear infinite"}}/>; }
 
-  // Cancel Modal State
-  const [cancelModal, setCancelModal] = useState({ isOpen: false, orderId: null, reason: "" });
-  const [isCancelling, setIsCancelling] = useState(false);
+function Inp({label,value,onChange,type="text"}){
+  return (
+    <div>
+      <p style={{...LB,color:"rgba(255,232,176,.4)",marginBottom:6}}>{label}</p>
+      <input type={type} value={value} onChange={onChange} style={{width:"100%",padding:"11px 14px",borderRadius:10,border:"1px solid rgba(201,133,60,.3)",background:"rgba(255,245,220,.06)",color:"#fff5dd",...CG,fontSize:"0.9rem",outline:"none",boxSizing:"border-box"}}/>
+    </div>
+  );
+}
 
-  // Rate Modal State
-  const [rateModal, setRateModal] = useState({ isOpen: false, productId: null, productName: "", rating: 5, comment: "" });
-  const [isRating, setIsRating] = useState(false);
+function OCard({o,onCancel}){
+  const can = ["pending","confirmed","packed"].includes(o.status);
+  const c = SC[o.status]||"#888"; const b = SB[o.status]||"rgba(128,128,128,.1)";
+  return (
+    <div style={{borderRadius:16,border:"1px solid rgba(201,133,60,.2)",background:"rgba(255,245,220,.04)",padding:"16px 20px"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8,marginBottom:12}}>
+        <div style={{display:"flex",gap:10,alignItems:"center"}}>
+          <span style={{...CG,fontSize:"0.9rem",fontWeight:700,color:"#fff5dd"}}>#{o._id.slice(-8)}</span>
+          <span style={{fontSize:"0.7rem",color:"rgba(255,232,176,.4)"}}>{new Date(o.createdAt).toLocaleDateString("en-IN",{day:"2-digit",month:"short",year:"numeric"})}</span>
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:8}}>
+          <span style={{...LB,padding:"4px 12px",borderRadius:100,background:b,color:c,border:"1px solid "+c+"44"}}>{o.status}</span>
+          <span style={{...CG,color:"#f0c97a",fontWeight:700}}>Rs.{o.totalAmount?.toLocaleString()}</span>
+        </div>
+      </div>
+      <div style={{display:"flex",flexWrap:"wrap",gap:8,marginBottom:can?12:0}}>
+        {o.items?.map((it,i)=>(
+          <div key={i} style={{display:"flex",alignItems:"center",gap:8,background:"rgba(255,245,220,.05)",padding:"6px 10px",borderRadius:10,border:"1px solid rgba(201,133,60,.12)"}}>
+            {it.product?.images?.[0] && <img src={it.product.images[0].url||it.product.images[0]} style={{width:32,height:32,borderRadius:6,objectFit:"cover"}} alt=""/>}
+            <div>
+              <p style={{...CG,fontSize:"0.78rem",color:"#fff5dd",margin:0,fontWeight:600}}>{it.product?.name||"Product"}</p>
+              <p style={{fontSize:"0.65rem",color:"rgba(255,232,176,.4)",margin:0}}>Qty: {it.qty}{it.size?" · "+it.size:""}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+      {can && <div style={{display:"flex",justifyContent:"flex-end"}}><button onClick={()=>onCancel(o._id)} style={{...LB,padding:"6px 16px",borderRadius:100,background:"rgba(239,68,68,.1)",color:"#f87171",border:"1px solid rgba(239,68,68,.3)",cursor:"pointer"}}>Cancel</button></div>}
+    </div>
+  );
+}
 
-  // Media Upload State
-  const [uploadFile, setUploadFile] = useState(null);
-  const [uploadPreview, setUploadPreview] = useState(null);
-  const [uploadDescription, setUploadDescription] = useState("");
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
+export default function ProfilePage(){
+  const {user,logout,loading} = useAuth();
+  const {cartItems} = useCart();
+  const router = useRouter();
+  const [tab,setTab] = useState("overview");
+  const [orders,setOrders] = useState([]);
+  const [ol,setOl] = useState(false);
+  const [cid,setCid] = useState(null);
+  const [cr,setCr] = useState("");
+  const [cc,setCc] = useState(false);
+  const [nm,setNm] = useState("");
+  const [ph,setPh] = useState("");
+  const [cp,setCp] = useState("");
+  const [np,setNp] = useState("");
+  const [sv,setSv] = useState(false);
 
-  const fetchOrders = async () => {
-    if (!user?.token) return;
-    setOrdersLoading(true);
-    try {
-      const { data } = await api.get("/orders/my");
-      setOrders(Array.isArray(data) ? data : []);
-    } catch {
-      setOrders([]);
-    } finally {
-      setOrdersLoading(false);
+  useEffect(()=>{if(!loading&&!user)router.replace("/login");},[user,loading,router]);
+  useEffect(()=>{if(user){setNm(user.name||"");setPh(user.phone||"");}},[user]);
+  useEffect(()=>{
+    if(tab==="orders"&&user?.token&&orders.length===0){
+      setOl(true);
+      api.get("/orders/my").then(({data})=>setOrders(Array.isArray(data)?data:[])).catch(()=>setOrders([])).finally(()=>setOl(false));
     }
+  },[tab,user]);
+
+  const cancel = async()=>{
+    if(!cr.trim())return toast.error("Please give a reason.");
+    setCc(true);
+    try{
+      await api.post("/orders/"+cid+"/cancel",{reason:cr});
+      toast.success("Order cancelled");
+      setOrders(prev=>prev.map(o=>o._id===cid?{...o,status:"cancelled"}:o));
+      setCid(null);setCr("");
+    }catch(e){toast.error(e.response?.data?.message||"Failed");}
+    finally{setCc(false);}
   };
 
-  useEffect(() => {
-    fetchOrders();
-  }, [user?.token]);
-
-  const handleCancelOrder = async () => {
-    if (!cancelModal.reason.trim()) {
-      return toast.error("Please provide a reason for cancellation");
-    }
-    setIsCancelling(true);
-    try {
-      await api.post(`/orders/${cancelModal.orderId}/cancel`, { reason: cancelModal.reason });
-      toast.success("Order cancelled successfully");
-      setCancelModal({ isOpen: false, orderId: null, reason: "" });
-      fetchOrders();
-    } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to cancel order");
-    } finally {
-      setIsCancelling(false);
-    }
+  const save = async()=>{
+    setSv(true);
+    try{
+      const b={name:nm,phone:ph};
+      if(np){b.currentPassword=cp;b.newPassword=np;}
+      const {data}=await api.put("/auth/me",b);
+      const s=JSON.parse(localStorage.getItem("userInfo")||"{}");
+      localStorage.setItem("userInfo",JSON.stringify({...s,...data,token:s.token}));
+      toast.success("Profile updated!");setCp("");setNp("");
+    }catch(e){toast.error(e.response?.data?.message||"Update failed");}
+    finally{setSv(false);}
   };
 
-  const handleRateProduct = async () => {
-    setIsRating(true);
-    try {
-      await api.post(`/products/${rateModal.productId}/reviews`, {
-        rating: rateModal.rating,
-        comment: rateModal.comment,
-      });
-      toast.success("Thank you for your rating!");
-      setRateModal({ isOpen: false, productId: null, productName: "", rating: 5, comment: "" });
-    } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to submit rating");
-    } finally {
-      setIsRating(false);
-    }
-  };
+  if(loading||!user) return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#1e0808"}}><Spin/></div>;
 
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    if (file.size > 200 * 1024 * 1024) {
-      return toast.error("File is too large. Maximum size is 200MB.");
-    }
-
-    setUploadFile(file);
-    const url = URL.createObjectURL(file);
-    setUploadPreview({ url, type: file.type.startsWith("video/") ? "video" : "image" });
-  };
-
-  const handleUploadMedia = async () => {
-    if (!uploadFile) return toast.error("Please select a file to upload.");
-
-    const formData = new FormData();
-    formData.append("media", uploadFile);
-    formData.append("description", uploadDescription);
-
-    setIsUploading(true);
-    setUploadProgress(10); // Start progress
-
-    try {
-      await api.post("/submissions", formData, {
-        onUploadProgress: (progressEvent) => {
-          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-          // Let it reach 90% and wait for server processing
-          setUploadProgress(percentCompleted > 90 ? 90 : percentCompleted);
-        },
-      });
-      
-      setUploadProgress(100);
-      toast.success("Media uploaded successfully! Awaiting admin approval.");
-      setUploadFile(null);
-      setUploadPreview(null);
-      setUploadDescription("");
-    } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to upload media");
-    } finally {
-      setIsUploading(false);
-      setTimeout(() => setUploadProgress(0), 1000);
-    }
-  };
-
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case 'pending': return <Clock size={16} className="text-orange-500" />;
-      case 'confirmed': return <CheckCircle2 size={16} className="text-purple-500" />;
-      case 'packed': return <Package size={16} className="text-blue-500" />;
-      case 'shipped': return <Truck size={16} className="text-blue-500" />;
-      case 'delivered': return <CheckCircle2 size={16} className="text-emerald-500" />;
-      case 'cancelled': return <Ban size={16} className="text-red-500" />;
-      default: return null;
-    }
-  };
-
-  const getStatusStyle = (status) => {
-    switch (status) {
-      case 'pending': return 'bg-orange-50 text-orange-600 border-orange-200';
-      case 'confirmed': return 'bg-purple-50 text-purple-600 border-purple-200';
-      case 'packed': return 'bg-blue-50 text-blue-600 border-blue-200';
-      case 'shipped': return 'bg-blue-50 text-blue-600 border-blue-200';
-      case 'delivered': return 'bg-emerald-50 text-emerald-600 border-emerald-200';
-      case 'cancelled': return 'bg-red-50 text-red-600 border-red-200';
-      default: return 'bg-gray-50 text-gray-600 border-gray-200';
-    }
-  };
+  const ini = user.name?.split(" ").map(w=>w[0]).join("").toUpperCase().slice(0,2)||"RU";
+  const tabs = [{id:"overview",icon:User,label:"Overview"},{id:"orders",icon:Package,label:"Orders"},{id:"settings",icon:Settings,label:"Settings"}];
 
   return (
-    <section className="relative min-h-[calc(100vh-4rem)] overflow-hidden py-14 px-4 sm:px-6">
-      <div className="absolute inset-0 bg-[linear-gradient(160deg,#f8f0ff_0%,#f5ecff_35%,#fff7eb_100%)]" />
-      <div
-        className="absolute inset-0 opacity-30"
-        style={{
-          backgroundImage:
-            "repeating-linear-gradient(-45deg, rgba(162,108,38,0.12) 0, rgba(162,108,38,0.12) 1px, transparent 1px, transparent 20px), repeating-linear-gradient(45deg, rgba(162,108,38,0.1) 0, rgba(162,108,38,0.1) 1px, transparent 1px, transparent 20px)",
-        }}
-      />
+    <>
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}} @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&display=swap');`}</style>
+      <div style={{minHeight:"100vh",background:"linear-gradient(160deg,#1e0808 0%,#2a0505 55%,#1a0606 100%)",paddingBottom:80,position:"relative",overflow:"hidden"}}>
+        <div style={{position:"absolute",top:-80,left:-80,width:400,height:400,borderRadius:"50%",background:"rgba(201,133,60,.07)",filter:"blur(80px)",pointerEvents:"none"}}/>
+        <div style={{position:"absolute",bottom:-60,right:-60,width:350,height:350,borderRadius:"50%",background:"rgba(107,26,26,.1)",filter:"blur(80px)",pointerEvents:"none"}}/>
 
-      <div className="relative z-10 mx-auto max-w-5xl">
-        <motion.div {...panelIn} className="mb-10 text-center">
-          <p
-            className="uppercase tracking-[0.28em] text-[0.66rem] text-[#7a4f1f]/80 mb-3"
-            style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
-          >
-            Account Atelier
-          </p>
-          <h1
-            className="text-4xl sm:text-5xl text-[#2f0f45] font-bold"
-            style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
-          >
-            Your Ruva Profile
-          </h1>
-        </motion.div>
-
-        <motion.div
-          {...panelIn}
-          transition={{ ...panelIn.transition, delay: 0.08 }}
-          className="rounded-3xl border border-[#d9b06d]/35 bg-white/70 backdrop-blur-md p-7 sm:p-10 shadow-[0_20px_60px_rgba(54,19,73,0.12)]"
-        >
-          {loading ? (
-            <p className="text-[#5d3a22]/70">Loading your profile...</p>
-          ) : user ? (
-            <>
-              <div className="flex items-center gap-4 mb-8">
-                <div className="h-14 w-14 rounded-full bg-[linear-gradient(145deg,#5d247e,#8d4fb7)] text-[#fff1da] flex items-center justify-center">
-                  <UserRound size={24} />
-                </div>
-                <div>
-                  <p className="text-[#2a0c3f] text-xl font-semibold">{user.name || "Ruva Member"}</p>
-                  <p className="text-[#6b4a2f]/75 text-sm">{user.email}</p>
-                </div>
-              </div>
-
-              <div className="flex gap-4 mb-8">
-                <div className="rounded-2xl border border-[#d9b06d]/35 bg-white/70 p-5 flex-1 max-w-[200px]">
-                  <p className="text-xs uppercase tracking-[0.16em] text-[#6b4a2f]/70 mb-1">Saved Cart</p>
-                  <p className="text-[#2f0f45] font-semibold">{cartItems.length} items</p>
-                </div>
-              </div>
-
-              {/* Win a Free Saree Promotion */}
-              {orders.length >= 0 && (
-                <div className="mb-12 relative overflow-hidden rounded-3xl border border-[#d9b06d]/40 bg-gradient-to-br from-[#fffdfa] to-[#fcf5eb] p-6 sm:p-8 shadow-sm">
-                  <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-[#f2d08a]/20 to-transparent rounded-full blur-3xl" />
-                  <div className="relative z-10 flex flex-col md:flex-row gap-8 items-center">
-                    <div className="flex-1 space-y-4">
-                      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-100 text-amber-700 text-xs font-bold uppercase tracking-wider">
-                        <Star size={14} className="fill-current" /> Special Promotion
-                      </div>
-                      <h3 className="text-2xl sm:text-3xl font-bold text-[#2f0f45]" style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}>
-                        Win a Free Saree! 🎁
-                      </h3>
-                      <p className="text-[#6b4a2f]/80 text-sm leading-relaxed">
-                        Upload a video of you unboxing or wearing your Ruva saree. The best submissions will be featured on our page and win a free premium saree! (Max length: 15s, Max size: 200MB)
-                      </p>
-                    </div>
-
-                    <div className="w-full md:w-auto flex-shrink-0">
-                      {!uploadFile ? (
-                        <label className="flex flex-col items-center justify-center w-full md:w-64 h-40 border-2 border-dashed border-[#d9b06d]/50 rounded-2xl cursor-pointer hover:bg-white/50 transition-colors bg-white/30">
-                          <UploadCloud size={32} className="text-[#d9b06d] mb-2" />
-                          <span className="text-sm font-semibold text-[#6b4a2f]">Click to upload</span>
-                          <span className="text-xs text-[#6b4a2f]/60 mt-1">Video (15s max) or Image</span>
-                          <input type="file" accept="video/*,image/*" className="hidden" onChange={handleFileChange} />
-                        </label>
-                      ) : (
-                        <div className="w-full md:w-64 space-y-3 bg-white/60 p-3 rounded-2xl border border-[#d9b06d]/30 relative">
-                          <button 
-                            onClick={() => { setUploadFile(null); setUploadPreview(null); }}
-                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 z-10 shadow-sm"
-                          >
-                            <X size={14} />
-                          </button>
-                          
-                          <div className="w-full h-32 bg-black/5 rounded-xl overflow-hidden flex items-center justify-center">
-                            {uploadPreview?.type === "video" ? (
-                              <video src={uploadPreview.url} className="w-full h-full object-cover" muted />
-                            ) : (
-                              <img src={uploadPreview.url} alt="Preview" className="w-full h-full object-cover" />
-                            )}
-                          </div>
-                          
-                          <input
-                            type="text"
-                            placeholder="Add a short description..."
-                            value={uploadDescription}
-                            onChange={(e) => setUploadDescription(e.target.value)}
-                            className="w-full text-xs px-3 py-2 rounded-lg border border-[#d9b06d]/30 focus:outline-none focus:ring-1 focus:ring-[#c58a2a] bg-white/50"
-                          />
-                          
-                          <button
-                            onClick={handleUploadMedia}
-                            disabled={isUploading}
-                            className="w-full py-2 bg-[linear-gradient(135deg,#4d1f73,#7c3ea0)] text-[#fff0d7] text-sm font-bold rounded-xl hover:brightness-110 disabled:opacity-50 transition-all flex justify-center items-center gap-2"
-                          >
-                            {isUploading ? (
-                              <div className="w-full px-2">
-                                <div className="flex justify-between text-[10px] mb-1">
-                                  <span>Uploading...</span>
-                                  <span>{uploadProgress}%</span>
-                                </div>
-                                <div className="w-full bg-white/20 rounded-full h-1.5">
-                                  <div className="bg-white h-1.5 rounded-full transition-all duration-300" style={{ width: `${uploadProgress}%` }}></div>
-                                </div>
-                              </div>
-                            ) : (
-                              <>Submit Entry <CheckCircle size={16} /></>
-                            )}
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div className="mb-8">
-                <h3 className="text-xl font-bold text-[#2f0f45] mb-4" style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}>My Orders</h3>
-                
-                {ordersLoading ? (
-                  <p className="text-[#5d3a22]/70 text-sm">Loading orders...</p>
-                ) : orders.length === 0 ? (
-                  <div className="rounded-2xl border border-[#d9b06d]/35 bg-white/70 p-8 text-center">
-                    <p className="text-[#6b4a2f]/70">You haven't placed any orders yet.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {orders.map((order) => {
-                      const isCancellable = ['pending', 'confirmed', 'packed'].includes(order.status);
-                      const isDelivered = order.status === 'delivered';
-
-                      return (
-                        <div key={order._id} className="rounded-2xl border border-[#d9b06d]/35 bg-white/70 p-5 flex flex-col md:flex-row md:items-start justify-between gap-4">
-                          <div className="flex-1 space-y-3">
-                            <div className="flex flex-wrap items-center gap-3">
-                              <span className="text-sm font-bold text-[#2f0f45]">#{order._id.slice(-8)}</span>
-                              <span className="text-[10px] font-medium text-gray-500 uppercase tracking-tight">
-                                {new Date(order.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
-                              </span>
-                              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${getStatusStyle(order.status)}`}>
-                                {getStatusIcon(order.status)}
-                                {order.status}
-                              </span>
-                            </div>
-                            
-                            <div className="flex flex-wrap gap-4">
-                              {order.items.map((item, idx) => (
-                                <div key={idx} className="flex items-center gap-3 bg-white p-2 rounded-xl border border-gray-100 min-w-[200px]">
-                                  <div className="w-12 h-12 bg-gray-50 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
-                                    {item.product?.images?.[0] ? (
-                                      <img src={item.product.images[0].url || item.product.images[0]} alt="" className="w-full h-full object-cover" />
-                                    ) : (
-                                      <ShoppingBag size={16} className="text-gray-300" />
-                                    )}
-                                  </div>
-                                  <div className="flex-1">
-                                    <p className="text-xs font-bold text-gray-900 line-clamp-1">{item.product?.name || 'Deleted Product'}</p>
-                                    <p className="text-[10px] text-gray-500 font-medium">Qty: {item.qty} {item.size ? `| Size: ${item.size}` : ''}</p>
-                                  </div>
-                                  {isDelivered && item.product?._id && (
-                                    <button
-                                      onClick={() => setRateModal({ isOpen: true, productId: item.product._id, productName: item.product.name, rating: 5, comment: "" })}
-                                      className="p-1.5 bg-amber-50 text-amber-600 rounded-lg hover:bg-amber-100 transition-colors"
-                                      title="Rate Product"
-                                    >
-                                      <Star size={14} className="fill-current" />
-                                    </button>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                          
-                          <div className="flex flex-col items-end gap-3 min-w-[120px]">
-                            <p className="text-sm font-bold text-[#2f0f45]">₹{order.totalAmount.toLocaleString()}</p>
-                            
-                            {isCancellable && (
-                              <button
-                                onClick={() => setCancelModal({ isOpen: true, orderId: order._id, reason: "" })}
-                                className="text-xs font-bold text-red-500 hover:text-red-600 border border-red-200 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition-colors"
-                              >
-                                Cancel Order
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-              <div className="flex flex-wrap gap-3">
-                <Link
-                  href="/cart"
-                  className="inline-flex items-center gap-2 rounded-full px-6 py-3 text-[#fff0d7] border border-[#f2d08a]/60 bg-[linear-gradient(135deg,#4d1f73,#7c3ea0)] hover:brightness-110 transition"
-                >
-                  <ShoppingBag size={16} /> Go to Cart
-                </Link>
-                <button
-                  onClick={logout}
-                  className="inline-flex items-center gap-2 rounded-full px-6 py-3 text-[#5b2b12] border border-[#c6913b]/40 bg-white/80 hover:bg-white transition"
-                >
-                  <LogOut size={16} /> Logout
-                </button>
-              </div>
-            </>
-          ) : (
-            <div>
-              <p className="text-[#5d3a22]/80 mb-6">
-                Sign in to view your profile, saved orders, and curated recommendations.
-              </p>
-              <Link
-                href="/login"
-                className="inline-flex items-center rounded-full px-7 py-3 text-[#fff0d7] border border-[#f2d08a]/60 bg-[linear-gradient(135deg,#4d1f73,#7c3ea0)] hover:brightness-110 transition"
-              >
-                Continue to Login
-              </Link>
+        <div style={{background:"linear-gradient(to bottom,rgba(201,133,60,.08),transparent)",borderBottom:"1px solid rgba(201,133,60,.15)",padding:"60px 24px 36px",textAlign:"center",position:"relative"}}>
+          <motion.div variants={fd} initial="hidden" animate="show">
+            <p style={{...LB,color:"rgba(240,201,122,.55)",marginBottom:14}}>✦ Account Atelier ✦</p>
+            <div style={{width:84,height:84,borderRadius:"50%",margin:"0 auto 18px",overflow:"hidden",border:"2px solid rgba(201,133,60,.5)",boxShadow:"0 0 32px rgba(201,133,60,.2)"}}>
+              {user.avatar
+                ? <img src={user.avatar} alt={user.name} style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+                : <div style={{width:"100%",height:"100%",background:"linear-gradient(135deg,#6b1a1a,#a03030)",display:"flex",alignItems:"center",justifyContent:"center",...CG,fontSize:"1.8rem",fontWeight:700,color:"#ffe8b0"}}>{ini}</div>
+              }
             </div>
-          )}
-        </motion.div>
+            <h1 style={{...CG,fontSize:"clamp(1.8rem,4vw,2.8rem)",fontWeight:700,color:"#fff5dd",margin:"0 0 6px"}}>{user.name}</h1>
+            <p style={{color:"rgba(255,232,176,.4)",fontSize:"0.85rem",margin:"0 0 24px"}}>{user.email}</p>
+            <div style={{display:"flex",justifyContent:"center",gap:28,flexWrap:"wrap"}}>
+              {[{l:"Orders",v:orders.length},{l:"Cart",v:cartItems.length}].map(s=>(
+                <div key={s.l} style={{textAlign:"center"}}>
+                  <p style={{...CG,fontSize:"1.6rem",fontWeight:700,color:"#f0c97a",margin:0}}>{s.v}</p>
+                  <p style={{...LB,color:"rgba(255,232,176,.4)",margin:0}}>{s.l}</p>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        </div>
+
+        <div style={{display:"flex",justifyContent:"center",gap:4,padding:"28px 16px 0",flexWrap:"wrap"}}>
+          {tabs.map(t=>(
+            <button key={t.id} onClick={()=>setTab(t.id)} style={{display:"flex",alignItems:"center",gap:8,padding:"10px 20px",borderRadius:100,border:"none",cursor:"pointer",...CG,fontSize:"0.82rem",fontWeight:700,letterSpacing:"0.08em",transition:"all .25s",background:tab===t.id?"rgba(201,133,60,.18)":"transparent",color:tab===t.id?"#f0c97a":"rgba(255,232,176,.4)",boxShadow:tab===t.id?"inset 0 0 0 1px rgba(201,133,60,.4)":"none"}}>
+              <t.icon size={14}/>{t.label}
+            </button>
+          ))}
+        </div>
+
+        <div style={{maxWidth:860,margin:"32px auto 0",padding:"0 16px"}}>
+          <AnimatePresence mode="wait">
+
+            {tab==="overview" && (
+              <motion.div key="ov" variants={fd} initial="hidden" animate="show" exit={{opacity:0}} style={{display:"flex",flexDirection:"column",gap:14}}>
+                {[{label:"Browse Collection",sub:"Heritage silks & designer blouses",href:"/shop"},{label:"Your Cart",sub:cartItems.length+" items saved",href:"/cart"}].map((l,i)=>(
+                  <motion.div key={l.label} custom={i} variants={fd} initial="hidden" animate="show">
+                    <Link href={l.href} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"20px 24px",borderRadius:16,background:"rgba(255,245,220,.04)",border:"1px solid rgba(201,133,60,.18)",textDecoration:"none"}}
+                      onMouseEnter={e=>{e.currentTarget.style.background="rgba(201,133,60,.08)";e.currentTarget.style.borderColor="rgba(201,133,60,.4)"}}
+                      onMouseLeave={e=>{e.currentTarget.style.background="rgba(255,245,220,.04)";e.currentTarget.style.borderColor="rgba(201,133,60,.18)"}}>
+                      <div>
+                        <p style={{...CG,fontSize:"1rem",fontWeight:700,color:"#fff5dd",margin:0}}>{l.label}</p>
+                        <p style={{fontSize:"0.75rem",color:"rgba(255,232,176,.4)",margin:0}}>{l.sub}</p>
+                      </div>
+                      <ChevronRight size={18} color="rgba(240,201,122,.5)"/>
+                    </Link>
+                  </motion.div>
+                ))}
+                <button onClick={logout} style={{display:"flex",alignItems:"center",gap:10,padding:"16px 24px",borderRadius:16,background:"rgba(239,68,68,.06)",border:"1px solid rgba(239,68,68,.2)",cursor:"pointer",width:"100%",...CG,fontSize:"0.9rem",color:"#f87171",fontWeight:600}}
+                  onMouseEnter={e=>e.currentTarget.style.background="rgba(239,68,68,.12)"}
+                  onMouseLeave={e=>e.currentTarget.style.background="rgba(239,68,68,.06)"}>
+                  <LogOut size={16}/> Sign Out
+                </button>
+              </motion.div>
+            )}
+
+            {tab==="orders" && (
+              <motion.div key="ord" variants={fd} initial="hidden" animate="show" exit={{opacity:0}} style={{display:"flex",flexDirection:"column",gap:12}}>
+                <p style={{...CG,fontSize:"1.6rem",fontWeight:700,color:"#fff5dd",margin:"0 0 8px"}}>My Orders</p>
+                {ol ? <div style={{display:"flex",justifyContent:"center",padding:40}}><Spin/></div>
+                  : orders.length===0 ? (
+                    <div style={{textAlign:"center",padding:"60px 20px",border:"1px solid rgba(201,133,60,.18)",borderRadius:20,background:"rgba(255,245,220,.03)"}}>
+                      <Package size={40} color="rgba(240,201,122,.3)" style={{marginBottom:12}}/>
+                      <p style={{...CG,color:"rgba(255,232,176,.5)",fontSize:"1.1rem"}}>No orders yet</p>
+                      <Link href="/shop" style={{display:"inline-block",marginTop:16,...LB,padding:"10px 24px",borderRadius:100,background:"linear-gradient(130deg,#6b1a1a,#a03030)",color:"#ffe8b0",textDecoration:"none"}}>Start Shopping</Link>
+                    </div>
+                  ) : orders.map(o=><OCard key={o._id} o={o} onCancel={id=>{setCid(id);setCr("");}}/>)
+                }
+              </motion.div>
+            )}
+
+            {tab==="settings" && (
+              <motion.div key="set" variants={fd} initial="hidden" animate="show" exit={{opacity:0}} style={{display:"flex",flexDirection:"column",gap:20}}>
+                <p style={{...CG,fontSize:"1.6rem",fontWeight:700,color:"#fff5dd",margin:0}}>Account Settings</p>
+                <div style={{borderRadius:20,border:"1px solid rgba(201,133,60,.2)",background:"rgba(255,245,220,.04)",padding:"28px 24px",display:"flex",flexDirection:"column",gap:16}}>
+                  <Inp label="Full Name" value={nm} onChange={e=>setNm(e.target.value)}/>
+                  <Inp label="Phone / WhatsApp" value={ph} onChange={e=>setPh(e.target.value)} type="tel"/>
+                  {!user.googleId && <>
+                    <p style={{...LB,color:"rgba(240,201,122,.6)",margin:"4px 0 0"}}>Change Password</p>
+                    <Inp label="Current Password" value={cp} onChange={e=>setCp(e.target.value)} type="password"/>
+                    <Inp label="New Password" value={np} onChange={e=>setNp(e.target.value)} type="password"/>
+                  </>}
+                  <button onClick={save} disabled={sv} style={{...LB,display:"flex",alignItems:"center",justifyContent:"center",gap:8,padding:"12px",borderRadius:100,background:sv?"rgba(107,26,26,.3)":"linear-gradient(130deg,#6b1a1a,#a03030)",color:"#ffe8b0",border:"none",cursor:sv?"not-allowed":"pointer",boxShadow:sv?"none":"0 4px 16px rgba(107,26,26,.4)",transition:"all .3s"}}>
+                    {sv?<><Spin/> Saving…</>:<><Save size={14}/> Save Changes</>}
+                  </button>
+                </div>
+              </motion.div>
+            )}
+
+          </AnimatePresence>
+        </div>
       </div>
 
-      {/* Cancel Modal */}
       <AnimatePresence>
-        {cancelModal.isOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                  <AlertCircle className="text-red-500" /> Cancel Order
-                </h3>
-                <button onClick={() => setCancelModal({ isOpen: false, orderId: null, reason: "" })} className="text-gray-400 hover:text-gray-600">
-                  <X size={20} />
-                </button>
+        {cid && (
+          <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} onClick={()=>setCid(null)}
+            style={{position:"fixed",inset:0,background:"rgba(10,2,2,.85)",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center",padding:20,backdropFilter:"blur(8px)"}}>
+            <motion.div initial={{scale:.9,opacity:0}} animate={{scale:1,opacity:1}} exit={{scale:.9,opacity:0}} onClick={e=>e.stopPropagation()}
+              style={{width:"100%",maxWidth:420,borderRadius:20,background:"linear-gradient(160deg,#fdf8f0,#f9edda)",padding:28,boxShadow:"0 40px 80px rgba(0,0,0,.5)"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+                <div style={{display:"flex",alignItems:"center",gap:10}}>
+                  <AlertCircle size={20} color="#ef4444"/>
+                  <p style={{...CG,fontSize:"1.3rem",fontWeight:700,color:"#2a0505",margin:0}}>Cancel Order</p>
+                </div>
+                <button onClick={()=>setCid(null)} style={{background:"transparent",border:"none",cursor:"pointer",color:"#6b1a1a"}}><X size={20}/></button>
               </div>
-              <p className="text-sm text-gray-600 mb-4">Are you sure you want to cancel this order? Please provide a reason.</p>
-              <textarea
-                value={cancelModal.reason}
-                onChange={(e) => setCancelModal(prev => ({ ...prev, reason: e.target.value }))}
-                placeholder="Reason for cancellation..."
-                className="w-full border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:border-red-400 focus:ring-1 focus:ring-red-400 mb-6 min-h-[100px] resize-none"
-              ></textarea>
-              <div className="flex justify-end gap-3">
-                <button onClick={() => setCancelModal({ isOpen: false, orderId: null, reason: "" })} className="px-4 py-2 text-sm font-bold text-gray-500 hover:text-gray-700">
-                  Keep Order
-                </button>
-                <button onClick={handleCancelOrder} disabled={isCancelling} className="px-6 py-2 bg-red-500 text-white rounded-xl text-sm font-bold hover:bg-red-600 disabled:opacity-50 transition-colors">
-                  {isCancelling ? "Cancelling..." : "Confirm Cancel"}
+              <p style={{fontFamily:"'Lora',Georgia,serif",color:"rgba(90,42,26,.7)",fontSize:"0.85rem",marginBottom:12}}>Please tell us why you want to cancel.</p>
+              <textarea value={cr} onChange={e=>setCr(e.target.value)} rows={3} placeholder="Reason for cancellation…"
+                style={{width:"100%",padding:"12px 14px",borderRadius:10,border:"1px solid rgba(201,133,60,.4)",fontFamily:"'Lora',Georgia,serif",fontSize:"0.85rem",resize:"vertical",outline:"none",boxSizing:"border-box",marginBottom:14}}/>
+              <div style={{display:"flex",gap:10,justifyContent:"flex-end"}}>
+                <button onClick={()=>setCid(null)} style={{...LB,padding:"10px 20px",borderRadius:100,background:"transparent",border:"1px solid rgba(107,26,26,.25)",color:"#6b1a1a",cursor:"pointer"}}>Keep Order</button>
+                <button onClick={cancel} disabled={cc} style={{...LB,padding:"10px 24px",borderRadius:100,background:"linear-gradient(130deg,#dc2626,#b91c1c)",color:"#fff",border:"none",cursor:cc?"not-allowed":"pointer",display:"flex",alignItems:"center",gap:8}}>
+                  {cc?<><Spin/> Cancelling…</>:"Confirm Cancel"}
                 </button>
               </div>
             </motion.div>
-          </div>
+          </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Rate Modal */}
-      <AnimatePresence>
-        {rateModal.isOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                  <Star className="text-amber-500 fill-amber-500" /> Rate Product
-                </h3>
-                <button onClick={() => setRateModal({ isOpen: false, productId: null, productName: "", rating: 5, comment: "" })} className="text-gray-400 hover:text-gray-600">
-                  <X size={20} />
-                </button>
-              </div>
-              <p className="text-sm font-bold text-gray-900 mb-4">{rateModal.productName}</p>
-              
-              <div className="flex gap-2 mb-6">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <button
-                    key={star}
-                    onClick={() => setRateModal(prev => ({ ...prev, rating: star }))}
-                    className="p-1 hover:scale-110 transition-transform"
-                  >
-                    <Star size={28} className={star <= rateModal.rating ? "text-amber-500 fill-amber-500" : "text-gray-300"} />
-                  </button>
-                ))}
-              </div>
-
-              <textarea
-                value={rateModal.comment}
-                onChange={(e) => setRateModal(prev => ({ ...prev, comment: e.target.value }))}
-                placeholder="Write a review (optional)..."
-                className="w-full border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400 mb-6 min-h-[80px] resize-none"
-              ></textarea>
-              <div className="flex justify-end gap-3">
-                <button onClick={() => setRateModal({ isOpen: false, productId: null, productName: "", rating: 5, comment: "" })} className="px-4 py-2 text-sm font-bold text-gray-500 hover:text-gray-700">
-                  Cancel
-                </button>
-                <button onClick={handleRateProduct} disabled={isRating} className="px-6 py-2 bg-amber-500 text-white rounded-xl text-sm font-bold hover:bg-amber-600 disabled:opacity-50 transition-colors">
-                  {isRating ? "Submitting..." : "Submit Rating"}
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-    </section>
+    </>
   );
 }

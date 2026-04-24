@@ -380,7 +380,6 @@ export default function Categories() {
           >
             <div>
               <div className="flex items-center gap-2 mb-2" style={{ ...styles.label, color: "#c87d1a" }}>
-                <Sparkles size={13} />
                 The Gold Standard
               </div>
               <h2
@@ -475,7 +474,6 @@ export default function Categories() {
                           background: "linear-gradient(130deg,#6b1a1a,#a03030)",
                           color: "#ffe8b0",
                           border: "none",
-                          boxShadow: "0 3px 10px rgba(107,26,26,0.35)",
                         }}
                       >
                         Add
