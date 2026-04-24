@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import api from "@/utils/api";
 import toast from "react-hot-toast";
@@ -23,6 +23,46 @@ function primaryImg(product) {
   return product?.images?.[0]?.url || "https://via.placeholder.com/400x533?text=Ruva";
 }
 
+function getVariantPricing(product, variant) {
+  if (!variant) return { price: product.price, discountPrice: product.discountPrice, stock: product.stock };
+  return {
+    price: Number(variant.price || 0) > 0 ? Number(variant.price) : product.price,
+    discountPrice: Number(variant.discountPrice || 0) > 0 ? Number(variant.discountPrice) : product.discountPrice,
+    stock: Number(variant.stock || 0),
+  };
+}
+
+function ColorPalette({ product, selectedVariant, setSelectedVariant }) {
+  const variants = Array.isArray(product.colorVariants) ? product.colorVariants : [];
+  if (!variants.length) return null;
+
+  return (
+    <div className="absolute right-2 top-2 flex flex-col gap-2 z-10">
+      {variants.map((variant, idx) => {
+        const active = idx === selectedVariant;
+        return (
+          <button
+            type="button"
+            key={`${variant.colorName}-${idx}`}
+            title={variant.colorName}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setSelectedVariant(idx);
+            }}
+            className="w-6 h-6 rounded-full border-2 transition"
+            style={{
+              backgroundColor: variant.colorHex || variant.colorName || "#cccccc",
+              borderColor: active ? "#ffffff" : "rgba(255,255,255,0.55)",
+              boxShadow: active ? "0 0 0 2px rgba(61,10,10,0.55)" : "0 2px 8px rgba(0,0,0,0.2)",
+            }}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
 /* ─── motion variants ─── */
 const fadeUp = {
   hidden: { opacity: 0, y: 28 },
@@ -41,9 +81,13 @@ const listItem = {
 
 /* ─────────────── GRID CARD ─────────────── */
 function GridCard({ product, index }) {
-  const pct = discount(product.price, product.discountPrice);
-  const effectivePrice = pct ? product.discountPrice : product.price;
-  const inStock = (product.stock ?? 0) > 0;
+  const [selectedVariant, setSelectedVariant] = useState(0);
+  const variant = product?.colorVariants?.[selectedVariant];
+  const { price, discountPrice, stock } = getVariantPricing(product, variant);
+  const pct = discount(price, discountPrice);
+  const effectivePrice = pct ? discountPrice : price;
+  const inStock = (stock ?? 0) > 0;
+  const displayImage = variant?.images?.[0]?.url || primaryImg(product);
 
   return (
     <motion.div custom={index} variants={fadeUp} initial="hidden" animate="show">
@@ -55,11 +99,12 @@ function GridCard({ product, index }) {
         {/* ── image ── */}
         <div className="relative overflow-hidden" style={{ aspectRatio: "3/4" }}>
           <img
-            src={primaryImg(product)}
+            src={displayImage}
             alt={product.name}
             className="w-full h-full object-cover transition-transform duration-[1100ms] group-hover:scale-[1.07]"
             loading="lazy"
           />
+          <ColorPalette product={product} selectedVariant={selectedVariant} setSelectedVariant={setSelectedVariant} />
 
           {/* gradient */}
           <div className="absolute inset-0 bg-gradient-to-t from-[#140404]/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -94,6 +139,11 @@ function GridCard({ product, index }) {
           <h3 className="text-[0.92rem] font-bold text-[#2a0505] leading-snug line-clamp-2" style={{ fontFamily: "var(--font-display)" }}>
             {product.name}
           </h3>
+          {variant?.colorName && (
+            <p className="text-[0.62rem] uppercase tracking-[0.18em] text-[#6b1a1a]/55 mt-1">
+              {variant.colorName}
+            </p>
+          )}
 
           <div className="mt-2.5 flex items-center justify-between">
             <div>
@@ -102,7 +152,7 @@ function GridCard({ product, index }) {
               </span>
               {pct && (
                 <span className="ml-2 text-[0.68rem] text-[#6b1a1a]/40 line-through">
-                  {formatINR(product.price)}
+                  {formatINR(price)}
                 </span>
               )}
             </div>
@@ -123,9 +173,13 @@ function GridCard({ product, index }) {
 
 /* ─────────────── LIST ROW (mobile flagship) ─────────────── */
 function ListRow({ product, index }) {
-  const pct = discount(product.price, product.discountPrice);
-  const effectivePrice = pct ? product.discountPrice : product.price;
-  const inStock = (product.stock ?? 0) > 0;
+  const [selectedVariant, setSelectedVariant] = useState(0);
+  const variant = product?.colorVariants?.[selectedVariant];
+  const { price, discountPrice, stock } = getVariantPricing(product, variant);
+  const pct = discount(price, discountPrice);
+  const effectivePrice = pct ? discountPrice : price;
+  const inStock = (stock ?? 0) > 0;
+  const displayImage = variant?.images?.[0]?.url || primaryImg(product);
 
   return (
     <motion.div custom={index} variants={listItem} initial="hidden" animate="show">
@@ -135,13 +189,14 @@ function ListRow({ product, index }) {
         style={{ boxShadow: "0 4px 20px rgba(42,5,5,0.07), 0 1px 3px rgba(201,133,60,0.07)" }}
       >
         {/* thumbnail */}
-        <div className="relative w-[104px] h-[138px] rounded-xl overflow-hidden flex-shrink-0 bg-[#f6efe5]">
+        <div className="relative w-[108px] h-[150px] rounded-xl overflow-hidden flex-shrink-0 bg-[#f6efe5]">
           <img
-            src={primaryImg(product)}
+            src={displayImage}
             alt={product.name}
             className="w-full h-full object-cover transition-transform duration-700 group-active:scale-[1.04]"
             loading="lazy"
           />
+          <ColorPalette product={product} selectedVariant={selectedVariant} setSelectedVariant={setSelectedVariant} />
           {pct && (
             <span className="absolute top-1.5 left-1.5 tag-pill bg-[#1e4d2b] text-[#a3f0b8] border border-[#a3f0b8]/20 px-1.5 py-0.5">
               {pct}% off
@@ -157,24 +212,16 @@ function ListRow({ product, index }) {
         {/* details */}
         <div className="flex-1 min-w-0 py-0.5 flex flex-col justify-between">
           <div>
-            <p className="text-[0.6rem] uppercase tracking-[0.18em] text-[#6b1a1a]/50 mb-0.5" style={{ fontFamily: "var(--font-label)" }}>
-              {product.category}{product.fabric ? ` · ${product.fabric}` : ""}
-            </p>
-            <h3 className="text-[0.9rem] font-bold text-[#2a0505] leading-snug line-clamp-3" style={{ fontFamily: "var(--font-display)" }}>
+            <h3 className="text-[0.92rem] font-bold text-[#2a0505] leading-snug line-clamp-2" style={{ fontFamily: "var(--font-display)" }}>
               {product.name}
             </h3>
-          </div>
-
-          {/* tags */}
-          {product.tags?.length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-2">
-              {product.tags.slice(0, 2).map((t) => (
-                <span key={t} className="text-[0.55rem] uppercase tracking-widest px-1.5 py-0.5 rounded-full bg-[#fdf3e3] border border-[#c87d1a]/15 text-[#6b1a1a]/60" style={{ fontFamily: "var(--font-label)" }}>
-                  {t}
-                </span>
-              ))}
+            <div className="mt-2 space-y-1 text-[0.62rem] text-[#5a2a1a]/70 uppercase tracking-[0.15em]">
+              <p>Brand: Devika Textiles</p>
+              <p>Category: {product.category || "Sarees"}</p>
+              <p>Fabric: {product.fabric || "Fine Silk"}</p>
+              <p>Color: {variant?.colorName || product.colors?.[0] || "Classic"}</p>
             </div>
-          )}
+          </div>
 
           <div className="mt-2 flex items-end justify-between gap-2">
             <div>
@@ -183,7 +230,7 @@ function ListRow({ product, index }) {
                   {formatINR(effectivePrice)}
                 </span>
                 {pct && (
-                  <span className="text-[0.65rem] text-[#6b1a1a]/40 line-through">{formatINR(product.price)}</span>
+                  <span className="text-[0.65rem] text-[#6b1a1a]/40 line-through">{formatINR(price)}</span>
                 )}
               </div>
               <span
@@ -195,7 +242,7 @@ function ListRow({ product, index }) {
                   fontFamily: "var(--font-label)",
                 }}
               >
-                {inStock ? `${product.stock} left` : "Sold out"}
+                {inStock ? `${stock} left` : "Sold out"}
               </span>
             </div>
 
@@ -278,7 +325,7 @@ function FilterSheet({ open, onClose, category, setCategory, fabric, setFabric, 
               <div className="mb-5">
                 <p className="text-[0.65rem] uppercase tracking-[0.22em] font-bold text-[#6b1a1a]/60 mb-3" style={{ fontFamily: "var(--font-label)" }}>Category</p>
                 <div className="flex flex-wrap gap-2">
-                  {["", "Saree", "Blouse", "Dupatta"].map((c) => (
+                  {["", "Sarees", "Blouse", "Dupatta"].map((c) => (
                     <button
                       key={c || "all"}
                       onClick={() => setCategory(c)}

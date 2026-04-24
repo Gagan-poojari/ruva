@@ -15,6 +15,14 @@ import {
 import api from '@/utils/api';
 import toast from 'react-hot-toast';
 
+const createEmptyVariant = () => ({
+  colorName: '',
+  colorHex: '#cccccc',
+  stock: '0',
+  price: '',
+  discountPrice: '',
+});
+
 export default function NewProduct() {
   const router = useRouter();
   
@@ -32,10 +40,13 @@ export default function NewProduct() {
     isFeatured: false,
     tags: [],
     sizes: [{ label: "One Size", stock: 10 }],
-    colors: ""
+    colors: "",
+    colorVariants: [createEmptyVariant()],
   });
   const [newImages, setNewImages] = useState([]);
   const [previewUrls, setPreviewUrls] = useState([]);
+  const [variantImages, setVariantImages] = useState([[]]);
+  const [variantPreviewUrls, setVariantPreviewUrls] = useState([[]]);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
 
   const generateAIDescription = async () => {
@@ -98,6 +109,49 @@ export default function NewProduct() {
     setPreviewUrls(prev => prev.filter((_, i) => i !== index));
   };
 
+  const addVariant = () => {
+    setProductData(prev => ({
+      ...prev,
+      colorVariants: [...prev.colorVariants, createEmptyVariant()],
+    }));
+    setVariantImages(prev => [...prev, []]);
+    setVariantPreviewUrls(prev => [...prev, []]);
+  };
+
+  const removeVariant = (index) => {
+    setProductData(prev => ({
+      ...prev,
+      colorVariants: prev.colorVariants.filter((_, i) => i !== index),
+    }));
+    setVariantImages(prev => prev.filter((_, i) => i !== index));
+    setVariantPreviewUrls(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleVariantFieldChange = (index, field, value) => {
+    setProductData(prev => ({
+      ...prev,
+      colorVariants: prev.colorVariants.map((variant, i) =>
+        i === index ? { ...variant, [field]: value } : variant
+      ),
+    }));
+  };
+
+  const handleVariantImageChange = (index, files) => {
+    const parsedFiles = Array.from(files || []);
+    setVariantImages(prev => prev.map((images, i) => (i === index ? [...images, ...parsedFiles] : images)));
+    const urls = parsedFiles.map((file) => URL.createObjectURL(file));
+    setVariantPreviewUrls(prev => prev.map((images, i) => (i === index ? [...images, ...urls] : images)));
+  };
+
+  const removeVariantImage = (variantIndex, imageIndex) => {
+    setVariantImages(prev =>
+      prev.map((images, i) => (i === variantIndex ? images.filter((_, j) => j !== imageIndex) : images))
+    );
+    setVariantPreviewUrls(prev =>
+      prev.map((images, i) => (i === variantIndex ? images.filter((_, j) => j !== imageIndex) : images))
+    );
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (newImages.length === 0) {
@@ -111,6 +165,17 @@ export default function NewProduct() {
       Object.keys(productData).forEach(key => {
         if (key === 'colors') {
           formData.append(key, JSON.stringify(productData[key].split(',').map(c => c.trim())));
+        } else if (key === 'colorVariants') {
+          const normalizedVariants = productData.colorVariants
+            .filter((variant) => variant.colorName.trim())
+            .map((variant) => ({
+              colorName: variant.colorName.trim(),
+              colorHex: variant.colorHex || '#cccccc',
+              stock: Number(variant.stock || 0),
+              price: Number(variant.price || 0),
+              discountPrice: Number(variant.discountPrice || 0),
+            }));
+          formData.append('colorVariants', JSON.stringify(normalizedVariants));
         } else if (Array.isArray(productData[key])) {
           formData.append(key, JSON.stringify(productData[key]));
         } else {
@@ -120,6 +185,11 @@ export default function NewProduct() {
 
       newImages.forEach(image => {
         formData.append('images', image);
+      });
+      variantImages.forEach((images, variantIndex) => {
+        images.forEach((image) => {
+          formData.append(`variantImages_${variantIndex}`, image);
+        });
       });
 
       await api.post('/products', formData, {
@@ -263,6 +333,93 @@ export default function NewProduct() {
               </label>
             </div>
             <p className="text-[10px] text-gray-400 font-medium italic">* Upload high-quality portrait shots (3:4 ratio recommended)</p>
+          </div>
+
+          <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm space-y-6">
+            <div className="flex items-center justify-between border-b border-gray-50 pb-4">
+              <h3 className="text-lg font-bold text-gray-900">Colour Variants</h3>
+              <button type="button" onClick={addVariant} className="text-sm font-bold text-primary-600">
+                + Add Colour
+              </button>
+            </div>
+            <div className="space-y-5">
+              {productData.colorVariants.map((variant, variantIndex) => (
+                <div key={`variant-${variantIndex}`} className="rounded-2xl border border-gray-100 p-4 space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+                    <input
+                      type="text"
+                      value={variant.colorName}
+                      onChange={(e) => handleVariantFieldChange(variantIndex, 'colorName', e.target.value)}
+                      placeholder="Color name (e.g. Crimson)"
+                      className="md:col-span-2 bg-gray-50 border border-gray-100 rounded-xl py-2.5 px-4"
+                    />
+                    <input
+                      type="color"
+                      value={variant.colorHex}
+                      onChange={(e) => handleVariantFieldChange(variantIndex, 'colorHex', e.target.value)}
+                      className="h-11 w-full rounded-xl border border-gray-100"
+                    />
+                    <input
+                      type="number"
+                      value={variant.stock}
+                      onChange={(e) => handleVariantFieldChange(variantIndex, 'stock', e.target.value)}
+                      placeholder="Stock"
+                      className="bg-gray-50 border border-gray-100 rounded-xl py-2.5 px-4"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeVariant(variantIndex)}
+                      className="rounded-xl border border-red-200 text-red-600 font-semibold"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <input
+                      type="number"
+                      value={variant.price}
+                      onChange={(e) => handleVariantFieldChange(variantIndex, 'price', e.target.value)}
+                      placeholder="Variant price (optional)"
+                      className="bg-gray-50 border border-gray-100 rounded-xl py-2.5 px-4"
+                    />
+                    <input
+                      type="number"
+                      value={variant.discountPrice}
+                      onChange={(e) => handleVariantFieldChange(variantIndex, 'discountPrice', e.target.value)}
+                      placeholder="Variant discount price (optional)"
+                      className="bg-gray-50 border border-gray-100 rounded-xl py-2.5 px-4"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-xs font-bold text-gray-500 uppercase">Variant Images</p>
+                    <div className="grid grid-cols-4 gap-3">
+                      {(variantPreviewUrls[variantIndex] || []).map((url, imageIndex) => (
+                        <div key={url + imageIndex} className="relative aspect-[3/4] rounded-xl overflow-hidden border">
+                          <img src={url} alt="" className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => removeVariantImage(variantIndex, imageIndex)}
+                            className="absolute top-1 right-1 bg-red-600 text-white rounded-full p-1"
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
+                      ))}
+                      <label className="aspect-[3/4] rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center cursor-pointer">
+                        <Upload size={18} className="text-gray-400" />
+                        <input
+                          type="file"
+                          multiple
+                          className="hidden"
+                          accept="image/*"
+                          onChange={(e) => handleVariantImageChange(variantIndex, e.target.files)}
+                        />
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 

@@ -2,6 +2,45 @@ const Product = require('../models/Product');
 const Order = require('../models/Order');
 const { cloudinary } = require('../config/cloudinary');
 
+const parseJsonArray = (value, fallback = []) => {
+    if (!value) return fallback;
+    try {
+        const parsed = JSON.parse(value);
+        return Array.isArray(parsed) ? parsed : fallback;
+    } catch {
+        return fallback;
+    }
+};
+
+const getImagesFromFiles = (files = []) =>
+    files.map((file) => ({
+        url: file.path || file.secure_url || file.url,
+        publicId: file.filename || file.public_id,
+    }));
+
+const buildColorVariants = (rawVariants, files = []) => {
+    const variants = Array.isArray(rawVariants) ? rawVariants : [];
+
+    return variants.map((variant, idx) => {
+        const variantFiles = files.filter((file) => file.fieldname === `variantImages_${idx}`);
+        const variantImages = [
+            ...(Array.isArray(variant?.images) ? variant.images : []),
+            ...getImagesFromFiles(variantFiles),
+        ];
+        const variantSizes = Array.isArray(variant?.sizes) ? variant.sizes : [];
+
+        return {
+            colorName: variant?.colorName || `Color ${idx + 1}`,
+            colorHex: variant?.colorHex || '#cccccc',
+            images: variantImages,
+            stock: Number(variant?.stock || 0),
+            price: Number(variant?.price || 0),
+            discountPrice: Number(variant?.discountPrice || 0),
+            sizes: variantSizes,
+        };
+    });
+};
+
 // @desc    Fetch all products
 // @route   GET /api/products
 // @access  Public
@@ -145,14 +184,13 @@ const createProduct = async (req, res, next) => {
             isFeatured,
         } = req.body;
 
-        const images = req.files ? req.files.map((file) => ({
-            url: file.path || file.secure_url || file.url,
-            publicId: file.filename || file.public_id,
-        })) : [];
+        const baseFiles = (req.files || []).filter((file) => file.fieldname === 'images');
+        const images = getImagesFromFiles(baseFiles);
 
-        const parsedSizes = sizes ? JSON.parse(sizes) : [];
-        const parsedTags = tags ? JSON.parse(tags) : [];
-        const parsedColors = colors ? JSON.parse(colors) : [];
+        const parsedSizes = parseJsonArray(sizes);
+        const parsedTags = parseJsonArray(tags);
+        const parsedColors = parseJsonArray(colors);
+        const parsedColorVariants = buildColorVariants(parseJsonArray(req.body.colorVariants), req.files || []);
 
         const product = new Product({
             name,
@@ -168,6 +206,7 @@ const createProduct = async (req, res, next) => {
             sizes: parsedSizes,
             tags: parsedTags,
             colors: parsedColors,
+            colorVariants: parsedColorVariants,
             isFeatured: isFeatured === 'true',
         });
 
@@ -213,15 +252,16 @@ const updateProduct = async (req, res, next) => {
             product.stock = stock || product.stock;
             product.isFeatured = isFeatured !== undefined ? isFeatured === 'true' : product.isFeatured;
             
-            if (sizes) product.sizes = JSON.parse(sizes);
-            if (tags) product.tags = JSON.parse(tags);
-            if (colors) product.colors = JSON.parse(colors);
+            if (sizes) product.sizes = parseJsonArray(sizes);
+            if (tags) product.tags = parseJsonArray(tags);
+            if (colors) product.colors = parseJsonArray(colors);
+            if (req.body.colorVariants) {
+                product.colorVariants = buildColorVariants(parseJsonArray(req.body.colorVariants), req.files || []);
+            }
 
             if (req.files && req.files.length > 0) {
-                const newImages = req.files.map((file) => ({
-                    url: file.path,
-                    publicId: file.filename,
-                }));
+                const baseFiles = req.files.filter((file) => file.fieldname === 'images');
+                const newImages = getImagesFromFiles(baseFiles);
                 product.images = [...product.images, ...newImages];
             }
 
@@ -251,6 +291,18 @@ const deleteProduct = async (req, res, next) => {
                         await cloudinary.uploader.destroy(image.publicId);
                     } catch (err) {
                         console.error(`Failed to delete image ${image.publicId} from Cloudinary:`, err.message);
+                    }
+                }
+            }
+
+            if (product.colorVariants && product.colorVariants.length > 0) {
+                for (const variant of product.colorVariants) {
+                    for (const image of variant.images || []) {
+                        try {
+                            await cloudinary.uploader.destroy(image.publicId);
+                        } catch (err) {
+                            console.error(`Failed to delete variant image ${image.publicId} from Cloudinary:`, err.message);
+                        }
                     }
                 }
             }

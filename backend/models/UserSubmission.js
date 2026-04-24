@@ -13,16 +13,16 @@ const userSubmissionSchema = new mongoose.Schema(
         },
         mediaUrl: {
             type: String,
-            required: true,
+            default: '',
         },
         publicId: {
             type: String,
-            required: true,
+            default: '',
         },
         mediaType: {
             type: String,
-            enum: ['image', 'video'],
-            required: true,
+            enum: ['image', 'video', 'none'],
+            default: 'none',
         },
         status: {
             type: String,

@@ -79,9 +79,9 @@ function ReviewCard({ item, index, onClick, isActive }) {
           borderRadius: 18, overflow: "hidden",
           background: "rgba(30,8,8,0.7)",
           border: "1px solid rgba(201,133,60,0.22)",
-          boxShadow: isActive
-            ? "0 0 0 1.5px rgba(240,201,122,0.7), 0 20px 60px rgba(0,0,0,0.5)"
-            : "0 12px 40px rgba(0,0,0,0.35)",
+          // boxShadow: isActive
+          //   ? "0 0 0 1.5px rgba(240,201,122,0.7), 0 20px 60px rgba(0,0,0,0.5)"
+          //   : "0 12px 40px rgba(0,0,0,0.35)",
           backdropFilter: "blur(14px)",
           transition: "box-shadow 0.3s",
         }}
@@ -183,6 +183,36 @@ function ReviewCard({ item, index, onClick, isActive }) {
           </div>
         )}
       </TiltCard>
+    </motion.div>
+  );
+}
+
+function TextReviewCard({ item, index }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.45, delay: index * 0.06 }}
+      style={{
+        width: "100%",
+        maxWidth: 360,
+        borderRadius: 16,
+        border: "1px solid rgba(201,133,60,0.24)",
+        background: "linear-gradient(160deg,#fffdf8,#fdf2df)",
+        boxShadow: "0 10px 24px rgba(107,26,26,0.08)",
+        padding: "16px 18px",
+      }}
+    >
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+        <p style={{ margin: 0, fontFamily: F.display, fontSize: "1rem", fontWeight: 700, color: "#3d0a0a" }}>
+          {item.userName}
+        </p>
+        <Stars n={item.rating || 5} size={10} />
+      </div>
+      <p style={{ margin: 0, fontFamily: F.body, color: "rgba(61,10,10,0.78)", lineHeight: 1.62, fontSize: "0.86rem" }}>
+        &ldquo;{item.description}&rdquo;
+      </p>
     </motion.div>
   );
 }
@@ -344,12 +374,12 @@ function UploadModal({ onClose, onSuccess }) {
   };
 
   const submit = async () => {
-    if (!file) { setError("Please select a photo or video."); return; }
+    if (!file && !desc.trim()) { setError("Add text or media to submit your review."); return; }
     setLoading(true); setError("");
     try {
       const fd = new FormData();
-      fd.append("media", file);
-      fd.append("description", desc);
+      if (file) fd.append("media", file);
+      fd.append("description", desc.trim());
       await api.post("/submissions", fd, { headers: { "Content-Type": "multipart/form-data" } });
       setDone(true); if (onSuccess) onSuccess();
     } catch (e) {
@@ -485,7 +515,7 @@ function UploadModal({ onClose, onSuccess }) {
                           <Camera size={30} color="rgba(201,133,60,0.5)" />
                         </motion.div>
                         <p style={{ fontFamily: F.label, fontSize: "0.65rem", letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(90,42,26,0.5)", marginTop: 10, marginBottom: 4, fontWeight: 700 }}>
-                          Drop photo or video here
+                          Add photo/video (optional)
                         </p>
                         <p style={{ fontFamily: F.body, fontSize: "0.72rem", color: "rgba(90,42,26,0.38)", margin: 0 }}>
                           or click to browse · up to 200 MB
@@ -527,17 +557,17 @@ function UploadModal({ onClose, onSuccess }) {
 
                 <motion.button
                   whileHover={!loading && file ? { scale: 1.02 } : {}}
-                  whileTap={!loading && file ? { scale: 0.97 } : {}}
+                  whileTap={!loading && (file || desc.trim()) ? { scale: 0.97 } : {}}
                   onClick={submit}
-                  disabled={loading || !file}
+                  disabled={loading || (!file && !desc.trim())}
                   style={{
                     marginTop: 16, width: "100%", padding: "13px 0", borderRadius: 100,
                     fontFamily: F.label, fontSize: "0.68rem", letterSpacing: "0.2em", textTransform: "uppercase", fontWeight: 700,
-                    background: loading || !file ? "rgba(107,26,26,0.28)" : "linear-gradient(130deg,#6b1a1a,#a03030)",
-                    color: loading || !file ? "rgba(255,232,176,0.45)" : "#ffe8b0",
-                    border: "none", cursor: loading || !file ? "not-allowed" : "pointer",
+                    background: loading || (!file && !desc.trim()) ? "rgba(107,26,26,0.28)" : "linear-gradient(130deg,#6b1a1a,#a03030)",
+                    color: loading || (!file && !desc.trim()) ? "rgba(255,232,176,0.45)" : "#ffe8b0",
+                    border: "none", cursor: loading || (!file && !desc.trim()) ? "not-allowed" : "pointer",
                     display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                    boxShadow: loading || !file ? "none" : "0 6px 20px rgba(107,26,26,0.4)",
+                    boxShadow: loading || (!file && !desc.trim()) ? "none" : "0 6px 20px rgba(107,26,26,0.4)",
                     transition: "all .3s",
                   }}
                 >
@@ -618,6 +648,8 @@ export default function Reviews() {
   }, []);
 
   const displayReviews = loading ? [] : reviews;
+  const mediaReviews = displayReviews.filter((item) => Boolean(item.mediaUrl));
+  const textReviews = displayReviews.filter((item) => !item.mediaUrl && Boolean(item.description));
 
   const updateArrows = useCallback(() => {
     const el = scrollRef.current;
@@ -632,7 +664,7 @@ export default function Reviews() {
     el.addEventListener("scroll", updateArrows, { passive: true });
     updateArrows();
     return () => el.removeEventListener("scroll", updateArrows);
-  }, [updateArrows, displayReviews]);
+  }, [updateArrows, mediaReviews]);
 
   const scroll = (dir) => {
     scrollRef.current?.scrollBy({ left: dir * 260, behavior: "smooth" });
@@ -646,7 +678,7 @@ export default function Reviews() {
     setShowUpload(true);
   };
 
-  const lightboxItem = lightboxIndex !== null ? displayReviews[lightboxIndex] : null;
+  const lightboxItem = lightboxIndex !== null ? mediaReviews[lightboxIndex] : null;
 
   return (
     <>
@@ -678,7 +710,7 @@ export default function Reviews() {
       `}</style>
 
       <section style={{
-        background: "linear-gradient(168deg,#0e0202 0%,#1e0808 45%,#140303 100%)",
+        background: "linear-gradient(168deg,#fdf8f0 0%,#fbefdc 50%,#fff9ef 100%)",
         padding: "96px 0 100px", overflow: "hidden", position: "relative",
       }}>
 
@@ -714,15 +746,15 @@ export default function Reviews() {
             <div>
               {/* eyebrow */}
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-                <span style={{ height: 1, width: 32, background: "rgba(240,201,122,0.4)" }} />
-                <span style={{ fontFamily: F.label, fontSize: "0.65rem", letterSpacing: "0.24em", textTransform: "uppercase", color: "rgba(240,201,122,0.65)", fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ height: 1, width: 32, background: "rgba(107,26,26,0.35)" }} />
+                <span style={{ fontFamily: F.label, fontSize: "0.65rem", letterSpacing: "0.24em", textTransform: "uppercase", color: "rgba(107,26,26,0.75)", fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
                   Reviews from our customers
                 </span>
-                <span style={{ height: 1, width: 32, background: "rgba(240,201,122,0.4)" }} />
+                <span style={{ height: 1, width: 32, background: "rgba(107,26,26,0.35)" }} />
               </div>
 
               {/* headline */}
-              <h2 style={{ fontFamily: F.display, fontSize: "clamp(2.2rem,5vw,3.4rem)", fontWeight: 700, color: "#fff5dd", margin: "0 0 12px", lineHeight: 1.04 }}>
+              <h2 style={{ fontFamily: F.display, fontSize: "clamp(2.2rem,5vw,3.4rem)", fontWeight: 700, color: "#2a0505", margin: "0 0 12px", lineHeight: 1.04 }}>
                 Happy Customers,{" "}
                 <em style={{
                   fontStyle: "italic",
@@ -735,6 +767,9 @@ export default function Reviews() {
                   Genuine Stories
                 </em>
               </h2>
+              <p style={{ margin: 0, fontFamily: F.body, color: "rgba(61,10,10,0.62)", maxWidth: 560 }}>
+                Explore visual reviews separately from text-only feedback, similar to familiar e-commerce review experiences.
+              </p>
             </div>
 
             {/* CTA */}
@@ -748,11 +783,10 @@ export default function Reviews() {
                   textTransform: "uppercase", fontWeight: 700,
                   display: "flex", alignItems: "center", gap: 9,
                   padding: "12px 24px", borderRadius: 100, cursor: "pointer",
-                  background: "rgba(201,133,60,0.12)",
-                  border: "1px solid rgba(240,201,122,0.42)",
-                  color: "#f0c97a",
-                  backdropFilter: "blur(10px)",
-                  boxShadow: "0 4px 20px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,232,176,0.12)",
+                  background: "linear-gradient(130deg,#6b1a1a,#a03030)",
+                  border: "1px solid rgba(107,26,26,0.3)",
+                  color: "#ffe8b0",
+                  boxShadow: "0 8px 22px rgba(107,26,26,0.24)",
                   transition: "all .28s",
                 }}
               >
@@ -765,11 +799,16 @@ export default function Reviews() {
           </motion.div>
         </div>
 
-        {/* ═══════════ SCROLL STRIP ═══════════ */}
+        {/* ═══════════ MEDIA REVIEWS ═══════════ */}
+        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 20px", marginBottom: 8 }}>
+          <p style={{ margin: 0, fontFamily: F.label, fontSize: "0.62rem", letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(107,26,26,0.68)", fontWeight: 700 }}>
+            Photo & Video Reviews
+          </p>
+        </div>
         <div style={{ position: "relative" }}>
           {/* left arrow */}
           <AnimatePresence>
-            {canScrollL && (
+            {canScrollL && mediaReviews.length > 0 && (
               <motion.button
                 key="arr-l"
                 initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }}
@@ -777,11 +816,10 @@ export default function Reviews() {
                 onClick={() => scroll(-1)}
                 style={{
                   position: "absolute", left: 12, top: "40%", transform: "translateY(-50%)", zIndex: 10,
-                  background: "rgba(14,3,3,0.72)", border: "1px solid rgba(240,201,122,0.3)",
-                  color: "#f0c97a", width: 40, height: 40, borderRadius: "50%",
+                  background: "rgba(255,255,255,0.86)", border: "1px solid rgba(201,133,60,0.35)",
+                  color: "#8d4b1a", width: 40, height: 40, borderRadius: "50%",
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  cursor: "pointer", backdropFilter: "blur(8px)",
-                  boxShadow: "0 4px 16px rgba(0,0,0,0.45)",
+                  cursor: "pointer", boxShadow: "0 4px 16px rgba(107,26,26,0.2)",
                 }}
               >
                 <ChevronLeft size={19} />
@@ -791,7 +829,7 @@ export default function Reviews() {
 
           {/* right arrow */}
           <AnimatePresence>
-            {canScrollR && (
+            {canScrollR && mediaReviews.length > 0 && (
               <motion.button
                 key="arr-r"
                 initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }}
@@ -799,11 +837,10 @@ export default function Reviews() {
                 onClick={() => scroll(1)}
                 style={{
                   position: "absolute", right: 12, top: "40%", transform: "translateY(-50%)", zIndex: 10,
-                  background: "rgba(14,3,3,0.72)", border: "1px solid rgba(240,201,122,0.3)",
-                  color: "#f0c97a", width: 40, height: 40, borderRadius: "50%",
+                  background: "rgba(255,255,255,0.86)", border: "1px solid rgba(201,133,60,0.35)",
+                  color: "#8d4b1a", width: 40, height: 40, borderRadius: "50%",
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  cursor: "pointer", backdropFilter: "blur(8px)",
-                  boxShadow: "0 4px 16px rgba(0,0,0,0.45)",
+                  cursor: "pointer", boxShadow: "0 4px 16px rgba(107,26,26,0.2)",
                 }}
               >
                 <ChevronRight size={19} />
@@ -812,8 +849,8 @@ export default function Reviews() {
           </AnimatePresence>
 
           {/* edge fade masks */}
-          <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 64, pointerEvents: "none", zIndex: 5, background: "linear-gradient(to right,#100202,transparent)" }} />
-          <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 64, pointerEvents: "none", zIndex: 5, background: "linear-gradient(to left,#100202,transparent)" }} />
+          <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 64, pointerEvents: "none", zIndex: 5, background: "linear-gradient(to right,#fdf8f0,transparent)" }} />
+          <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 64, pointerEvents: "none", zIndex: 5, background: "linear-gradient(to left,#fdf8f0,transparent)" }} />
 
           {/* scroll track */}
           <div
@@ -836,7 +873,7 @@ export default function Reviews() {
                   animation: "pulse 1.8s ease-in-out infinite",
                 }} />
               ))
-              : displayReviews.map((item, i) => (
+              : mediaReviews.map((item, i) => (
                 <ReviewCard
                   key={item._id}
                   item={item}
@@ -849,19 +886,19 @@ export default function Reviews() {
           </div>
         </div>
 
-        {!loading && displayReviews.length === 0 && (
+        {!loading && mediaReviews.length === 0 && textReviews.length === 0 && (
           <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 20px" }}>
             <div style={{
               borderRadius: 18,
-              border: "1px dashed rgba(240,201,122,0.35)",
-              background: "rgba(30,8,8,0.35)",
+              border: "1px dashed rgba(201,133,60,0.35)",
+              background: "rgba(255,255,255,0.64)",
               padding: "30px 20px",
               textAlign: "center",
             }}>
-              <p style={{ margin: 0, fontFamily: F.display, color: "#fff5dd", fontSize: "1.3rem", fontWeight: 700 }}>
+              <p style={{ margin: 0, fontFamily: F.display, color: "#3d0a0a", fontSize: "1.3rem", fontWeight: 700 }}>
                 No reviews published yet
               </p>
-              <p style={{ margin: "8px 0 0", fontFamily: F.body, color: "rgba(255,232,176,0.52)", fontSize: "0.86rem" }}>
+              <p style={{ margin: "8px 0 0", fontFamily: F.body, color: "rgba(61,10,10,0.56)", fontSize: "0.86rem" }}>
                 Be the first to share your RUVA look.
               </p>
             </div>
@@ -869,18 +906,31 @@ export default function Reviews() {
         )}
 
         {/* ── scroll progress bar ── */}
-        {!loading && displayReviews.length > 0 && (
+        {!loading && mediaReviews.length > 0 && (
           <div style={{ maxWidth: 1200, margin: "8px auto 0", padding: "0 72px" }}>
-            <div style={{ height: 2, background: "rgba(255,232,176,0.08)", borderRadius: 999, overflow: "hidden" }}>
+            <div style={{ height: 2, background: "rgba(107,26,26,0.12)", borderRadius: 999, overflow: "hidden" }}>
               <motion.div
                 style={{
                   height: "100%", borderRadius: 999,
-                  background: "linear-gradient(to right,#c9853c,#f0c97a)",
-                  boxShadow: "0 0 8px rgba(240,201,122,0.5)",
+                  background: "linear-gradient(to right,#8d3c1d,#c9853c)",
+                  boxShadow: "0 0 8px rgba(141,60,29,0.32)",
                 }}
-                animate={{ width: `${((displayReviews.indexOf(lightboxIndex !== null ? displayReviews[lightboxIndex] : displayReviews[0]) + 1) / displayReviews.length) * 100}%` }}
+                animate={{ width: `${((mediaReviews.indexOf(lightboxIndex !== null ? mediaReviews[lightboxIndex] : mediaReviews[0]) + 1) / mediaReviews.length) * 100}%` }}
                 transition={{ duration: 0.4 }}
               />
+            </div>
+          </div>
+        )}
+
+        {!loading && textReviews.length > 0 && (
+          <div style={{ maxWidth: 1200, margin: "26px auto 0", padding: "0 20px" }}>
+            <p style={{ margin: "0 0 14px", fontFamily: F.label, fontSize: "0.62rem", letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(107,26,26,0.68)", fontWeight: 700 }}>
+              Text Reviews
+            </p>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 14, justifyContent: "center" }}>
+              {textReviews.map((item, i) => (
+                <TextReviewCard key={item._id} item={item} index={i} />
+              ))}
             </div>
           </div>
         )}
@@ -891,7 +941,7 @@ export default function Reviews() {
           transition={{ delay: 0.3 }}
           style={{ textAlign: "center", marginTop: 36 }}
         >
-          <p style={{ fontFamily: F.body, color: "rgba(255,232,176,0.28)", fontSize: "0.74rem", margin: 0 }}>
+          <p style={{ fontFamily: F.body, color: "rgba(61,10,10,0.45)", fontSize: "0.74rem", margin: 0 }}>
             Reviews are community shared and moderated by the RUVA team.
           </p>
         </motion.div>
@@ -902,10 +952,10 @@ export default function Reviews() {
         {lightboxItem && (
           <Lightbox
             item={lightboxItem}
-            items={displayReviews}
+            items={mediaReviews}
             onClose={() => setLightboxIndex(null)}
-            onPrev={() => setLightboxIndex((i) => (i - 1 + displayReviews.length) % displayReviews.length)}
-            onNext={() => setLightboxIndex((i) => (i + 1) % displayReviews.length)}
+            onPrev={() => setLightboxIndex((i) => (i - 1 + mediaReviews.length) % mediaReviews.length)}
+            onNext={() => setLightboxIndex((i) => (i + 1) % mediaReviews.length)}
           />
         )}
       </AnimatePresence>

@@ -7,48 +7,54 @@ const fs = require('fs/promises');
 // @access  Private
 const uploadSubmission = async (req, res, next) => {
     try {
-        if (!req.file) {
+        const description = (req.body.description || '').trim();
+
+        if (!req.file && !description) {
             res.status(400);
-            throw new Error('No media file provided');
+            throw new Error('Please add a review message or media file');
         }
 
-        const mediaType = req.file.mimetype?.startsWith('video/') ? 'video' : 'image';
-        const description = req.body.description || '';
+        let mediaType = 'none';
+        let mediaUrl = '';
+        let resultPublicId = '';
         const safeName = req.user?.name ? req.user.name.replace(/[^a-z0-9]/gi, '_').toLowerCase() : 'user';
         const timestamp = Date.now();
         const publicId = `${safeName}_${timestamp}`;
 
-        let uploadResult;
-        try {
-            if (mediaType === 'video') {
-                uploadResult = await cloudinary.uploader.upload(req.file.path, {
-                    folder: 'ruva_user_submissions/approved',
-                    resource_type: 'video',
-                    public_id: publicId,
-                });
-            } else {
-                uploadResult = await cloudinary.uploader.upload(req.file.path, {
-                    folder: 'ruva_user_submissions/approved',
-                    resource_type: 'image',
-                    public_id: publicId,
-                });
-            }
-        } finally {
-            // Always try to clean up the temp file
+        if (req.file) {
+            mediaType = req.file.mimetype?.startsWith('video/') ? 'video' : 'image';
+            let uploadResult;
             try {
-                await fs.unlink(req.file.path);
-            } catch {
-                // ignore
+                if (mediaType === 'video') {
+                    uploadResult = await cloudinary.uploader.upload(req.file.path, {
+                        folder: 'ruva_user_submissions/approved',
+                        resource_type: 'video',
+                        public_id: publicId,
+                    });
+                } else {
+                    uploadResult = await cloudinary.uploader.upload(req.file.path, {
+                        folder: 'ruva_user_submissions/approved',
+                        resource_type: 'image',
+                        public_id: publicId,
+                    });
+                }
+            } finally {
+                // Always try to clean up the temp file
+                try {
+                    await fs.unlink(req.file.path);
+                } catch {
+                    // ignore
+                }
             }
-        }
 
-        const mediaUrl = uploadResult.secure_url || uploadResult.url;
-        const resultPublicId = uploadResult.public_id;
+            mediaUrl = uploadResult.secure_url || uploadResult.url;
+            resultPublicId = uploadResult.public_id;
 
-        if (!mediaUrl || !resultPublicId) {
-            console.error("Cloudinary upload failed or returned unexpected object:", uploadResult);
-            res.status(500);
-            throw new Error('Cloudinary failed to return valid URLs');
+            if (!mediaUrl || !resultPublicId) {
+                console.error("Cloudinary upload failed or returned unexpected object:", uploadResult);
+                res.status(500);
+                throw new Error('Cloudinary failed to return valid URLs');
+            }
         }
 
         const submission = await UserSubmission.create({
@@ -62,7 +68,7 @@ const uploadSubmission = async (req, res, next) => {
         });
 
         res.status(201).json({
-            message: 'Media uploaded successfully',
+            message: 'Review submitted successfully',
             submission,
         });
     } catch (error) {
@@ -162,7 +168,9 @@ const deleteSubmission = async (req, res, next) => {
         }
 
         try {
-            await cloudinary.uploader.destroy(submission.publicId, { resource_type: submission.mediaType });
+            if (submission.publicId && submission.mediaType !== 'none') {
+                await cloudinary.uploader.destroy(submission.publicId, { resource_type: submission.mediaType });
+            }
         } catch (err) {
             console.error(`Failed to delete media ${submission.publicId} from Cloudinary:`, err.message);
         }

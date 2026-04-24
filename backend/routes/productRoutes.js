@@ -13,13 +13,13 @@ const { parser } = require('../config/cloudinary');
 
 router.route('/')
     .get(getProducts)
-    .post(protect, admin, parser.array('images', 5), createProduct);
+    .post(protect, admin, parser.any(), createProduct);
 
 router.route('/:id/reviews').post(protect, createProductReview);
 
 router.route('/:id')
     .get(getProductById)
-    .put(protect, admin, parser.array('images', 5), updateProduct)
+    .put(protect, admin, parser.any(), updateProduct)
     .delete(protect, admin, deleteProduct);
 
 module.exports = router;

@@ -51,6 +51,27 @@ const productSchema = mongoose.Schema(
             },
         ],
         colors: [String],
+        colorVariants: [
+            {
+                colorName: { type: String, required: true },
+                colorHex: { type: String, default: '#cccccc' },
+                images: [
+                    {
+                        url: { type: String, required: true },
+                        publicId: { type: String, required: true },
+                    },
+                ],
+                stock: { type: Number, default: 0 },
+                price: { type: Number, default: 0 },
+                discountPrice: { type: Number, default: 0 },
+                sizes: [
+                    {
+                        label: { type: String },
+                        stock: { type: Number, default: 0 },
+                    },
+                ],
+            },
+        ],
         tags: [String],
         isFeatured: {
             type: Boolean,

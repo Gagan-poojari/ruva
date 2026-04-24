@@ -31,20 +31,33 @@ export default function ProductDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [qty, setQty] = useState(1);
   const [selectedSize, setSelectedSize] = useState("");
+  const [selectedVariant, setSelectedVariant] = useState(0);
 
-  const inStock = useMemo(() => (product?.stock ?? 0) > 0, [product]);
+  const currentVariant = useMemo(
+    () => (Array.isArray(product?.colorVariants) ? product.colorVariants[selectedVariant] : null),
+    [product, selectedVariant]
+  );
+
+  const inStock = useMemo(() => {
+    if (currentVariant) return (currentVariant.stock ?? 0) > 0;
+    return (product?.stock ?? 0) > 0;
+  }, [product, currentVariant]);
 
   const effectivePrice = useMemo(() => {
     if (!product) return 0;
-    return product.discountPrice && product.discountPrice > 0 && product.discountPrice < product.price
-      ? product.discountPrice
-      : product.price;
-  }, [product]);
+    const basePrice = currentVariant?.price > 0 ? currentVariant.price : product.price;
+    const baseDiscount =
+      currentVariant?.discountPrice > 0 ? currentVariant.discountPrice : product.discountPrice;
+    return baseDiscount && baseDiscount > 0 && baseDiscount < basePrice ? baseDiscount : basePrice;
+  }, [product, currentVariant]);
 
   const discountPercent = useMemo(() => {
     if (!product) return null;
-    return getDiscountPercent(product.price, product.discountPrice);
-  }, [product]);
+    const basePrice = currentVariant?.price > 0 ? currentVariant.price : product.price;
+    const baseDiscount =
+      currentVariant?.discountPrice > 0 ? currentVariant.discountPrice : product.discountPrice;
+    return getDiscountPercent(basePrice, baseDiscount);
+  }, [product, currentVariant]);
 
   useEffect(() => {
     const run = async () => {
@@ -65,9 +78,12 @@ export default function ProductDetailsPage() {
     run();
   }, [id, router]);
 
-  const primaryImg = product?.images?.[0]?.url || "https://via.placeholder.com/600x800?text=Ruva";
+  const primaryImg =
+    currentVariant?.images?.[0]?.url ||
+    product?.images?.[0]?.url ||
+    "https://via.placeholder.com/600x800?text=Ruva";
 
-  const maxQty = Math.max(1, Number(product?.stock || 1));
+  const maxQty = Math.max(1, Number(currentVariant?.stock || product?.stock || 1));
 
   const handleAddToCart = () => {
     if (!product) return;
@@ -80,6 +96,7 @@ export default function ProductDetailsPage() {
       {
         ...product,
         image: primaryImg,
+        selectedColor: currentVariant?.colorName || product?.colors?.[0] || "",
       },
       qty,
       sizeToUse
@@ -145,13 +162,41 @@ export default function ProductDetailsPage() {
               {product.category}
               {product.fabric ? ` • ${product.fabric}` : ""}
             </div>
+            {Array.isArray(product.colorVariants) && product.colorVariants.length > 0 && (
+              <div className="mt-4 flex items-center gap-3">
+                <div className="text-[10px] font-bold uppercase tracking-widest text-[#6b1a1a]/60">
+                  Colour
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {product.colorVariants.map((variant, idx) => {
+                    const active = idx === selectedVariant;
+                    return (
+                      <button
+                        key={`${variant.colorName}-${idx}`}
+                        type="button"
+                        title={variant.colorName}
+                        onClick={() => setSelectedVariant(idx)}
+                        className="w-7 h-7 rounded-full border-2"
+                        style={{
+                          backgroundColor: variant.colorHex || variant.colorName || "#cccccc",
+                          borderColor: active ? "#3d0a0a" : "rgba(61,10,10,0.2)",
+                        }}
+                      />
+                    );
+                  })}
+                </div>
+                <span className="text-xs text-[#6b1a1a]/70 font-semibold">
+                  {currentVariant?.colorName || product.colors?.[0] || "Default"}
+                </span>
+              </div>
+            )}
 
             <div className="mt-5 flex items-end gap-3">
               <div className="text-2xl font-black text-[#6b1a1a]">{formatINR(effectivePrice)}</div>
               {discountPercent ? (
                 <>
                   <div className="text-sm font-bold text-[#6b1a1a]/45 line-through">
-                    {formatINR(product.price)}
+                    {formatINR(currentVariant?.price > 0 ? currentVariant.price : product.price)}
                   </div>
                   <div className="text-sm font-extrabold text-emerald-700">{discountPercent}% off</div>
                 </>
@@ -214,7 +259,7 @@ export default function ProductDetailsPage() {
                 </button>
               </div>
               <div className="mt-2 text-[11px] text-[#6b1a1a]/55">
-                {inStock ? `${product.stock} available` : "Currently unavailable"}
+                {inStock ? `${currentVariant?.stock ?? product.stock} available` : "Currently unavailable"}
               </div>
             </div>
 
