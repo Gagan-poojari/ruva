@@ -8,21 +8,14 @@ import { X, ChevronDown, Menu } from "lucide-react";
 import { FaRegUser } from "react-icons/fa";
 import { VscSearchSparkle } from "react-icons/vsc";
 import { BsBagHeartFill } from "react-icons/bs";
+import { FaHeart, FaRegHeart } from "react-icons/fa";
 import { HiOutlineHome, HiHome } from "react-icons/hi2";
 import { RiShoppingBag3Line, RiShoppingBag3Fill } from "react-icons/ri";
 import { MdOutlineCollections, MdCollections } from "react-icons/md";
 import { CgProfile } from "react-icons/cg";
 
-/* ─── Safe cart hook ─── */
-function useCartCount() {
-  try {
-    const { useCart } = require("@/context/CartContext");
-    const ctx = useCart();
-    return ctx?.items?.reduce((s, i) => s + (i.quantity || 0), 0) ?? 0;
-  } catch {
-    return 0;
-  }
-}
+import { useCart } from "@/context/CartContext";
+import { useWishlist } from "@/context/WishlistContext";
 
 const NAV_LINKS = [
   { label: "Home", href: "/" },
@@ -52,7 +45,9 @@ export default function Navbar() {
   const [collOpen, setCollOpen]       = useState(false);
   const [searchVal, setSearchVal]     = useState("");
   const searchRef = useRef(null);
-  const cartCount = useCartCount();
+  const { cartItems } = useCart();
+  const { wishlistCount } = useWishlist();
+  const cartCount = cartItems?.reduce((sum, item) => sum + (item.qty || 0), 0) ?? 0;
 
   const overHero  = pathname === "/" && !scrolled;
   const navColor  = overHero ? "#f4e6ff" : "#3d0a0a";
@@ -338,6 +333,15 @@ export default function Navbar() {
                   {searchOpen ? <X size={19} /> : <VscSearchSparkle size={19} />}
                 </button>
               </div>
+              <Link href="/wishlist" className="relative transition-transform hover:scale-110" aria-label="Wishlist" style={{ color: navColor }}>
+                <FaRegHeart size={18} />
+                {wishlistCount > 0 && (
+                  <span key={wishlistCount} className="badge-pop absolute -top-2 -right-2 flex items-center justify-center rounded-full text-[10px] font-bold"
+                    style={{ width: 18, height: 18, background: "linear-gradient(135deg,#6b1a1a,#a02828)", color: "#fdf3e3", boxShadow: "0 2px 8px rgba(61,10,10,0.35)" }}>
+                    {wishlistCount > 9 ? "9+" : wishlistCount}
+                  </span>
+                )}
+              </Link>
               <Link href="/profile" className="transition-transform hover:scale-110" aria-label="Account" style={{ color: navColor }}>
                 <FaRegUser />
               </Link>
@@ -353,7 +357,7 @@ export default function Navbar() {
             </div>
 
             {/* ══ MOBILE TOP BAR — right side ══ */}
-            <div className="md:hidden flex items-center" style={{ position: "relative", height: 68 }}>
+            <div className="md:hidden flex items-center gap-1" style={{ position: "relative", height: 68 }}>
 
               {/* Search input pill — slides LEFT from icon */}
               <div className={`m-search-wrap ${searchOpen ? "open" : ""}`}
@@ -388,6 +392,22 @@ export default function Navbar() {
                   : <VscSearchSparkle size={20} />
                 }
               </button>
+              <Link
+                href="/wishlist"
+                aria-label="Wishlist"
+                style={{
+                  color: overHero ? "#fdf3e3" : "#3d0a0a",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  width: 40, height: 40, position: "relative",
+                }}
+              >
+                <FaHeart size={17} />
+                {wishlistCount > 0 && (
+                  <span className="badge-pop btab-badge" style={{ top: 4, right: 2, width: 14, height: 14, fontSize: 8 }}>
+                    {wishlistCount > 9 ? "9+" : wishlistCount}
+                  </span>
+                )}
+              </Link>
             </div>
 
           </div>
@@ -465,6 +485,7 @@ export default function Navbar() {
               { label: "Shop", href: "/shop" },
               { label: "Collections", href: "/collections" },
               { label: "Account", href: "/profile" },
+              { label: "Wishlist", href: "/wishlist" },
               { label: "Cart", href: "/cart" },
             ].map(({ label, href }) => (
               <div key={label} className="mlink">

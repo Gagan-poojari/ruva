@@ -5,6 +5,7 @@ import Navbar from "./Navbar";
 import Footer from "./Footer";
 import { AuthProvider } from "../context/AuthContext";
 import { CartProvider } from "../context/CartContext";
+import { WishlistProvider } from "../context/WishlistContext";
 import { usePathname } from "next/navigation";
 
 export default function ClientLayout({ children }) {
@@ -14,14 +15,16 @@ export default function ClientLayout({ children }) {
 
   return (
     <AuthProvider>
-      <CartProvider>
-        {!isAdminPath && <Navbar />}
-        <main className={`grow ${!isAdminPath && !isHome ? "pt-16" : ""}`}>
-          {children}
-        </main>
-        {!isAdminPath && <Footer />}
-        <Toaster position="bottom-right" />
-      </CartProvider>
+      <WishlistProvider>
+        <CartProvider>
+          {!isAdminPath && <Navbar />}
+          <main className={`grow ${!isAdminPath && !isHome ? "pt-16" : ""}`}>
+            {children}
+          </main>
+          {!isAdminPath && <Footer />}
+          <Toaster position="bottom-right" />
+        </CartProvider>
+      </WishlistProvider>
     </AuthProvider>
   );
 }

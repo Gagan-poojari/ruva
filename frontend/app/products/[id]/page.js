@@ -5,8 +5,9 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import api from "@/utils/api";
 import toast from "react-hot-toast";
-import { ChevronLeft, Loader2, Minus, Plus, ShoppingBag } from "lucide-react";
+import { ChevronLeft, Heart, Loader2, Minus, Plus, ShoppingBag } from "lucide-react";
 import { useCart } from "@/context/CartContext";
+import { useWishlist } from "@/context/WishlistContext";
 
 function formatINR(value) {
   const num = Number(value || 0);
@@ -24,6 +25,7 @@ export default function ProductDetailsPage() {
   const params = useParams();
   const router = useRouter();
   const { addToCart } = useCart();
+  const { isInWishlist, toggleWishlist } = useWishlist();
 
   const id = params?.id;
 
@@ -84,6 +86,7 @@ export default function ProductDetailsPage() {
     "https://via.placeholder.com/600x800?text=Ruva";
 
   const maxQty = Math.max(1, Number(currentVariant?.stock || product?.stock || 1));
+  const liked = isInWishlist(product?._id);
 
   const handleAddToCart = () => {
     if (!product) return;
@@ -102,6 +105,17 @@ export default function ProductDetailsPage() {
       sizeToUse
     );
     toast.success("Added to cart");
+  };
+
+  const handleWishlistToggle = () => {
+    if (!product) return;
+    const added = toggleWishlist({
+      ...product,
+      image: primaryImg,
+      price: effectivePrice,
+      selectedColor: currentVariant?.colorName || product?.colors?.[0] || "",
+    });
+    toast.success(added ? "Added to wishlist" : "Removed from wishlist");
   };
 
   if (loading) {
@@ -274,12 +288,22 @@ export default function ProductDetailsPage() {
                 <ShoppingBag className="w-4 h-4" />
                 Add to cart
               </button>
-              <Link
-                href="/cart"
-                className="inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 bg-white/80 border border-[#c87d1a]/20 text-[#3d0a0a] font-extrabold uppercase tracking-widest text-xs hover:bg-white transition"
-              >
-                Go to cart
-              </Link>
+              <div className="grid grid-cols-2 gap-3">
+                <Link
+                  href="/cart"
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 bg-white/80 border border-[#c87d1a]/20 text-[#3d0a0a] font-extrabold uppercase tracking-widest text-xs hover:bg-white transition"
+                >
+                  Go to cart
+                </Link>
+                <button
+                  type="button"
+                  onClick={handleWishlistToggle}
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 bg-white/80 border border-[#c87d1a]/20 text-[#3d0a0a] font-extrabold uppercase tracking-widest text-xs hover:bg-white transition"
+                >
+                  <Heart className="w-4 h-4" fill={liked ? "currentColor" : "none"} />
+                  {liked ? "Liked" : "Like"}
+                </button>
+              </div>
             </div>
           </div>
         </div>

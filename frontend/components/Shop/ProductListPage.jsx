@@ -7,8 +7,10 @@ import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search, SlidersHorizontal, Star, ArrowRight,
-  Loader2, X, ChevronDown, Sparkles, LayoutGrid, List,
+  Loader2, X, ChevronDown, Sparkles, LayoutGrid, List, Heart, ShoppingCart,
 } from "lucide-react";
+import { useCart } from "@/context/CartContext";
+import { useWishlist } from "@/context/WishlistContext";
 
 /* ─── helpers ─── */
 function formatINR(v) {
@@ -82,12 +84,47 @@ const listItem = {
 /* ─────────────── GRID CARD ─────────────── */
 function GridCard({ product, index }) {
   const [selectedVariant, setSelectedVariant] = useState(0);
+  const { addToCart } = useCart();
+  const { isInWishlist, toggleWishlist } = useWishlist();
   const variant = product?.colorVariants?.[selectedVariant];
   const { price, discountPrice, stock } = getVariantPricing(product, variant);
   const pct = discount(price, discountPrice);
   const effectivePrice = pct ? discountPrice : price;
   const inStock = (stock ?? 0) > 0;
   const displayImage = variant?.images?.[0]?.url || primaryImg(product);
+  const liked = isInWishlist(product._id);
+
+  const handleAddToCart = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!inStock) {
+      toast.error("This item is out of stock");
+      return;
+    }
+    addToCart(
+      {
+        ...product,
+        image: displayImage,
+        price: effectivePrice,
+        selectedColor: variant?.colorName || product?.colors?.[0] || "",
+      },
+      1,
+      "Free Size"
+    );
+    toast.success("Added to cart");
+  };
+
+  const handleToggleWishlist = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const added = toggleWishlist({
+      ...product,
+      image: displayImage,
+      price: effectivePrice,
+      selectedColor: variant?.colorName || product?.colors?.[0] || "",
+    });
+    toast.success(added ? "Added to wishlist" : "Removed from wishlist");
+  };
 
   return (
     <motion.div custom={index} variants={fadeUp} initial="hidden" animate="show">
@@ -123,11 +160,36 @@ function GridCard({ product, index }) {
             )}
           </div>
 
+          <button
+            type="button"
+            onClick={handleToggleWishlist}
+            className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-md border transition-transform hover:scale-105"
+            style={{
+              background: liked ? "rgba(127,29,29,0.88)" : "rgba(255,255,255,0.75)",
+              borderColor: liked ? "rgba(255,232,176,0.45)" : "rgba(61,10,10,0.2)",
+              color: liked ? "#ffe8b0" : "#6b1a1a",
+            }}
+            aria-label={liked ? "Remove from wishlist" : "Add to wishlist"}
+          >
+            <Heart size={14} fill={liked ? "currentColor" : "none"} />
+          </button>
+
           {/* hover CTA */}
           <div className="absolute bottom-0 left-0 right-0 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] px-4 pb-4">
-            <button className="w-full py-2.5 rounded-xl text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#ffe8b0] border border-[#f0c97a]/50 bg-[rgba(20,4,4,0.55)] backdrop-blur-md">
-              View Details
-            </button>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={handleAddToCart}
+                disabled={!inStock}
+                className="w-full py-2.5 rounded-xl text-[0.62rem] font-bold uppercase tracking-[0.14em] text-[#ffe8b0] border border-[#f0c97a]/50 bg-[rgba(20,4,4,0.7)] backdrop-blur-md disabled:opacity-60 inline-flex items-center justify-center gap-1.5"
+              >
+                <ShoppingCart size={12} />
+                Add
+              </button>
+              <button className="w-full py-2.5 rounded-xl text-[0.62rem] font-bold uppercase tracking-[0.14em] text-[#ffe8b0] border border-[#f0c97a]/50 bg-[rgba(20,4,4,0.55)] backdrop-blur-md">
+                View
+              </button>
+            </div>
           </div>
         </div>
 
@@ -174,12 +236,47 @@ function GridCard({ product, index }) {
 /* ─────────────── LIST ROW (mobile flagship) ─────────────── */
 function ListRow({ product, index }) {
   const [selectedVariant, setSelectedVariant] = useState(0);
+  const { addToCart } = useCart();
+  const { isInWishlist, toggleWishlist } = useWishlist();
   const variant = product?.colorVariants?.[selectedVariant];
   const { price, discountPrice, stock } = getVariantPricing(product, variant);
   const pct = discount(price, discountPrice);
   const effectivePrice = pct ? discountPrice : price;
   const inStock = (stock ?? 0) > 0;
   const displayImage = variant?.images?.[0]?.url || primaryImg(product);
+  const liked = isInWishlist(product._id);
+
+  const handleAddToCart = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!inStock) {
+      toast.error("This item is out of stock");
+      return;
+    }
+    addToCart(
+      {
+        ...product,
+        image: displayImage,
+        price: effectivePrice,
+        selectedColor: variant?.colorName || product?.colors?.[0] || "",
+      },
+      1,
+      "Free Size"
+    );
+    toast.success("Added to cart");
+  };
+
+  const handleToggleWishlist = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const added = toggleWishlist({
+      ...product,
+      image: displayImage,
+      price: effectivePrice,
+      selectedColor: variant?.colorName || product?.colors?.[0] || "",
+    });
+    toast.success(added ? "Added to wishlist" : "Removed from wishlist");
+  };
 
   return (
     <motion.div custom={index} variants={listItem} initial="hidden" animate="show">
@@ -207,6 +304,19 @@ function ListRow({ product, index }) {
               <span className="text-[0.55rem] font-bold uppercase tracking-widest text-white">Sold out</span>
             </div>
           )}
+          <button
+            type="button"
+            onClick={handleToggleWishlist}
+            className="absolute bottom-1.5 right-1.5 w-7 h-7 rounded-full flex items-center justify-center border backdrop-blur-md"
+            style={{
+              background: liked ? "rgba(127,29,29,0.88)" : "rgba(255,255,255,0.8)",
+              borderColor: liked ? "rgba(255,232,176,0.45)" : "rgba(61,10,10,0.2)",
+              color: liked ? "#ffe8b0" : "#6b1a1a",
+            }}
+            aria-label={liked ? "Remove from wishlist" : "Add to wishlist"}
+          >
+            <Heart size={13} fill={liked ? "currentColor" : "none"} />
+          </button>
         </div>
 
         {/* details */}
@@ -251,7 +361,17 @@ function ListRow({ product, index }) {
                 <Star className="w-3 h-3 text-[#1e7d41] fill-[#1e7d41]" />
                 <span className="text-[0.6rem] font-bold text-[#1e7d41]">4.6</span>
               </div>
-              <span className="text-[0.6rem] font-black uppercase tracking-widest text-[#c87d1a] flex items-center gap-0.5" style={{ fontFamily: "var(--font-label)" }}>
+              <button
+                type="button"
+                onClick={handleAddToCart}
+                disabled={!inStock}
+                className="text-[0.58rem] font-black uppercase tracking-widest text-[#c87d1a] flex items-center gap-1 border border-[#c87d1a]/35 rounded-full px-2 py-1 disabled:opacity-50"
+                style={{ fontFamily: "var(--font-label)" }}
+              >
+                <ShoppingCart size={10} />
+                Add
+              </button>
+              <span className="text-[0.56rem] font-black uppercase tracking-widest text-[#8b5a1c] flex items-center gap-0.5" style={{ fontFamily: "var(--font-label)" }}>
                 View <ArrowRight size={9} />
               </span>
             </div>
