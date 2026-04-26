@@ -5,20 +5,29 @@ import { createContext, useState, useEffect, useContext } from 'react';
 const CartContext = createContext();
 
 export const CartProvider = ({ children }) => {
-    const [cartItems, setCartItems] = useState(() => {
-        if (typeof window === "undefined") return [];
+    const [cartItems, setCartItems] = useState([]);
+    const [isInitialized, setIsInitialized] = useState(false);
+
+    useEffect(() => {
         try {
             const storedCart = localStorage.getItem("cartItems");
-            return storedCart ? JSON.parse(storedCart) : [];
-        } catch {
-            return [];
+            if (storedCart) {
+                setCartItems(JSON.parse(storedCart));
+            }
+        } catch (error) {
+            console.error("Error loading cart from localStorage", error);
         }
-    });
+        setIsInitialized(true);
+    }, []);
+
     const getProductId = (item) => item?._id || item?.product;
 
     useEffect(() => {
-        localStorage.setItem('cartItems', JSON.stringify(cartItems));
-    }, [cartItems]);
+        if (isInitialized) {
+            localStorage.setItem('cartItems', JSON.stringify(cartItems));
+        }
+    }, [cartItems, isInitialized]);
+
 
     const addToCart = (product, qty = 1, size = "Free Size") => {
         const productId = getProductId(product);
@@ -50,8 +59,13 @@ export const CartProvider = ({ children }) => {
         setCartItems(cartItems.filter(x => x.product !== id));
     };
 
+    const clearCart = () => {
+        setCartItems([]);
+        localStorage.removeItem('cartItems');
+    };
+
     return (
-        <CartContext.Provider value={{ cartItems, addToCart, removeFromCart }}>
+        <CartContext.Provider value={{ cartItems, addToCart, removeFromCart, clearCart }}>
             {children}
         </CartContext.Provider>
     );

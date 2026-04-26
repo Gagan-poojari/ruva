@@ -5,19 +5,27 @@ import { createContext, useContext, useEffect, useState } from "react";
 const WishlistContext = createContext();
 
 export function WishlistProvider({ children }) {
-  const [wishlistItems, setWishlistItems] = useState(() => {
-    if (typeof window === "undefined") return [];
-    try {
-      const storedWishlist = localStorage.getItem("wishlistItems");
-      return storedWishlist ? JSON.parse(storedWishlist) : [];
-    } catch {
-      return [];
-    }
-  });
+  const [wishlistItems, setWishlistItems] = useState([]);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
-    localStorage.setItem("wishlistItems", JSON.stringify(wishlistItems));
-  }, [wishlistItems]);
+    try {
+      const storedWishlist = localStorage.getItem("wishlistItems");
+      if (storedWishlist) {
+        setWishlistItems(JSON.parse(storedWishlist));
+      }
+    } catch (error) {
+      console.error("Error loading wishlist from localStorage", error);
+    }
+    setIsInitialized(true);
+  }, []);
+
+  useEffect(() => {
+    if (isInitialized) {
+      localStorage.setItem("wishlistItems", JSON.stringify(wishlistItems));
+    }
+  }, [wishlistItems, isInitialized]);
+
 
   const getProductId = (item) => item?._id || item?.product;
 

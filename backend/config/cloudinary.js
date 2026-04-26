@@ -1,4 +1,4 @@
-const cloudinary = require('cloudinary');
+const cloudinary = require('cloudinary').v2;
 const cloudinaryStorageModule = require('multer-storage-cloudinary');
 const CloudinaryStorage =
   cloudinaryStorageModule.CloudinaryStorage || cloudinaryStorageModule;
@@ -25,7 +25,11 @@ const storage = new CloudinaryStorage({
   },
 });
 
-const parser = multer({ storage: storage });
+const parser = multer({ 
+  storage: storage,
+  limits: { fileSize: 200 * 1024 * 1024 } // 200MB
+});
+
 /**
  * For user submissions, avoid uploading to Cloudinary inside Multer.
  * Cloudinary backpressure can stall the client upload at low %.
@@ -40,7 +44,10 @@ const submissionDiskParser = multer({
       cb(null, `ruva_submission_${id}${ext}`);
     },
   }),
-  limits: { fileSize: 200 * 1024 * 1024 }, // 200MB
+  limits: { 
+    fileSize: 200 * 1024 * 1024, // 200MB
+    fieldSize: 200 * 1024 * 1024 // 200MB for fields as well
+  },
 });
 
 module.exports = { cloudinary, parser, submissionDiskParser };

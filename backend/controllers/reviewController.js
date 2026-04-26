@@ -23,15 +23,27 @@ const createReview = async (req, res, next) => {
             mediaType = isVideo ? 'video' : 'image';
             let result;
             try {
-                result = await cloudinary.uploader.upload(req.file.path, {
+                const options = {
                     folder: 'ruva_reviews',
                     resource_type: isVideo ? 'video' : 'image',
-                });
+                };
+                if (isVideo) {
+                    result = await cloudinary.uploader.upload_large(req.file.path, { ...options, chunk_size: 6000000 });
+                } else {
+                    result = await cloudinary.uploader.upload(req.file.path, options);
+                }
             } finally {
-                try { await fs.unlink(req.file.path); } catch {}
+                try { await fs.unlink(req.file.path); } catch { }
             }
-            mediaUrl  = result.secure_url || result.url;
-            publicId  = result.public_id;
+
+            if (!result || (!result.secure_url && !result.url)) {
+                console.error("Cloudinary upload failed in createReview:", JSON.stringify(result, null, 2));
+                res.status(500);
+                throw new Error(`Cloudinary upload failed: ${result?.error?.message || 'Missing URLs'}`);
+            }
+
+            mediaUrl = result.secure_url || result.url;
+            publicId = result.public_id;
         }
 
         const review = await Review.create({
@@ -51,28 +63,40 @@ const updateReview = async (req, res, next) => {
 
         const { customerName, quote, rating, location, order } = req.body;
         if (customerName !== undefined) review.customerName = customerName;
-        if (quote       !== undefined) review.quote        = quote;
-        if (rating      !== undefined) review.rating       = rating;
-        if (location    !== undefined) review.location     = location;
-        if (order       !== undefined) review.order        = order;
+        if (quote !== undefined) review.quote = quote;
+        if (rating !== undefined) review.rating = rating;
+        if (location !== undefined) review.location = location;
+        if (order !== undefined) review.order = order;
 
         // Replace media if a new file is uploaded
         if (req.file) {
             // delete old from cloudinary
             if (review.publicId) {
-                try { await cloudinary.uploader.destroy(review.publicId, { resource_type: review.mediaType === 'video' ? 'video' : 'image' }); } catch {}
+                try { await cloudinary.uploader.destroy(review.publicId, { resource_type: review.mediaType === 'video' ? 'video' : 'image' }); } catch { }
             }
             const isVideo = req.file.mimetype?.startsWith('video/');
             review.mediaType = isVideo ? 'video' : 'image';
             let result;
             try {
-                result = await cloudinary.uploader.upload(req.file.path, {
+                const options = {
                     folder: 'ruva_reviews',
                     resource_type: isVideo ? 'video' : 'image',
-                });
+                };
+                if (isVideo) {
+                    result = await cloudinary.uploader.upload_large(req.file.path, { ...options, chunk_size: 6000000 });
+                } else {
+                    result = await cloudinary.uploader.upload(req.file.path, options);
+                }
             } finally {
-                try { await fs.unlink(req.file.path); } catch {}
+                try { await fs.unlink(req.file.path); } catch { }
             }
+
+            if (!result || (!result.secure_url && !result.url)) {
+                console.error("Cloudinary upload failed in updateReview:", JSON.stringify(result, null, 2));
+                res.status(500);
+                throw new Error(`Cloudinary upload failed: ${result?.error?.message || 'Missing URLs'}`);
+            }
+
             review.mediaUrl = result.secure_url || result.url;
             review.publicId = result.public_id;
         }
@@ -90,7 +114,7 @@ const deleteReview = async (req, res, next) => {
         if (!review) { res.status(404); throw new Error('Review not found'); }
 
         if (review.publicId) {
-            try { await cloudinary.uploader.destroy(review.publicId, { resource_type: review.mediaType === 'video' ? 'video' : 'image' }); } catch {}
+            try { await cloudinary.uploader.destroy(review.publicId, { resource_type: review.mediaType === 'video' ? 'video' : 'image' }); } catch { }
         }
         await review.deleteOne();
         res.json({ message: 'Review deleted' });

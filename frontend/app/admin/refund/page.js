@@ -17,9 +17,15 @@ export default function AdminRefundPage() {
   const [refundReason, setRefundReason] = useState('');
   const [secondaryEmail, setSecondaryEmail] = useState('');
   const [secondaryPassword, setSecondaryPassword] = useState('');
-  const [refundAccessToken, setRefundAccessToken] = useState(
-    typeof window !== 'undefined' ? sessionStorage.getItem('adminRefundToken') || '' : ''
-  );
+  const [refundAccessToken, setRefundAccessToken] = useState("");
+
+  useEffect(() => {
+    const token = sessionStorage.getItem('adminRefundToken');
+    if (token) {
+      setRefundAccessToken(token);
+    }
+  }, []);
+
 
   const canProcess = useMemo(() => {
     return Boolean(orderData?.refundable && refundAccessToken && orderData?.order?._id);

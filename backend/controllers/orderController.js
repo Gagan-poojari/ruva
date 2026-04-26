@@ -75,6 +75,13 @@ const processRefund = async ({ order, reason, initiatedBy }) => {
     return { updatedOrder, refund };
 };
 
+// @desc    Get Razorpay public key
+// @route   GET /api/orders/razorpay-key
+// @access  Private
+const getRazorpayKey = async (req, res) => {
+    res.json({ key: process.env.RAZORPAY_KEY_ID });
+};
+
 // @desc    Create new order & Razorpay order
 // @route   POST /api/orders
 // @access  Private
@@ -82,76 +89,114 @@ const addOrderItems = async (req, res, next) => {
     try {
         const { orderItems, shippingAddress, paymentMethod, itemsPrice, taxPrice, shippingPrice, totalPrice } = req.body;
 
-        if (orderItems && orderItems.length === 0) {
+        if (!orderItems || orderItems.length === 0) {
             res.status(400);
             throw new Error('No order items');
-        } else {
-            // Check stock availability (Effective Stock = Physical Stock - Active Holds)
-            for (const item of orderItems) {
-                const product = await Product.findById(item.product);
-                if (!product) {
-                    res.status(404);
-                    throw new Error(`Product not found: ${item.name}`);
-                }
+        }
 
-                // Find active holds for this product and size
-                const activeHolds = await Order.find({
-                    'items.product': item.product,
-                    paymentStatus: 'pending',
-                    holdExpiresAt: { $gt: new Date() }
-                });
+        // ---- Server-side price verification & stock check ----
+        let verifiedTotal = 0;
 
-                let reservedQty = 0;
-                activeHolds.forEach(holdOrder => {
-                    holdOrder.items.forEach(holdItem => {
-                        if (holdItem.product.toString() === item.product.toString() && holdItem.size === item.size) {
-                            reservedQty += holdItem.qty;
-                        }
-                    });
-                });
-
-                // Get physical stock
-                let physicalStock = product.stock;
-                if (item.size) {
-                    const sizeObj = product.sizes.find(s => s.label === item.size);
-                    physicalStock = sizeObj ? sizeObj.stock : 0;
-                }
-
-                if (physicalStock - reservedQty < item.qty) {
-                    res.status(400);
-                    throw new Error('out of stock');
-                }
+        for (const item of orderItems) {
+            const product = await Product.findById(item.product);
+            if (!product) {
+                res.status(404);
+                throw new Error(`Product not found: ${item.product}`);
             }
 
-            // Create Razorpay order
-            const options = {
-                amount: Math.round(totalPrice * 100), // amount in the smallest currency unit (paise)
-                currency: 'INR',
-                receipt: `rcpt_${new Date().getTime()}`,
-            };
+            // Determine the correct price from the database (use discountPrice if valid)
+            const dbPrice = (product.discountPrice && product.discountPrice > 0 && product.discountPrice < product.price)
+                ? product.discountPrice
+                : product.price;
 
-            const rzOrder = await razorpay.orders.create(options);
+            // Verify that client-sent price is not less than actual price
+            if (Number(item.price) < dbPrice) {
+                console.error(`Price mismatch for ${product.name}: client sent ${item.price}, DB has ${dbPrice}`);
+                res.status(400);
+                throw new Error(`Price mismatch for ${product.name}. Please refresh your cart.`);
+            }
 
-            const holdTimeout = 12 * 60 * 1000; // 12 minutes hold
+            verifiedTotal += dbPrice * (item.qty || 1);
 
-            const order = new Order({
-                user: req.user._id,
-                items: orderItems,
-                shippingAddress,
-                paymentMethod,
-                totalAmount: totalPrice,
-                razorpayOrderId: rzOrder.id,
-                holdExpiresAt: new Date(Date.now() + holdTimeout),
+            // Find active holds for this product and size
+            const activeHolds = await Order.find({
+                'items.product': item.product,
+                paymentStatus: 'pending',
+                holdExpiresAt: { $gt: new Date() }
             });
 
-            const createdOrder = await order.save();
-
-            res.status(201).json({
-                order: createdOrder,
-                razorpayOrder: rzOrder,
+            let reservedQty = 0;
+            activeHolds.forEach(holdOrder => {
+                holdOrder.items.forEach(holdItem => {
+                    if (holdItem.product.toString() === item.product.toString() && holdItem.size === item.size) {
+                        reservedQty += holdItem.qty;
+                    }
+                });
             });
+
+            // Get physical stock
+            let physicalStock = product.stock;
+            if (item.size) {
+                const sizeObj = product.sizes.find(s => s.label === item.size);
+                physicalStock = sizeObj ? sizeObj.stock : 0;
+            }
+
+            if (physicalStock - reservedQty < item.qty) {
+                res.status(400);
+                throw new Error(`"${product.name}" is out of stock`);
+            }
         }
+
+        // Use verified total for Razorpay (prevents price manipulation)
+        let finalAmount = Math.round(verifiedTotal * 100); // paise
+
+        // DEV-ONLY: Override payment amount to ₹1 for testing
+        if (process.env.NODE_ENV !== 'production') {
+            console.log(`[DEV] Overriding Razorpay amount from ₹${verifiedTotal} to ₹1 for testing`);
+            finalAmount = 100; // 100 paise = ₹1 (Razorpay minimum)
+        }
+
+        // Create Razorpay order
+        const options = {
+            amount: finalAmount,
+            currency: 'INR',
+            receipt: `rcpt_${new Date().getTime()}`,
+        };
+
+        let rzOrder;
+        try {
+            rzOrder = await razorpay.orders.create(options);
+        } catch (rzError) {
+            console.error('Razorpay order creation failed:', rzError);
+            res.status(502);
+            throw new Error('Payment gateway is temporarily unavailable. Please try again later.');
+        }
+
+        const holdTimeout = 12 * 60 * 1000; // 12 minutes hold
+
+        const order = new Order({
+            user: req.user._id,
+            items: orderItems.map(item => ({
+                product: item.product,
+                qty: item.qty,
+                price: item.price,
+                size: item.size,
+            })),
+            shippingAddress,
+            paymentMethod: paymentMethod || 'Razorpay',
+            totalAmount: verifiedTotal,
+            razorpayOrderId: rzOrder.id,
+            holdExpiresAt: new Date(Date.now() + holdTimeout),
+        });
+
+        const createdOrder = await order.save();
+
+        res.status(201).json({
+            order: createdOrder,
+            razorpayOrder: rzOrder,
+        });
     } catch (error) {
+        console.error('addOrderItems error:', error.message);
         next(error);
     }
 };
@@ -163,54 +208,78 @@ const verifyPayment = async (req, res, next) => {
     try {
         const { razorpay_order_id, razorpay_payment_id, razorpay_signature, orderId } = req.body;
 
+        if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature || !orderId) {
+            res.status(400);
+            throw new Error('Missing payment verification fields');
+        }
+
+        // Verify HMAC signature
         const sign = razorpay_order_id + '|' + razorpay_payment_id;
         const expectedSign = crypto
             .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
             .update(sign.toString())
             .digest('hex');
 
-        if (razorpay_signature === expectedSign) {
-            const order = await Order.findById(orderId).populate('user', 'name email phone');
-
-            if (order) {
-                order.paymentStatus = 'paid';
-                order.status = 'confirmed';
-                order.razorpayPaymentId = razorpay_payment_id;
-                order.holdExpiresAt = undefined; // Clear hold
-
-                // Decrement stock from Product model
-                for (const item of order.items) {
-                    const product = await Product.findById(item.product);
-                    if (product) {
-                        if (item.size) {
-                            const sizeIndex = product.sizes.findIndex(s => s.label === item.size);
-                            if (sizeIndex !== -1) {
-                                product.sizes[sizeIndex].stock -= item.qty;
-                            }
-                        } else {
-                            product.stock -= item.qty;
-                        }
-                        await product.save();
-                    }
-                }
-
-                const updatedOrder = await order.save();
-
-                // Send WhatsApp notification
-                const message = `Hi ${order.user.name}! Your order #${order._id} has been confirmed. Total: Rs. ${order.totalAmount}. Thank you for shopping with RUVA!`;
-                const recipientPhone = order.shippingAddress?.whatsappNumber || order.user.phone;
-                await sendWhatsApp(recipientPhone, message);
-
-                res.json({ message: 'Payment verified successfully', order: updatedOrder });
-            } else {
-                res.status(404);
-                throw new Error('Order not found');
-            }
-        } else {
+        if (razorpay_signature !== expectedSign) {
+            console.error('Payment signature mismatch for order:', orderId);
             res.status(400);
-            throw new Error('Invalid signature');
+            throw new Error('Payment verification failed: Invalid signature');
         }
+
+        const order = await Order.findById(orderId).populate('user', 'name email phone');
+
+        if (!order) {
+            res.status(404);
+            throw new Error('Order not found');
+        }
+
+        // Prevent double processing
+        if (order.paymentStatus === 'paid') {
+            return res.json({ message: 'Payment already verified', order });
+        }
+
+        // Verify the Razorpay order ID matches
+        if (order.razorpayOrderId !== razorpay_order_id) {
+            console.error(`Razorpay order ID mismatch: expected ${order.razorpayOrderId}, got ${razorpay_order_id}`);
+            res.status(400);
+            throw new Error('Order ID mismatch');
+        }
+
+        order.paymentStatus = 'paid';
+        order.status = 'confirmed';
+        order.razorpayPaymentId = razorpay_payment_id;
+        order.holdExpiresAt = undefined; // Clear hold
+
+        // Decrement stock from Product model
+        for (const item of order.items) {
+            const product = await Product.findById(item.product);
+            if (product) {
+                if (item.size) {
+                    const sizeIndex = product.sizes.findIndex(s => s.label === item.size);
+                    if (sizeIndex !== -1) {
+                        product.sizes[sizeIndex].stock -= item.qty;
+                    }
+                } else {
+                    product.stock -= item.qty;
+                }
+                await product.save();
+            }
+        }
+
+        const updatedOrder = await order.save();
+
+        // Send WhatsApp notification (don't fail the request if WhatsApp fails)
+        try {
+            const message = `Hi ${order.user.name}! Your order #${order._id} has been confirmed. Total: Rs. ${order.totalAmount}. Thank you for shopping with RUVA!`;
+            const recipientPhone = order.shippingAddress?.whatsappNumber || order.user.phone;
+            await sendWhatsApp(recipientPhone, message);
+        } catch (whatsappErr) {
+            console.error('WhatsApp notification failed (non-critical):', whatsappErr.message);
+        }
+
+        res.json({ message: 'Payment verified successfully', order: updatedOrder });
     } catch (error) {
+        console.error('verifyPayment error:', error.message);
         next(error);
     }
 };
@@ -625,4 +694,5 @@ module.exports = {
     getRefundOrderDetails,
     processAdminRefund,
     cancelMyOrder,
+    getRazorpayKey,
 };

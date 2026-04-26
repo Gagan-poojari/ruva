@@ -218,9 +218,9 @@ export default function Footer() {
             {/* Contact details */}
             <div className="flex flex-col gap-3">
               {[
-                { icon:<MapPin size={13}/>,  text:"Varanasi · Kanchipuram · Bengaluru" },
-                { icon:<Phone size={13}/>,   text:"+91 (800) 123 4567" },
-                { icon:<Mail size={13}/>,    text:"concierge@ruva.com" },
+                { icon:<MapPin size={13}/>,  text:"Shop No 15, Atal Bihari Vajpayee, Opposite Bata Showroom, M.G. Road, Chikmagalur-  577101" },
+                { icon:<Phone size={13}/>,   text:"+91 70262 56266" },
+                { icon:<Mail size={13}/>,    text:"ruvaonlinebranding@gmail.com" },
               ].map(({ icon, text }) => (
                 <div key={text} className="flex items-center gap-3" style={{
                   fontFamily:"'Lora',Georgia,serif", fontSize:"0.78rem",
