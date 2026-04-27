@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, Suspense } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import api from "@/utils/api";
@@ -505,7 +505,7 @@ function FilterSheet({ open, onClose, category, setCategory, fabric, setFabric, 
 }
 
 /* ─────────────── MAIN PAGE ─────────────── */
-export default function ProductListPage({ title = "Shop", defaultCategory = "" }) {
+function ProductListContent({ title = "Shop", defaultCategory = "" }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [products, setProducts] = useState([]);
@@ -873,5 +873,20 @@ export default function ProductListPage({ title = "Shop", defaultCategory = "" }
         onReset={handleReset}
       />
     </>
+  );
+}
+
+export default function ProductListPage(props) {
+  return (
+    <Suspense fallback={
+      <div className="silk-bg min-h-screen py-20 flex flex-col items-center justify-center gap-4 text-[#6b1a1a]/60">
+        <Loader2 className="w-8 h-8 animate-spin text-[#c9853c]" />
+        <span className="text-xs font-bold uppercase tracking-[0.2em] animate-pulse">
+          Loading Collection...
+        </span>
+      </div>
+    }>
+      <ProductListContent {...props} />
+    </Suspense>
   );
 }
