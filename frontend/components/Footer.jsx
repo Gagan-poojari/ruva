@@ -243,7 +243,7 @@ export default function Footer() {
             fontFamily:"'Lora',Georgia,serif",
             fontSize:"0.65rem", letterSpacing:"0.14em",
             textTransform:"uppercase", color:"rgba(253,243,227,0.22)",
-          }}>&copy; {year} RUVA Heritage. Handcrafted in India.</p>
+          }}>&copy; {year} RUVA. Passionately designed by Marketsphere Chikkamagaluru.</p>
 
           {/* Trust badges */}
           <div className="flex items-center gap-3 opacity-50">
