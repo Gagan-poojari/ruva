@@ -48,9 +48,9 @@ export default function Collections() {
         }
         .silk-bg {
           background-color: #fdf8f0;
-          background-image:
-            repeating-linear-gradient(-52deg, rgba(176,118,32,0.08) 0, rgba(176,118,32,0.08) 1px, transparent 1px, transparent 18px),
-            repeating-linear-gradient(38deg, rgba(176,118,32,0.05) 0, rgba(176,118,32,0.05) 1px, transparent 1px, transparent 18px);
+          // background-image:
+          //   repeating-linear-gradient(-52deg, rgba(176,118,32,0.08) 0, rgba(176,118,32,0.08) 1px, transparent 1px, transparent 18px),
+          //   repeating-linear-gradient(38deg, rgba(176,118,32,0.05) 0, rgba(176,118,32,0.05) 1px, transparent 1px, transparent 18px);
         }
         .tag-pill {
           font-family: var(--font-display);
@@ -77,10 +77,10 @@ export default function Collections() {
 
       <section id="collections" className="silk-bg relative overflow-hidden py-20">
         {/* ambient glows */}
-        <div className="absolute -top-24 -left-24 w-72 h-72 rounded-full blur-3xl pointer-events-none"
-          style={{ background: "rgba(201,133,60,0.12)" }} />
-        <div className="absolute -bottom-32 -right-20 w-80 h-80 rounded-full blur-3xl pointer-events-none"
-          style={{ background: "rgba(107,26,26,0.09)" }} />
+        {/* <div className="absolute -top-24 -left-24 w-72 h-72 rounded-full blur-3xl pointer-events-none"
+          style={{ background: "rgba(201,133,60,0.12)" }} /> */}
+        {/* <div className="absolute -bottom-32 -right-20 w-80 h-80 rounded-full blur-3xl pointer-events-none"
+          style={{ background: "rgba(107,26,26,0.09)" }} /> */}
 
         <div className="relative z-10 max-w-6xl mx-auto px-4">
           <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }} className="mb-10">

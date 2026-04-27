@@ -264,10 +264,10 @@ export default function Categories() {
         />
 
         {/* Ambient glows */}
-        <div className="absolute -top-24 -left-24 w-72 h-72 rounded-full blur-3xl pointer-events-none"
+        {/* <div className="absolute -top-24 -left-24 w-72 h-72 rounded-full blur-3xl pointer-events-none"
           style={{ background: "rgba(201,133,60,0.15)" }} />
         <div className="absolute -bottom-32 -right-20 w-80 h-80 rounded-full blur-3xl pointer-events-none"
-          style={{ background: "rgba(107,26,26,0.10)" }} />
+          style={{ background: "rgba(107,26,26,0.10)" }} /> */}
 
         {/* ── Section header ── */}
         <div className="relative z-10 pt-16 pb-10 px-5">

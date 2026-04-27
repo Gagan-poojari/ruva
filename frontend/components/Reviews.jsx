@@ -758,7 +758,7 @@ export default function Reviews() {
         style={{ background:"linear-gradient(168deg,#fdf8f0 0%,#faebd5 55%,#fff8ee 100%)" }}
       >
         {/* ── ambient glows ── */}
-        {[
+        {/* {[
           { w:300, h:300, top:"-70px",   left:"-70px",  c:"rgba(201,133,60,0.1)",  dur:7 },
           { w:250, h:250, bottom:"-50px", right:"-40px", c:"rgba(107,26,26,0.09)", dur:9 },
           { w:160, h:160, top:"45%",      left:"14%",    c:"rgba(201,133,60,0.06)", dur:11 },
@@ -770,7 +770,7 @@ export default function Reviews() {
             animation:`float-orb ${o.dur}s ease-in-out infinite`,
             animationDelay:`${i*1.1}s`,
           }} />
-        ))}
+        ))} */}
 
         {/* silk crosshatch */}
         <div style={{
