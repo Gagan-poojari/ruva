@@ -252,7 +252,7 @@ export default function Categories() {
           SECTION 1 — CATEGORIES
       ════════════════════════════════════════════════ */}
       <section
-        id="collections"
+        id="categories"
         ref={sectionRef}
         className="relative overflow-hidden"
         style={{ background: "linear-gradient(168deg,#fdf8f0 0%,#f9edda 55%,#fdf5e8 100%)" }}
