@@ -1,9 +1,12 @@
 "use client";
 
-import React, { useRef } from "react";
+import React, { useMemo, useRef } from "react";
 import Link from "next/link";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { motion, useScroll, useTransform } from "framer-motion";
+import toast from "react-hot-toast";
+
+import { useCart } from "@/context/CartContext";
 
 const styles = {
   display: { fontFamily: "'Cormorant Garamond', Georgia, serif" },
@@ -113,6 +116,25 @@ export default function Categories() {
   const sectionRef = useRef(null);
   const { scrollYProgress } = useScroll({ target: sectionRef, offset: ["start end", "end start"] });
   const bgY = useTransform(scrollYProgress, [0, 1], ["0%", "14%"]);
+  const { addToCart } = useCart();
+
+  const bestsellersForCart = useMemo(() => {
+    const toNumber = (v) => Number(String(v || "").replace(/[^\d.]/g, "")) || 0;
+    const slugify = (s) =>
+      String(s || "")
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "");
+
+    return BESTSELLERS.map((p) => ({
+      _id: `bestseller-${slugify(p.title)}`,
+      name: p.title,
+      category: p.title.toLowerCase().includes("blouse") ? "Blouse" : "Sarees",
+      image: p.img,
+      price: toNumber(p.price),
+    }));
+  }, []);
 
   return (
     <>
@@ -230,6 +252,7 @@ export default function Categories() {
           SECTION 1 — CATEGORIES
       ════════════════════════════════════════════════ */}
       <section
+        id="collections"
         ref={sectionRef}
         className="relative overflow-hidden"
         style={{ background: "linear-gradient(168deg,#fdf8f0 0%,#f9edda 55%,#fdf5e8 100%)" }}
@@ -298,7 +321,7 @@ export default function Categories() {
                     <img
                       src={cat.img}
                       alt={cat.title}
-                      className="w-full h-full object-cover transition-transform duration-[1200ms] ease-out hover:scale-[1.07]"
+                      className="w-full h-full object-cover transition-transform duration-1200ms ease-out hover:scale-[1.07]"
                       style={{ objectPosition: "center 38%" }}
                     />
 
@@ -370,7 +393,7 @@ export default function Categories() {
       {/* ════════════════════════════════════════════════
           SECTION 2 — BESTSELLERS
       ════════════════════════════════════════════════ */}
-      <section style={{ background: "#fffaf3" }} className="pt-16 pb-20 overflow-hidden">
+      <section id="shop" style={{ background: "#fffaf3" }} className="pt-16 pb-20 overflow-hidden">
         <div className="max-w-6xl mx-auto px-4">
 
           {/* Header row */}
@@ -425,7 +448,7 @@ export default function Categories() {
                     <img
                       src={p.img}
                       alt={p.title}
-                      className="w-full h-full object-cover transition-transform duration-[1100ms] hover:scale-[1.06]"
+                      className="w-full h-full object-cover transition-transform duration-1100ms hover:scale-[1.06]"
                     />
 
                     {/* Tag */}
@@ -467,6 +490,12 @@ export default function Categories() {
 
                       {/* Quick add button */}
                       <button
+                        type="button"
+                        onClick={() => {
+                          const cartItem = bestsellersForCart[i];
+                          addToCart(cartItem, 1, "Free Size");
+                          toast.success("Added to cart");
+                        }}
                         className="text-[0.58rem] sm:text-[0.65rem] px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full font-bold uppercase tracking-widest transition-all active:scale-95"
                         style={{
                           fontFamily: "'Cormorant Garamond',Georgia,serif",

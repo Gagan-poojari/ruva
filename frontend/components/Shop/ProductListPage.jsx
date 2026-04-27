@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { usePathname, useSearchParams } from "next/navigation";
 import api from "@/utils/api";
 import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
@@ -138,13 +139,13 @@ function GridCard({ product, index }) {
           <img
             src={displayImage}
             alt={product.name}
-            className="w-full h-full object-cover transition-transform duration-[1100ms] group-hover:scale-[1.07]"
+            className="w-full h-full object-cover transition-transform duration-1100 group-hover:scale-[1.07]"
             loading="lazy"
           />
           <ColorPalette product={product} selectedVariant={selectedVariant} setSelectedVariant={setSelectedVariant} />
 
           {/* gradient */}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#140404]/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          <div className="absolute inset-0 bg-linear-to-t from-[#140404]/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
           {/* badges */}
           <div className="absolute top-3 left-3 flex flex-col gap-1.5">
@@ -286,7 +287,7 @@ function ListRow({ product, index }) {
         style={{ boxShadow: "0 4px 20px rgba(42,5,5,0.07), 0 1px 3px rgba(201,133,60,0.07)" }}
       >
         {/* thumbnail */}
-        <div className="relative w-[108px] h-[150px] rounded-xl overflow-hidden flex-shrink-0 bg-[#f6efe5]">
+        <div className="relative w-[108px] h-[150px] rounded-xl overflow-hidden shrink-0 bg-[#f6efe5]">
           <img
             src={displayImage}
             alt={product.name}
@@ -505,6 +506,8 @@ function FilterSheet({ open, onClose, category, setCategory, fabric, setFabric, 
 
 /* ─────────────── MAIN PAGE ─────────────── */
 export default function ProductListPage({ title = "Shop", defaultCategory = "" }) {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [products, setProducts] = useState([]);
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
@@ -554,6 +557,23 @@ export default function ProductListPage({ title = "Shop", defaultCategory = "" }
     fetchPage({ pageNumber: 1, append: false });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [queryParams]);
+
+  useEffect(() => {
+    setCategory(defaultCategory || "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [defaultCategory]);
+
+  useEffect(() => {
+    if (title !== "Shop" || pathname !== "/shop") return;
+    const urlCategory = searchParams?.get("category") || "";
+    const urlFabric = searchParams?.get("fabric") || "";
+    const urlKeyword = searchParams?.get("q") || "";
+
+    setCategory(urlCategory);
+    setFabric(urlFabric);
+    if (urlKeyword) setKeyword(urlKeyword);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, pathname, title]);
 
   const handleReset = () => {
     setKeyword(""); setCategory(defaultCategory); setFabric(""); setSort("new");
@@ -661,6 +681,23 @@ export default function ProductListPage({ title = "Shop", defaultCategory = "" }
                 </p>
               )}
             </div>
+
+            {title === "Shop" && (category || fabric) && pathname === "/shop" && (
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <span
+                  className="tag-pill px-3 py-1 bg-white/70 border border-[#c87d1a]/20 text-[#6b1a1a]"
+                  style={{ boxShadow: "0 4px 20px rgba(42,5,5,0.06)" }}
+                >
+                  Browsing: {[category, fabric].filter(Boolean).join(" · ")}
+                </span>
+                <Link
+                  href="/shop"
+                  className="tag-pill px-3 py-1 bg-white/70 border border-[#c87d1a]/20 text-[#3d0a0a] hover:bg-white transition"
+                >
+                  Browse our entire collection →
+                </Link>
+              </div>
+            )}
           </motion.div>
 
           {/* ══ STICKY SEARCH + CONTROLS BAR ══ */}

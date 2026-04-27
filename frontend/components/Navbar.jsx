@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { X, ChevronDown, Menu } from "lucide-react";
 import { FaRegUser } from "react-icons/fa";
 import { VscSearchSparkle } from "react-icons/vsc";
@@ -18,16 +18,10 @@ import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 
 const NAV_LINKS = [
-  { label: "Home", href: "/" },
-  { label: "Shop", href: "/shop" },
-  {
-    label: "Collections", href: "/collections", dropdown: [
-      { label: "Banarasi Silk", href: "/collections/banarasi" },
-      { label: "Kanchipuram", href: "/collections/kanchipuram" },
-      { label: "Wedding Wear", href: "/collections/wedding" },
-      { label: "Designer Edit", href: "/collections/designer" },
-    ]
-  },
+  { label: "Home", sectionId: "home" },
+  { label: "Categories", sectionId: "categories" },
+  { label: "Shop", sectionId: "shop" },
+  { label: "Collections", sectionId: "collections" },
 ];
 
 const BOTTOM_TABS = [
@@ -39,6 +33,7 @@ const BOTTOM_TABS = [
 
 export default function Navbar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [scrolled, setScrolled]       = useState(false);
   const [searchOpen, setSearchOpen]   = useState(false);
   const [mobileOpen, setMobileOpen]   = useState(false);
@@ -66,6 +61,34 @@ export default function Navbar() {
     document.body.style.overflow = mobileOpen ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
   }, [mobileOpen]);
+
+  const scrollToSection = (id) => {
+    const el = document.getElementById(id);
+    if (!el) return false;
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+    return true;
+  };
+
+  const handleSectionNav = (id) => {
+    setMobileOpen(false);
+    setCollOpen(false);
+    if (pathname === "/") {
+      const ok = scrollToSection(id);
+      if (!ok) window.location.hash = id;
+      return;
+    }
+    router.push(`/#${id}`);
+  };
+
+  useEffect(() => {
+    if (pathname !== "/") return;
+    const hash = typeof window !== "undefined" ? window.location.hash : "";
+    const id = hash?.startsWith("#") ? hash.slice(1) : "";
+    if (!id) return;
+    const t = window.setTimeout(() => scrollToSection(id), 50);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
 
   return (
     <>
@@ -248,12 +271,13 @@ export default function Navbar() {
           <div className="flex items-center justify-between" style={{ height: 68 }}>
 
             {/* ── LOGO ── */}
-            <Link href="/" className="flex-shrink-0 flex items-center gap-2.5 group">
+            <Link href="/" className="shrink-0 flex items-center gap-2.5 group">
               <div className="relative transition-transform duration-300 group-hover:scale-105">
                 <Image
                   src={overHero ? "/ruva_logo_tw.png" : "/ruva_logo_t.png"}
                   alt="Ruva"
-                  width={85}
+                  // width={85}
+                  width={55}
                   height={30}
                   className="object-contain"
                   priority
@@ -263,45 +287,17 @@ export default function Navbar() {
 
             {/* ── DESKTOP LINKS ── */}
             <div className="hidden md:flex items-center gap-8">
-              {NAV_LINKS.map(({ label, href, dropdown }) =>
-                dropdown ? (
-                  <div key={label} className="relative"
-                    onMouseEnter={() => setCollOpen(true)}
-                    onMouseLeave={() => setCollOpen(false)}
-                  >
-                    <button className="nav-link flex items-center gap-1" style={{ color: navColor }}>
-                      <span className="text-lg">{label}</span>
-                      <ChevronDown size={16} style={{
-                        color: "#d4891e",
-                        transition: "transform .22s",
-                        transform: collOpen ? "rotate(-180deg)" : "rotate(0deg)",
-                      }} />
-                    </button>
-                    <div className={`drop-panel ${collOpen ? "show" : "hide"} absolute top-[calc(100%+8px)] left-1/2 -translate-x-1/2 w-52 rounded-xl overflow-hidden`}
-                      style={{
-                        background: "rgba(253,243,227,0.97)",
-                        backdropFilter: "blur(18px)",
-                        border: "1px solid rgba(200,125,26,0.22)",
-                        boxShadow: "0 16px 40px rgba(61,10,10,0.13)",
-                      }}
-                    >
-                      <div style={{ height: 2, background: "linear-gradient(to right,transparent,#d4891e,transparent)" }} />
-                      <div className="py-2">
-                        {dropdown.map(({ label: l, href: h }) => (
-                          <Link key={l} href={h} onClick={() => setCollOpen(false)}
-                            className="block px-5 py-2.5 transition-colors hover:bg-orange-50"
-                            style={{ fontFamily: "'Cormorant Garamond',Georgia,serif", fontSize: "0.95rem", fontWeight: 600, color: "#3d0a0a", letterSpacing: "0.02em" }}
-                          >{l}</Link>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <Link key={label} href={href} className="nav-link" style={{ color: navColor }}>
-                    <span className="text-lg">{label}</span>
-                  </Link>
-                )
-              )}
+              {NAV_LINKS.map(({ label, sectionId }) => (
+                <button
+                  key={label}
+                  type="button"
+                  className="nav-link"
+                  style={{ color: navColor, background: "transparent", border: "none" }}
+                  onClick={() => handleSectionNav(sectionId)}
+                >
+                  <span className="text-lg">{label}</span>
+                </button>
+              ))}
             </div>
 
             {/* ── DESKTOP ICONS ── */}
@@ -466,7 +462,7 @@ export default function Navbar() {
             <rect width="100%" height="100%" fill="url(#dm)" />
           </svg>
           <div style={{ height: 3, background: "linear-gradient(to right,transparent,#d4891e 30%,#f0a830 50%,#d4891e 70%,transparent)", flexShrink: 0 }} />
-          <div className="flex items-center justify-between px-6 pt-5 pb-2 relative z-10 flex-shrink-0">
+          <div className="flex items-center justify-between px-6 pt-5 pb-2 relative z-10 shrink-0">
             <Link href="/" onClick={() => setMobileOpen(false)} className="flex items-center gap-2.5">
               <div className="relative" style={{ width: 32, height: 32 }}>
                 <Image src="/RUVA_LOGO.png" alt="Ruva" fill className="object-contain" />
@@ -481,15 +477,24 @@ export default function Navbar() {
           <div className="mx-6 my-4 relative z-10" style={{ height: 1, background: "rgba(200,125,26,0.25)" }} />
           <div className="flex-1 flex flex-col justify-center px-8 gap-1 relative z-10">
             {[
-              { label: "Home", href: "/" },
-              { label: "Shop", href: "/shop" },
-              { label: "Collections", href: "/collections" },
+              { label: "Home", sectionId: "home" },
+              { label: "Shop", sectionId: "shop" },
+              { label: "Collections", sectionId: "collections" },
               { label: "Account", href: "/profile" },
               { label: "Wishlist", href: "/wishlist" },
               { label: "Cart", href: "/cart" },
-            ].map(({ label, href }) => (
+            ].map(({ label, href, sectionId }) => (
               <div key={label} className="mlink">
-                <Link href={href} onClick={() => setMobileOpen(false)}
+                <Link
+                  href={href || "/"}
+                  onClick={(e) => {
+                    if (sectionId) {
+                      e.preventDefault();
+                      handleSectionNav(sectionId);
+                      return;
+                    }
+                    setMobileOpen(false);
+                  }}
                   className="flex items-center justify-between py-4 border-b group"
                   style={{ borderColor: "rgba(200,125,26,0.15)" }}>
                   <span className="group-hover:text-[#7a1f1f] transition-colors" style={{
@@ -502,7 +507,7 @@ export default function Navbar() {
               </div>
             ))}
           </div>
-          <div className="flex-shrink-0 px-8 pb-10 relative z-10">
+          <div className="shrink-0 px-8 pb-10 relative z-10">
             <div style={{ height: 1, background: "rgba(200,125,26,0.2)", marginBottom: "1rem" }} />
             <p style={{ fontFamily: "'Cormorant Garamond',Georgia,serif", fontSize: "0.7rem", letterSpacing: "0.22em", textTransform: "uppercase", color: "rgba(61,10,10,0.42)" }}>Weaving stories since 1947</p>
           </div>

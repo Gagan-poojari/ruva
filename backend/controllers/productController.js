@@ -41,6 +41,8 @@ const buildColorVariants = (rawVariants, files = []) => {
     });
 };
 
+const escapeRegex = (value = '') => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 // @desc    Fetch all products
 // @route   GET /api/products
 // @access  Public
@@ -60,8 +62,14 @@ const getProducts = async (req, res, next) => {
 
         const filter = { ...keyword };
 
-        if (req.query.category) filter.category = req.query.category;
-        if (req.query.fabric) filter.fabric = req.query.fabric;
+        if (req.query.category) {
+            const raw = String(req.query.category).trim();
+            if (raw) filter.category = { $regex: `^${escapeRegex(raw)}$`, $options: 'i' };
+        }
+        if (req.query.fabric) {
+            const raw = String(req.query.fabric).trim();
+            if (raw) filter.fabric = { $regex: `^${escapeRegex(raw)}$`, $options: 'i' };
+        }
 
         const count = await Product.countDocuments({ ...filter });
         const products = await Product.find({ ...filter })

@@ -70,7 +70,7 @@ export default function HeroSection() {
       `}</style>
 
       {/* ════════ HERO ════════ */}
-      <section className="relative w-full overflow-hidden" style={{ minHeight: "100svh" }}>
+      <section id="home" className="relative w-full overflow-hidden" style={{ minHeight: "100svh" }}>
 
         {/* Deep jewel-toned indigo-plum background */}
         <div className="absolute inset-0 z-0" style={{

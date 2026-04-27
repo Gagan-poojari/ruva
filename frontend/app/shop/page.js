@@ -5,7 +5,8 @@ export const metadata = {
   description: "Browse Ruva's curated product catalog.",
 };
 
-export default function ShopPage() {
-  return <ProductListPage title="Shop" />;
+export default function ShopPage({ searchParams }) {
+  const category = typeof searchParams?.category === "string" ? searchParams.category : "";
+  return <ProductListPage title="Shop" defaultCategory={category} />;
 }
 
