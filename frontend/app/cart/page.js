@@ -26,6 +26,7 @@ export default function CartPage() {
   const { user } = useAuth();
   const [placing, setPlacing] = useState(false);
   const [razorpayLoaded, setRazorpayLoaded] = useState(false);
+  const [rzKey, setRzKey] = useState(RAZORPAY_KEY || "");
   const [shippingAddress, setShippingAddress] = useState({
     street: "",
     city: "",
@@ -39,6 +40,21 @@ export default function CartPage() {
     return sum + price * (item.qty || 1);
   }, 0);
 
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.Razorpay) {
+      setRazorpayLoaded(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!user?.token || rzKey) return;
+    api.get("/orders/razorpay-key")
+      .then(({ data }) => {
+        if (data?.key) setRzKey(data.key);
+      })
+      .catch(() => {});
+  }, [user, rzKey]);
+
   // ---------- Razorpay payment handler ----------
   const openRazorpayCheckout = useCallback(
     ({ razorpayOrder, dbOrder }) => {
@@ -48,7 +64,7 @@ export default function CartPage() {
       }
 
       const options = {
-        key: RAZORPAY_KEY,
+        key: rzKey,
         amount: razorpayOrder.amount,
         currency: razorpayOrder.currency || "INR",
         name: "RUVA",
@@ -107,7 +123,7 @@ export default function CartPage() {
 
       rzp.open();
     },
-    [user, shippingAddress, clearCart, router]
+    [user, shippingAddress, clearCart, router, rzKey]
   );
 
   // ---------- Place order ----------
@@ -138,7 +154,16 @@ export default function CartPage() {
       return;
     }
 
-    if (!razorpayLoaded || !window.Razorpay) {
+    if (!rzKey) {
+      toast.error("Payment setup is incomplete. Please refresh and try again.");
+      return;
+    }
+
+    if ((!razorpayLoaded && typeof window !== "undefined" && window.Razorpay)) {
+      setRazorpayLoaded(true);
+    }
+
+    if (!window.Razorpay) {
       toast.error("Payment gateway is still loading. Please wait a moment.");
       return;
     }
@@ -150,7 +175,7 @@ export default function CartPage() {
           product: item.product,
           qty: item.qty || 1,
           price: Number(item.price) || 0,
-          size: item.size || "Free Size",
+          size: item.size || undefined,
         })),
         shippingAddress,
         paymentMethod: "Razorpay",
@@ -236,12 +261,19 @@ export default function CartPage() {
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-8">
               <motion.div {...rise} className="space-y-4">
                 {cartItems.map((item) => (
+                  (() => {
+                    const imageSrc =
+                      typeof item.image === "string" && item.image.trim()
+                        ? item.image.trim()
+                        : "/sarees/silk_cotton_saree.png";
+
+                    return (
                   <div
                     key={`${item.product}-${item.size}`}
                     className="rounded-2xl border border-[#d9b06d]/35 bg-white/75 backdrop-blur-sm p-4 sm:p-5 flex gap-4"
                   >
                     <img
-                      src={item.image || "/sarees/silk_cotton_saree.png"}
+                      src={imageSrc}
                       alt={item.name || "Cart item"}
                       className="w-24 h-28 rounded-xl object-cover flex-shrink-0"
                     />
@@ -277,6 +309,8 @@ export default function CartPage() {
                       </div>
                     </div>
                   </div>
+                    );
+                  })()
                 ))}
               </motion.div>
 

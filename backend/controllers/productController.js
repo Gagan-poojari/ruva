@@ -13,10 +13,13 @@ const parseJsonArray = (value, fallback = []) => {
 };
 
 const getImagesFromFiles = (files = []) =>
-    files.map((file) => ({
-        url: file.path || file.secure_url || file.url,
-        publicId: file.filename || file.public_id,
-    }));
+    files
+        .map((file, idx) => {
+            const url = file.path || file.secure_url || file.url;
+            const publicId = file.filename || file.public_id || file.asset_id || file.originalname || `upload_${Date.now()}_${idx}`;
+            return { url, publicId };
+        })
+        .filter((image) => Boolean(image.url) && Boolean(image.publicId));
 
 const buildColorVariants = (rawVariants, files = []) => {
     const variants = Array.isArray(rawVariants) ? rawVariants : [];
@@ -192,6 +195,11 @@ const createProduct = async (req, res, next) => {
             isFeatured,
         } = req.body;
 
+        if (!name || !description || !category) {
+            res.status(400);
+            throw new Error('Name, description, and category are required');
+        }
+
         const baseFiles = (req.files || []).filter((file) => file.fieldname === 'images');
         const images = getImagesFromFiles(baseFiles);
 
@@ -202,7 +210,7 @@ const createProduct = async (req, res, next) => {
 
         const product = new Product({
             name,
-            slug: slug || name.toLowerCase().replace(/\s+/g, '-'),
+            slug: slug || String(name).toLowerCase().replace(/\s+/g, '-'),
             description,
             category,
             fabric,

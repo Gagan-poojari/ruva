@@ -34,7 +34,10 @@ export default function ProductsPage() {
   };
 
   useEffect(() => {
-    fetchProducts();
+    const timer = setTimeout(() => {
+      fetchProducts();
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   const [isDeleting, setIsDeleting] = useState(false);

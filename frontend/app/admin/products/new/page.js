@@ -192,14 +192,13 @@ export default function NewProduct() {
         });
       });
 
-      await api.post('/products', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      await api.post('/products', formData);
       
       toast.success('Product created successfully');
       router.push('/admin/products');
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to create product');
+      console.error('Create product error:', error?.response?.data || error);
+      toast.error(error?.response?.data?.message || error?.message || 'Failed to create product');
     } finally {
       setSaving(false);
     }
@@ -495,7 +494,7 @@ export default function NewProduct() {
             <button 
               type="submit" 
               disabled={saving}
-              className="flex-[2] bg-primary-600 text-white font-bold py-4 rounded-2xl shadow-lg shadow-primary-600/20 hover:bg-primary-700 transition-all flex items-center justify-center gap-2"
+              className="flex-[2] bg-black text-white font-bold py-4 rounded-2xl shadow-lg shadow-primary-600/20 hover:bg-primary-700 transition-all flex items-center justify-center gap-2"
             >
               {saving ? <Loader2 className="animate-spin" size={20} /> : <Plus size={20} />}
               Publish Product

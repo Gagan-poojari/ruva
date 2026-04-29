@@ -1,7 +1,10 @@
 const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const connectDB = require('./config/db');
+const { monitorApiError } = require('./services/monitoring');
 
 // Load env vars
 dotenv.config();
@@ -11,12 +14,17 @@ connectDB();
 
 const app = express();
 
-// CORS: allow configured frontend + local dev + vercel previews
+// CORS: explicit allowlist only
 const normalizeOrigin = (value) => (value || "").replace(/\/+$/, "").trim();
 const envFrontendOrigin = normalizeOrigin(process.env.FRONTEND_URL);
+const envAllowlist = (process.env.CORS_ALLOWLIST || "")
+    .split(",")
+    .map(normalizeOrigin)
+    .filter(Boolean);
 const allowedOrigins = new Set(
     [
         envFrontendOrigin,
+        ...envAllowlist,
         "http://localhost:3000",
         "http://localhost:3001",
         "https://ruva-five.vercel.app",
@@ -29,13 +37,7 @@ const corsOptions = {
         if (!origin) return callback(null, true);
 
         const normalized = normalizeOrigin(origin);
-        let isVercelPreview = false;
-        try {
-            isVercelPreview = /\.vercel\.app$/i.test(new URL(normalized).hostname);
-        } catch {
-            isVercelPreview = false;
-        }
-        const isAllowed = allowedOrigins.has(normalized) || isVercelPreview;
+        const isAllowed = allowedOrigins.has(normalized);
 
         if (isAllowed) return callback(null, true);
         return callback(new Error(`CORS blocked for origin: ${origin}`));
@@ -45,14 +47,33 @@ const corsOptions = {
     allowedHeaders: ["Content-Type", "Authorization", "x-admin-refund-token"],
 };
 
+const globalLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 300,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: "Too many requests. Please try again shortly.",
+});
+
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 30,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: "Too many authentication attempts. Please try again later.",
+});
+
 // Middleware
+app.use(helmet());
 app.use(cors(corsOptions));
 app.options(/.*/, cors(corsOptions));
+app.use(globalLimiter);
+app.use('/api/orders/razorpay/webhook', express.raw({ type: 'application/json' }));
 app.use(express.json({ limit: '200mb' }));
 app.use(express.urlencoded({ limit: '200mb', extended: true }));
 
 // Routes
-app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/auth', authLimiter, require('./routes/authRoutes'));
 app.use('/api/products', require('./routes/productRoutes'));
 app.use('/api/orders', require('./routes/orderRoutes'));
 app.use('/api/dashboard', require('./routes/dashboardRoutes'));
@@ -74,6 +95,15 @@ app.use((err, req, res, next) => {
         statusCode = 400;
         message = 'A saree with this name already exists. Please use a unique name.';
     }
+
+    monitorApiError({
+        req,
+        statusCode,
+        message,
+        stack: err.stack,
+    }).catch((monitorError) => {
+        console.error('[MONITOR] Failed to process api error:', monitorError.message);
+    });
 
     res.status(statusCode).json({
         message: message,

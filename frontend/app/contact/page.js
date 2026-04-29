@@ -3,7 +3,7 @@ export default function ContactPage() {
     <div className="min-h-screen bg-gray-50 pt-24 pb-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-xl mx-auto bg-white p-8 sm:p-10 rounded-3xl shadow-sm border border-gray-100">
         <h1 className="text-3xl font-bold text-gray-900 mb-2 text-center">Contact Us</h1>
-        <p className="text-gray-500 text-center mb-8">We'd love to hear from you. Send us a message and we'll respond as soon as possible.</p>
+        <p className="text-gray-500 text-center mb-8">We&rsquo;d love to hear from you. Send us a message and we&rsquo;ll respond as soon as possible.</p>
         
         <form className="space-y-6">
           <div>

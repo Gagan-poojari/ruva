@@ -22,8 +22,11 @@ import toast from 'react-hot-toast';
 
 export default function AdminLayout({ children }) {
   const [isSidebarOpen, setSidebarOpen] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [adminData, setAdminData] = useState(null);
+  const [adminData] = useState(() => {
+    if (typeof window === 'undefined') return null;
+    return JSON.parse(localStorage.getItem('adminUser') || '{}');
+  });
+  const isAdmin = adminData?.role === 'admin';
   const router = useRouter();
   const pathname = usePathname();
 
@@ -36,9 +39,6 @@ export default function AdminLayout({ children }) {
       if (pathname !== '/admin/login') {
         router.push('/admin/login');
       }
-    } else {
-      setIsAdmin(true);
-      setAdminData(user);
     }
   }, [router, pathname]);
 

@@ -508,15 +508,19 @@ function FilterSheet({ open, onClose, category, setCategory, fabric, setFabric, 
 function ProductListContent({ title = "Shop", defaultCategory = "" }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const isShopRoute = title === "Shop" && pathname === "/shop";
+  const urlCategory = isShopRoute ? searchParams?.get("category") || "" : "";
+  const urlFabric = isShopRoute ? searchParams?.get("fabric") || "" : "";
+  const urlKeyword = isShopRoute ? searchParams?.get("q") || "" : "";
   const [products, setProducts] = useState([]);
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
 
-  const [keyword, setKeyword] = useState("");
-  const [category, setCategory] = useState(defaultCategory);
-  const [fabric, setFabric] = useState("");
+  const [keyword, setKeyword] = useState(urlKeyword);
+  const [category, setCategory] = useState(urlCategory || defaultCategory);
+  const [fabric, setFabric] = useState(urlFabric);
   const [sort, setSort] = useState("new");
   const [view, setView] = useState("list"); // "list" | "grid"
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -554,26 +558,11 @@ function ProductListContent({ title = "Shop", defaultCategory = "" }) {
   };
 
   useEffect(() => {
-    fetchPage({ pageNumber: 1, append: false });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const timer = setTimeout(() => {
+      fetchPage({ pageNumber: 1, append: false });
+    }, 0);
+    return () => clearTimeout(timer);
   }, [queryParams]);
-
-  useEffect(() => {
-    setCategory(defaultCategory || "");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [defaultCategory]);
-
-  useEffect(() => {
-    if (title !== "Shop" || pathname !== "/shop") return;
-    const urlCategory = searchParams?.get("category") || "";
-    const urlFabric = searchParams?.get("fabric") || "";
-    const urlKeyword = searchParams?.get("q") || "";
-
-    setCategory(urlCategory);
-    setFabric(urlFabric);
-    if (urlKeyword) setKeyword(urlKeyword);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, pathname, title]);
 
   const handleReset = () => {
     setKeyword(""); setCategory(defaultCategory); setFabric(""); setSort("new");

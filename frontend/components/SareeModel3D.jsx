@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useGLTF } from "@react-three/drei";
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { Canvas, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { useRef } from "react";
 
@@ -58,19 +58,6 @@ function ContextLossGuard({ onContextLost }) {
   return null;
 }
 
-function CameraController({ scrollY }) {
-  const { camera } = useThree();
-
-  useFrame(() => {
-    // zoom in slightly as user scrolls down
-    const targetZ = 5 - Math.min(scrollY / 500, 1.5);
-
-    camera.position.z += (targetZ - camera.position.z) * 0.05;
-  });
-
-  return null;
-}
-
 export default function SareeModel3D({ scrollY }) {
   const [contextLost, setContextLost] = useState(false);
 
@@ -108,8 +95,6 @@ export default function SareeModel3D({ scrollY }) {
       <Suspense fallback={null}>
         <Model scrollY={scrollY}/>
       </Suspense>
-
-      <CameraController scrollY={scrollY}/>
 
     </Canvas>
   );

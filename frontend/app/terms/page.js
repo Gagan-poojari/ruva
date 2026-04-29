@@ -9,7 +9,7 @@ export default function TermsPage() {
           <p>By accessing or using our services, you agree to be bound by these terms. If you disagree with any part of the terms, you may not access the service.</p>
           
           <h2 className="text-xl font-semibold text-gray-800 mt-6 mb-3">2. Products and Services</h2>
-          <p>We strive to accurately display the colors and images of our products. However, we cannot guarantee that your computer monitor's display of any color will be accurate.</p>
+          <p>We strive to accurately display the colors and images of our products. However, we cannot guarantee that your computer monitor&rsquo;s display of any color will be accurate.</p>
           <p>All descriptions of products or product pricing are subject to change at anytime without notice, at the sole discretion of us.</p>
           
           <h2 className="text-xl font-semibold text-gray-800 mt-6 mb-3">3. Payments</h2>

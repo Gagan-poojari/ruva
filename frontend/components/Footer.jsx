@@ -122,7 +122,7 @@ export default function Footer() {
               borderLeft:"2px solid rgba(212,160,23,0.25)",
               paddingLeft:"1rem", maxWidth:"320px",
             }}>
-              "Every thread holds a story, every drape carries a legacy — weaving the soul of India into the heart of the modern woman."
+              &ldquo;Every thread holds a story, every drape carries a legacy &mdash; weaving the soul of India into the heart of the modern woman.&rdquo;
             </blockquote>
 
             {/* Socials */}
@@ -152,7 +152,7 @@ export default function Footer() {
                   { label:"The Wedding Edit",      href:"/shop" },
                   { label:"Banarasi Masterpieces", href:"/collections" },
                   { label:"Pure Kanchipuram",      href:"/collections" },
-                  { label:"The Weaver's Story",    href:"/about" },
+                  { label:"The Weaver&rsquo;s Story",    href:"/about" },
                 ].map(({ label, href }) => (
                   <li key={label}><Link href={href} className="footer-link">{label}</Link></li>
                 ))}

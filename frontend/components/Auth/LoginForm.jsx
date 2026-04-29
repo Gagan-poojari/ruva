@@ -152,7 +152,7 @@ export default function LoginForm({ onToggleRegister, googleEnabled = true }) {
       </div>
 
       <p className="mt-10 text-center text-[#5a2a1a]/60 text-xs font-medium">
-        Don't have an account?{" "}
+        Don&rsquo;t have an account?{" "}
         <button
           onClick={onToggleRegister}
           className="text-[#c87d1a] font-bold hover:underline decoration-[#c87d1a]/30 underline-offset-4 ml-1"

@@ -21,7 +21,10 @@ export default function ApprovalsPage() {
   };
 
   useEffect(() => {
-    fetchSubmissions();
+    const timer = setTimeout(() => {
+      fetchSubmissions();
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   const handleApprove = async (id) => {
@@ -90,7 +93,7 @@ export default function ApprovalsPage() {
                 
                 {sub.description && (
                   <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded-xl mb-4 italic">
-                    "{sub.description}"
+                    &ldquo;{sub.description}&rdquo;
                   </p>
                 )}
 

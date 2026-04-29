@@ -25,10 +25,8 @@ const SareeModel3D = dynamic(() => import("./SareeModel3D"), {
 
 export default function HeroSection() {
   const [scrollY, setScrollY] = useState(0);
-  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
     const fn = () => setScrollY(window.scrollY);
     window.addEventListener("scroll", fn, { passive: true });
     return () => window.removeEventListener("scroll", fn);
@@ -222,7 +220,7 @@ export default function HeroSection() {
               filter: "blur(10px)",
             }} />
 
-            {mounted && <SareeModel3D scrollY={scrollY} />}
+            <SareeModel3D scrollY={scrollY} />
           </div>
 
           {/* Bottom fill content */}

@@ -3,7 +3,8 @@ const Product = require('../models/Product');
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
-const { sendWhatsApp } = require('../services/whatsapp');
+const { notifyWithFallback } = require('../services/notifications');
+const { alert, ALERT_SEVERITY } = require('../services/monitoring');
 
 const razorpay = new Razorpay({
     key_id: process.env.RAZORPAY_KEY_ID,
@@ -11,11 +12,62 @@ const razorpay = new Razorpay({
 });
 
 const USER_REFUNDABLE_STATUSES = ['pending', 'confirmed', 'packed'];
-const ADMIN_REFUND_LOGIN_EMAIL = process.env.ADMIN_REFUND_EMAIL || 'ruva@marketshpere.com';
-const ADMIN_REFUND_LOGIN_PASSWORD = process.env.ADMIN_REFUND_PASSWORD || 'RuvaXmarketshpere';
+const ADMIN_REFUND_LOGIN_EMAIL = process.env.ADMIN_REFUND_EMAIL;
+const ADMIN_REFUND_LOGIN_PASSWORD = process.env.ADMIN_REFUND_PASSWORD;
 const REFUND_AUTH_HEADER = 'x-admin-refund-token';
 
 const isValidObjectId = (id) => /^[0-9a-fA-F]{24}$/.test(id);
+const normalizeSize = (size) => {
+    if (!size || size === 'Free Size') return undefined;
+    return size;
+};
+
+const getEffectiveProductPrice = (product) => (
+    product.discountPrice && product.discountPrice > 0 && product.discountPrice < product.price
+        ? product.discountPrice
+        : product.price
+);
+
+const ensureOrderStockAvailable = async (order, { excludeOrderId } = {}) => {
+    for (const item of order.items) {
+        const product = await Product.findById(item.product);
+        if (!product) {
+            return { ok: false, code: 404, message: `Product not found: ${item.product}` };
+        }
+
+        const normalizedSize = normalizeSize(item.size);
+        const activeHolds = await Order.find({
+            _id: { $ne: excludeOrderId || null },
+            'items.product': item.product,
+            paymentStatus: 'pending',
+            holdExpiresAt: { $gt: new Date() },
+        });
+
+        let reservedQty = 0;
+        activeHolds.forEach((holdOrder) => {
+            holdOrder.items.forEach((holdItem) => {
+                if (
+                    holdItem.product.toString() === item.product.toString()
+                    && normalizeSize(holdItem.size) === normalizedSize
+                ) {
+                    reservedQty += holdItem.qty;
+                }
+            });
+        });
+
+        let physicalStock = product.stock;
+        if (normalizedSize) {
+            const sizeObj = product.sizes.find((s) => s.label === normalizedSize);
+            physicalStock = sizeObj ? sizeObj.stock : 0;
+        }
+
+        if (physicalStock - reservedQty < item.qty) {
+            return { ok: false, code: 400, message: `"${product.name}" is out of stock` };
+        }
+    }
+
+    return { ok: true };
+};
 
 const ensureOrderRefundable = (order, { allowAdminOverride = false } = {}) => {
     if (!order) {
@@ -35,6 +87,34 @@ const ensureOrderRefundable = (order, { allowAdminOverride = false } = {}) => {
     }
 
     return { ok: true };
+};
+
+const settlePaidOrder = async ({ order, razorpayPaymentId }) => {
+    if (order.paymentStatus === 'paid') {
+        return order;
+    }
+
+    order.paymentStatus = 'paid';
+    order.status = 'confirmed';
+    order.razorpayPaymentId = razorpayPaymentId;
+    order.holdExpiresAt = undefined;
+
+    for (const item of order.items) {
+        const product = await Product.findById(item.product);
+        if (product) {
+            if (item.size) {
+                const sizeIndex = product.sizes.findIndex((s) => s.label === item.size);
+                if (sizeIndex !== -1) {
+                    product.sizes[sizeIndex].stock -= item.qty;
+                }
+            } else {
+                product.stock -= item.qty;
+            }
+            await product.save();
+        }
+    }
+
+    return order.save();
 };
 
 const processRefund = async ({ order, reason, initiatedBy }) => {
@@ -96,6 +176,7 @@ const addOrderItems = async (req, res, next) => {
 
         // ---- Server-side price verification & stock check ----
         let verifiedTotal = 0;
+        const verifiedOrderItems = [];
 
         for (const item of orderItems) {
             const product = await Product.findById(item.product);
@@ -104,13 +185,12 @@ const addOrderItems = async (req, res, next) => {
                 throw new Error(`Product not found: ${item.product}`);
             }
 
-            // Determine the correct price from the database (use discountPrice if valid)
-            const dbPrice = (product.discountPrice && product.discountPrice > 0 && product.discountPrice < product.price)
-                ? product.discountPrice
-                : product.price;
+            const normalizedSize = normalizeSize(item.size);
+            const dbPrice = getEffectiveProductPrice(product);
 
-            // Verify that client-sent price is not less than actual price
-            if (Number(item.price) < dbPrice) {
+            const clientPriceInPaise = Math.round(Number(item.price) * 100);
+            const dbPriceInPaise = Math.round(Number(dbPrice) * 100);
+            if (clientPriceInPaise !== dbPriceInPaise) {
                 console.error(`Price mismatch for ${product.name}: client sent ${item.price}, DB has ${dbPrice}`);
                 res.status(400);
                 throw new Error(`Price mismatch for ${product.name}. Please refresh your cart.`);
@@ -128,7 +208,10 @@ const addOrderItems = async (req, res, next) => {
             let reservedQty = 0;
             activeHolds.forEach(holdOrder => {
                 holdOrder.items.forEach(holdItem => {
-                    if (holdItem.product.toString() === item.product.toString() && holdItem.size === item.size) {
+                    if (
+                        holdItem.product.toString() === item.product.toString()
+                        && normalizeSize(holdItem.size) === normalizedSize
+                    ) {
                         reservedQty += holdItem.qty;
                     }
                 });
@@ -136,8 +219,8 @@ const addOrderItems = async (req, res, next) => {
 
             // Get physical stock
             let physicalStock = product.stock;
-            if (item.size) {
-                const sizeObj = product.sizes.find(s => s.label === item.size);
+            if (normalizedSize) {
+                const sizeObj = product.sizes.find(s => s.label === normalizedSize);
                 physicalStock = sizeObj ? sizeObj.stock : 0;
             }
 
@@ -145,15 +228,22 @@ const addOrderItems = async (req, res, next) => {
                 res.status(400);
                 throw new Error(`"${product.name}" is out of stock`);
             }
+
+            verifiedOrderItems.push({
+                product: item.product,
+                qty: item.qty,
+                price: dbPrice,
+                size: normalizedSize,
+            });
         }
 
         // Use verified total for Razorpay (prevents price manipulation)
         let finalAmount = Math.round(verifiedTotal * 100); // paise
 
-        // DEV-ONLY: Override payment amount to ₹1 for testing
-        if (process.env.NODE_ENV !== 'production') {
-            console.log(`[DEV] Overriding Razorpay amount from ₹${verifiedTotal} to ₹1 for testing`);
-            finalAmount = 100; // 100 paise = ₹1 (Razorpay minimum)
+        // Optional test override. Disabled by default for production-like flows.
+        if (process.env.RAZORPAY_FORCE_TEST_AMOUNT === 'true') {
+            console.log(`[PAYMENT] Overriding Razorpay amount from Rs.${verifiedTotal} to Rs.1`);
+            finalAmount = 100;
         }
 
         // Create Razorpay order
@@ -168,6 +258,10 @@ const addOrderItems = async (req, res, next) => {
             rzOrder = await razorpay.orders.create(options);
         } catch (rzError) {
             console.error('Razorpay order creation failed:', rzError);
+            await alert(ALERT_SEVERITY.ERROR, 'order.create_failed', {
+                userId: req.user?._id?.toString(),
+                reason: rzError.message,
+            });
             res.status(502);
             throw new Error('Payment gateway is temporarily unavailable. Please try again later.');
         }
@@ -176,14 +270,11 @@ const addOrderItems = async (req, res, next) => {
 
         const order = new Order({
             user: req.user._id,
-            items: orderItems.map(item => ({
-                product: item.product,
-                qty: item.qty,
-                price: item.price,
-                size: item.size,
-            })),
+            items: verifiedOrderItems,
             shippingAddress,
             paymentMethod: paymentMethod || 'Razorpay',
+            paymentStatus: 'pending',
+            status: 'pending',
             totalAmount: verifiedTotal,
             razorpayOrderId: rzOrder.id,
             holdExpiresAt: new Date(Date.now() + holdTimeout),
@@ -222,6 +313,10 @@ const verifyPayment = async (req, res, next) => {
 
         if (razorpay_signature !== expectedSign) {
             console.error('Payment signature mismatch for order:', orderId);
+            await alert(ALERT_SEVERITY.ERROR, 'payment.verify_failed', {
+                orderId,
+                reason: 'signature_mismatch',
+            });
             res.status(400);
             throw new Error('Payment verification failed: Invalid signature');
         }
@@ -231,6 +326,11 @@ const verifyPayment = async (req, res, next) => {
         if (!order) {
             res.status(404);
             throw new Error('Order not found');
+        }
+
+        if (order.user?._id?.toString() !== req.user._id.toString()) {
+            res.status(403);
+            throw new Error('Not authorized to verify this order');
         }
 
         // Prevent double processing
@@ -245,41 +345,184 @@ const verifyPayment = async (req, res, next) => {
             throw new Error('Order ID mismatch');
         }
 
-        order.paymentStatus = 'paid';
-        order.status = 'confirmed';
-        order.razorpayPaymentId = razorpay_payment_id;
-        order.holdExpiresAt = undefined; // Clear hold
-
-        // Decrement stock from Product model
-        for (const item of order.items) {
-            const product = await Product.findById(item.product);
-            if (product) {
-                if (item.size) {
-                    const sizeIndex = product.sizes.findIndex(s => s.label === item.size);
-                    if (sizeIndex !== -1) {
-                        product.sizes[sizeIndex].stock -= item.qty;
-                    }
-                } else {
-                    product.stock -= item.qty;
-                }
-                await product.save();
-            }
+        const razorpayPayment = await razorpay.payments.fetch(razorpay_payment_id);
+        if (!razorpayPayment) {
+            res.status(400);
+            throw new Error('Unable to fetch payment details from gateway');
         }
 
-        const updatedOrder = await order.save();
-
-        // Send WhatsApp notification (don't fail the request if WhatsApp fails)
-        try {
-            const message = `Hi ${order.user.name}! Your order #${order._id} has been confirmed. Total: Rs. ${order.totalAmount}. Thank you for shopping with RUVA!`;
-            const recipientPhone = order.shippingAddress?.whatsappNumber || order.user.phone;
-            await sendWhatsApp(recipientPhone, message);
-        } catch (whatsappErr) {
-            console.error('WhatsApp notification failed (non-critical):', whatsappErr.message);
+        if (razorpayPayment.order_id !== order.razorpayOrderId) {
+            res.status(400);
+            throw new Error('Payment does not belong to this order');
         }
+
+        if (razorpayPayment.status !== 'captured') {
+            res.status(400);
+            throw new Error(`Payment not successful (status: ${razorpayPayment.status})`);
+        }
+
+        const expectedAmountInPaise = Math.round(order.totalAmount * 100);
+        if (Number(razorpayPayment.amount) !== expectedAmountInPaise) {
+            res.status(400);
+            throw new Error('Paid amount does not match order total');
+        }
+
+        const updatedOrder = await settlePaidOrder({
+            order,
+            razorpayPaymentId: razorpay_payment_id,
+        });
+
+        const message = `Hi ${order.user.name}! Your order #${order._id} has been confirmed. Total: Rs. ${order.totalAmount}. Thank you for shopping with RUVA!`;
+        const recipientPhone = order.shippingAddress?.whatsappNumber || order.user.phone;
+        await notifyWithFallback({
+            phone: recipientPhone,
+            email: order.user.email,
+            subject: `Order #${order._id} confirmed`,
+            message,
+        });
 
         res.json({ message: 'Payment verified successfully', order: updatedOrder });
     } catch (error) {
         console.error('verifyPayment error:', error.message);
+        await alert(ALERT_SEVERITY.ERROR, 'payment.verify_failed', {
+            orderId: req.body?.orderId,
+            reason: error.message,
+        });
+        next(error);
+    }
+};
+
+// @desc    Handle Razorpay webhook callbacks
+// @route   POST /api/orders/razorpay/webhook
+// @access  Public (signature protected)
+const razorpayWebhook = async (req, res, next) => {
+    try {
+        const signature = req.headers['x-razorpay-signature'];
+        const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
+        const rawBody = Buffer.isBuffer(req.body) ? req.body : Buffer.from(JSON.stringify(req.body || {}));
+
+        if (!secret || !signature) {
+            res.status(401);
+            throw new Error('Missing webhook signature or secret');
+        }
+
+        const expected = crypto
+            .createHmac('sha256', secret)
+            .update(rawBody)
+            .digest('hex');
+
+        if (expected !== signature) {
+            await alert(ALERT_SEVERITY.ERROR, 'payment.webhook_invalid_signature', {
+                receivedSignature: signature,
+            });
+            res.status(401);
+            throw new Error('Invalid webhook signature');
+        }
+
+        const payload = Buffer.isBuffer(req.body) ? JSON.parse(rawBody.toString('utf8')) : req.body;
+        const event = payload?.event;
+        if (event !== 'payment.captured') {
+            return res.status(200).json({ ok: true, ignored: true, event });
+        }
+
+        const paymentEntity = payload?.payload?.payment?.entity;
+        if (!paymentEntity) {
+            return res.status(200).json({ ok: true, ignored: true });
+        }
+
+        const order = await Order.findOne({ razorpayOrderId: paymentEntity.order_id }).populate('user', 'name email phone');
+        if (!order) {
+            await alert(ALERT_SEVERITY.WARN, 'payment.webhook_order_not_found', {
+                razorpayOrderId: paymentEntity.order_id,
+                paymentId: paymentEntity.id,
+            });
+            return res.status(200).json({ ok: true, ignored: true, reason: 'order_not_found' });
+        }
+
+        if (order.paymentStatus !== 'paid') {
+            await settlePaidOrder({
+                order,
+                razorpayPaymentId: paymentEntity.id,
+            });
+
+            const message = `Hi ${order.user.name}! Your order #${order._id} has been confirmed. Total: Rs. ${order.totalAmount}. Thank you for shopping with RUVA!`;
+            const recipientPhone = order.shippingAddress?.whatsappNumber || order.user.phone;
+            await notifyWithFallback({
+                phone: recipientPhone,
+                email: order.user.email,
+                subject: `Order #${order._id} confirmed`,
+                message,
+            });
+        }
+
+        return res.status(200).json({ ok: true });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc    Retry Razorpay payment for existing pending order
+// @route   POST /api/orders/:id/retry-payment
+// @access  Private
+const retryPaymentForOrder = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+
+        if (!isValidObjectId(id)) {
+            res.status(400);
+            throw new Error('Invalid order id');
+        }
+
+        const order = await Order.findById(id);
+        if (!order) {
+            res.status(404);
+            throw new Error('Order not found');
+        }
+
+        if (order.user.toString() !== req.user._id.toString()) {
+            res.status(403);
+            throw new Error('Not authorized to retry payment for this order');
+        }
+
+        if (order.paymentStatus !== 'pending' || order.status !== 'pending') {
+            res.status(400);
+            throw new Error('Only pending unpaid orders can be retried');
+        }
+
+        const stockCheck = await ensureOrderStockAvailable(order, { excludeOrderId: order._id });
+        if (!stockCheck.ok) {
+            res.status(stockCheck.code);
+            throw new Error(stockCheck.message);
+        }
+
+        let finalAmount = Math.round(order.totalAmount * 100);
+        if (process.env.RAZORPAY_FORCE_TEST_AMOUNT === 'true') {
+            finalAmount = 100;
+        }
+
+        let rzOrder;
+        try {
+            rzOrder = await razorpay.orders.create({
+                amount: finalAmount,
+                currency: 'INR',
+                receipt: `retry_${order._id}_${Date.now()}`,
+            });
+        } catch (rzError) {
+            console.error('Razorpay retry order creation failed:', rzError);
+            res.status(502);
+            throw new Error('Payment gateway is temporarily unavailable. Please try again later.');
+        }
+
+        order.razorpayOrderId = rzOrder.id;
+        order.holdExpiresAt = new Date(Date.now() + 12 * 60 * 1000);
+        await order.save();
+
+        res.json({
+            message: 'Retry payment order created',
+            order,
+            razorpayOrder: rzOrder,
+        });
+    } catch (error) {
         next(error);
     }
 };
@@ -317,7 +560,7 @@ const getOrders = async (req, res, next) => {
 const updateOrderStatus = async (req, res, next) => {
     try {
         const { status } = req.body;
-        const order = await Order.findById(req.params.id).populate('user', 'name phone');
+        const order = await Order.findById(req.params.id).populate('user', 'name email phone');
 
         if (order) {
             const oldStatus = order.status;
@@ -415,7 +658,12 @@ const updateOrderStatus = async (req, res, next) => {
 
             if (message) {
                  const recipientPhone = order.shippingAddress?.whatsappNumber || order.user.phone;
-                 await sendWhatsApp(recipientPhone, message);
+                 await notifyWithFallback({
+                     phone: recipientPhone,
+                     email: order.user.email,
+                     subject: `Order #${order._id} status update`,
+                     message,
+                 });
             }
 
             res.json(updatedOrder);
@@ -441,7 +689,7 @@ const requestRefund = async (req, res, next) => {
             throw new Error('Invalid order id');
         }
 
-        const order = await Order.findById(id).populate('user', 'name phone');
+        const order = await Order.findById(id).populate('user', 'name email phone');
 
         if (!order || order.user._id.toString() !== req.user._id.toString()) {
             res.status(404);
@@ -467,7 +715,12 @@ const requestRefund = async (req, res, next) => {
 
         const message = `Hi ${order.user.name}, your refund for order #${order._id} is initiated. Refund reference: ${refund.id}.`;
         const recipientPhone = order.shippingAddress?.whatsappNumber || order.user.phone;
-        await sendWhatsApp(recipientPhone, message);
+        await notifyWithFallback({
+            phone: recipientPhone,
+            email: order.user.email,
+            subject: `Refund initiated for order #${order._id}`,
+            message,
+        });
 
         res.json({
             message: 'Refund initiated successfully',
@@ -492,7 +745,7 @@ const cancelMyOrder = async (req, res, next) => {
             throw new Error('Invalid order id');
         }
 
-        const order = await Order.findById(id).populate('user', 'name phone');
+        const order = await Order.findById(id).populate('user', 'name email phone');
 
         if (!order || order.user._id.toString() !== req.user._id.toString()) {
             res.status(404);
@@ -522,7 +775,12 @@ const cancelMyOrder = async (req, res, next) => {
             });
             const message = `Hi ${order.user.name}, your order #${order._id} has been cancelled and refund initiated. Refund ref: ${refund.id}.`;
             const recipientPhone = order.shippingAddress?.whatsappNumber || order.user.phone;
-            await sendWhatsApp(recipientPhone, message);
+            await notifyWithFallback({
+                phone: recipientPhone,
+                email: order.user.email,
+                subject: `Order #${order._id} cancelled`,
+                message,
+            });
 
             return res.json({ message: 'Order cancelled and refund initiated', order: updatedOrder });
         } else {
@@ -535,7 +793,12 @@ const cancelMyOrder = async (req, res, next) => {
 
             const message = `Hi ${order.user.name}, your order #${order._id} has been cancelled successfully.`;
             const recipientPhone = order.shippingAddress?.whatsappNumber || order.user.phone;
-            await sendWhatsApp(recipientPhone, message);
+            await notifyWithFallback({
+                phone: recipientPhone,
+                email: order.user.email,
+                subject: `Order #${order._id} cancelled`,
+                message,
+            });
 
             return res.json({ message: 'Order cancelled successfully', order: updatedOrder });
         }
@@ -549,10 +812,7 @@ const cancelMyOrder = async (req, res, next) => {
 // @access  Private/Admin
 const authorizeAdminRefundPanel = async (req, res, next) => {
     try {
-        if (
-            process.env.NODE_ENV === 'production' &&
-            (!process.env.ADMIN_REFUND_EMAIL || !process.env.ADMIN_REFUND_PASSWORD)
-        ) {
+        if (!ADMIN_REFUND_LOGIN_EMAIL || !ADMIN_REFUND_LOGIN_PASSWORD) {
             res.status(500);
             throw new Error('Refund panel credentials are not configured on server');
         }
@@ -651,7 +911,7 @@ const processAdminRefund = async (req, res, next) => {
             throw new Error('Invalid order id');
         }
 
-        const order = await Order.findById(id).populate('user', 'name phone');
+        const order = await Order.findById(id).populate('user', 'name email phone');
         const eligibility = ensureOrderRefundable(order, { allowAdminOverride: true });
         if (!eligibility.ok) {
             res.status(eligibility.code);
@@ -671,7 +931,12 @@ const processAdminRefund = async (req, res, next) => {
 
         const message = `Hi ${order.user.name}, your refund for order #${order._id} was initiated by support. Refund reference: ${refund.id}.`;
         const recipientPhone = order.shippingAddress?.whatsappNumber || order.user.phone;
-        await sendWhatsApp(recipientPhone, message);
+        await notifyWithFallback({
+            phone: recipientPhone,
+            email: order.user.email,
+            subject: `Support refund initiated for order #${order._id}`,
+            message,
+        });
 
         res.json({
             message: 'Admin refund initiated successfully',
@@ -695,4 +960,6 @@ module.exports = {
     processAdminRefund,
     cancelMyOrder,
     getRazorpayKey,
+    retryPaymentForOrder,
+    razorpayWebhook,
 };

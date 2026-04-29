@@ -136,7 +136,12 @@ export default function AdminReviewsPage() {
     api.get('/reviews').then(({ data }) => setReviews(data)).catch(() => toast.error('Failed to load')).finally(() => setLoading(false));
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      load();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleDelete = async (id) => {
     if (!confirm('Delete this review?')) return;
@@ -166,7 +171,7 @@ export default function AdminReviewsPage() {
         <div style={{ textAlign:'center', padding:60, background:'#f9fafb', borderRadius:16, border:'1px dashed #d1d5db' }}>
           <Star size={36} color="#d1d5db" style={{ marginBottom:12 }} />
           <p style={{ margin:0, color:'#9ca3af', fontWeight:600 }}>No reviews yet</p>
-          <p style={{ margin:'6px 0 0', color:'#d1d5db', fontSize:'0.8rem' }}>Click "Add Review" to create the first one.</p>
+          <p style={{ margin:'6px 0 0', color:'#d1d5db', fontSize:'0.8rem' }}>Click &quot;Add Review&quot; to create the first one.</p>
         </div>
       ) : (
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))', gap:16 }}>

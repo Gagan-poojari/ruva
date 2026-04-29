@@ -39,7 +39,10 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    fetchStats();
+    const timer = setTimeout(() => {
+      fetchStats();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [statusFilter]);
 
   if (loading && !stats) {

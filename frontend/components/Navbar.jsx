@@ -34,6 +34,7 @@ const BOTTOM_TABS = [
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
+  const [hydrated, setHydrated]       = useState(false);
   const [scrolled, setScrolled]       = useState(false);
   const [searchOpen, setSearchOpen]   = useState(false);
   const [mobileOpen, setMobileOpen]   = useState(false);
@@ -46,6 +47,10 @@ export default function Navbar() {
 
   const overHero  = pathname === "/" && !scrolled;
   const navColor  = overHero ? "#f4e6ff" : "#3d0a0a";
+
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
 
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 28);
@@ -74,7 +79,7 @@ export default function Navbar() {
     setCollOpen(false);
     if (pathname === "/") {
       const ok = scrollToSection(id);
-      if (!ok) window.location.hash = id;
+      if (!ok) window.location.assign(`/#${id}`);
       return;
     }
     router.push(`/#${id}`);
@@ -331,7 +336,7 @@ export default function Navbar() {
               </div>
               <Link href="/wishlist" className="relative transition-transform hover:scale-110" aria-label="Wishlist" style={{ color: navColor }}>
                 <FaRegHeart size={18} />
-                {wishlistCount > 0 && (
+                {hydrated && wishlistCount > 0 && (
                   <span key={wishlistCount} className="badge-pop absolute -top-2 -right-2 flex items-center justify-center rounded-full text-[10px] font-bold"
                     style={{ width: 18, height: 18, background: "linear-gradient(135deg,#6b1a1a,#a02828)", color: "#fdf3e3", boxShadow: "0 2px 8px rgba(61,10,10,0.35)" }}>
                     {wishlistCount > 9 ? "9+" : wishlistCount}
@@ -343,7 +348,7 @@ export default function Navbar() {
               </Link>
               <Link href="/cart" className="relative transition-transform hover:scale-110" aria-label="Cart" style={{ color: navColor }}>
                 <BsBagHeartFill size={20} />
-                {cartCount > 0 && (
+                {hydrated && cartCount > 0 && (
                   <span key={cartCount} className="badge-pop absolute -top-2 -right-2 flex items-center justify-center rounded-full text-[10px] font-bold"
                     style={{ width: 18, height: 18, background: "linear-gradient(135deg,#6b1a1a,#a02828)", color: "#fdf3e3", boxShadow: "0 2px 8px rgba(61,10,10,0.35)" }}>
                     {cartCount > 9 ? "9+" : cartCount}
@@ -398,7 +403,7 @@ export default function Navbar() {
                 }}
               >
                 <FaHeart size={17} />
-                {wishlistCount > 0 && (
+                {hydrated && wishlistCount > 0 && (
                   <span className="badge-pop btab-badge" style={{ top: 4, right: 2, width: 14, height: 14, fontSize: 8 }}>
                     {wishlistCount > 9 ? "9+" : wishlistCount}
                   </span>
@@ -432,7 +437,7 @@ export default function Navbar() {
           <div className="btab-active-pip" />
           <div className="btab-cart-wrap">
             <BsBagHeartFill size={20} />
-            {cartCount > 0 && (
+            {hydrated && cartCount > 0 && (
               <span key={cartCount} className="badge-pop btab-badge">
                 {cartCount > 9 ? "9+" : cartCount}
               </span>

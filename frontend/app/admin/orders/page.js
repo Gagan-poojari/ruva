@@ -43,7 +43,10 @@ export default function OrdersPage() {
   };
 
   useEffect(() => {
-    fetchOrders();
+    const timer = setTimeout(() => {
+      fetchOrders();
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   const handleStatusUpdate = async (orderId, newStatus) => {
