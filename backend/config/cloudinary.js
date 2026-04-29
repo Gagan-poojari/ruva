@@ -1,4 +1,4 @@
-const cloudinary = require('cloudinary').v2;
+const cloudinary = require('cloudinary');
 const cloudinaryStorageModule = require('multer-storage-cloudinary');
 const CloudinaryStorage =
   cloudinaryStorageModule.CloudinaryStorage || cloudinaryStorageModule;
@@ -10,7 +10,7 @@ const dotenv = require('dotenv');
 
 dotenv.config();
 
-cloudinary.config({
+cloudinary.v2.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
@@ -20,7 +20,7 @@ const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
     folder: 'saree-shop',
-    allowedFormats: ['jpg', 'png', 'jpeg', 'webp'],
+    allowed_formats: ['jpg', 'png', 'jpeg', 'webp'],
     transformation: [{ width: 800, crop: 'limit' }],
   },
 });

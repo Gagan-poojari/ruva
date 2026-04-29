@@ -1,7 +1,7 @@
 const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
-const helmet = require('helmet');
+const helmet = require('helmet'); 
 const rateLimit = require('express-rate-limit');
 const connectDB = require('./config/db');
 const { monitorApiError } = require('./services/monitoring');
@@ -112,6 +112,18 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 5000;
+
+// Keep Render free tier alive (ping every 14 minutes)
+if (process.env.NODE_ENV === 'production') {
+    setInterval(() => {
+      const https = require('https');
+      https.get('https://ruva-backend.onrender.com/', (res) => {
+        console.log(`[Keep-alive] ping status: ${res.statusCode}`);
+      }).on('error', (e) => {
+        console.error('[Keep-alive] ping failed:', e.message);
+      });
+    }, 14 * 60 * 1000); // every 14 minutes
+  }
 
 const server = app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
