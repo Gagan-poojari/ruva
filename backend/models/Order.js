@@ -24,7 +24,7 @@ const orderSchema = mongoose.Schema(
             city: { type: String, required: true },
             state: { type: String, required: true },
             pincode: { type: String, required: true },
-            whatsappNumber: { type: String },
+            email: { type: String, required: true },
         },
         paymentMethod: {
             type: String,
@@ -49,7 +49,7 @@ const orderSchema = mongoose.Schema(
             enum: ['pending', 'confirmed', 'packed', 'shipped', 'delivered', 'cancelled'],
             default: 'pending',
         },
-        whatsappSent: {
+        emailSent: {
             type: Boolean,
             default: false,
         },

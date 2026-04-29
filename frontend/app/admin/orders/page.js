@@ -114,7 +114,6 @@ export default function OrdersPage() {
             onChange={(e) => setFilter(e.target.value)}
           >
             <option value="all">All Status</option>
-            <option value="pending">Pending</option>
             <option value="confirmed">Confirmed</option>
             <option value="shipped">Shipped</option>
             <option value="delivered">Delivered</option>
@@ -152,8 +151,8 @@ export default function OrdersPage() {
                       <p className="text-[10px] text-gray-500 leading-tight max-w-[200px]">
                         {order.shippingAddress?.street}, {order.shippingAddress?.city}, {order.shippingAddress?.state} - {order.shippingAddress?.pincode}
                       </p>
-                      {order.shippingAddress?.whatsappNumber && (
-                        <span className="text-[10px] text-primary-600 font-medium">WA: {order.shippingAddress.whatsappNumber}</span>
+                      {order.shippingAddress?.email && (
+                        <span className="text-[10px] text-primary-600 font-medium">Email: {order.shippingAddress.email}</span>
                       )}
                     </div>
                   </td>
@@ -285,8 +284,8 @@ export default function OrdersPage() {
                     <p className="text-sm font-bold text-gray-900">{selectedOrder.user?.name || 'Guest User'}</p>
                     <p className="text-xs text-gray-500">{selectedOrder.user?.email}</p>
                     <p className="text-xs text-gray-900 font-medium">Primary: {selectedOrder.user?.phone}</p>
-                    {selectedOrder.shippingAddress?.whatsappNumber && (
-                      <p className="text-xs text-emerald-600 font-bold">WhatsApp: {selectedOrder.shippingAddress.whatsappNumber}</p>
+                    {selectedOrder.shippingAddress?.email && (
+                      <p className="text-xs text-emerald-600 font-bold">Shipping Email: {selectedOrder.shippingAddress.email}</p>
                     )}
                   </div>
                 </div>

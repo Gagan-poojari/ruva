@@ -9,7 +9,7 @@ const getStats = async (req, res, next) => {
         const { status } = req.query; // Optional status filter: delivered, pending, cancelled
         
         const matchStage = {
-            status: { $ne: 'cancelled' }
+            status: { $nin: ['cancelled', 'pending'] }
         };
         
         if (status) {
@@ -55,7 +55,7 @@ const getStats = async (req, res, next) => {
                 {
                     $match: {
                         createdAt: { $gte: sevenDaysAgo },
-                        status: { $ne: 'cancelled' }
+                        status: { $nin: ['cancelled', 'pending'] }
                     }
                 },
                 {

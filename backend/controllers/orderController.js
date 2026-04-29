@@ -373,10 +373,11 @@ const verifyPayment = async (req, res, next) => {
         });
 
         const message = `Hi ${order.user.name}! Your order #${order._id} has been confirmed. Total: Rs. ${order.totalAmount}. Thank you for shopping with RUVA!`;
-        const recipientPhone = order.shippingAddress?.whatsappNumber || order.user.phone;
+        const recipientPhone = order.user.phone;
+        const recipientEmail = order.shippingAddress?.email || order.user.email;
         await notifyWithFallback({
             phone: recipientPhone,
-            email: order.user.email,
+            email: recipientEmail,
             subject: `Order #${order._id} confirmed`,
             message,
         });
@@ -446,10 +447,11 @@ const razorpayWebhook = async (req, res, next) => {
             });
 
             const message = `Hi ${order.user.name}! Your order #${order._id} has been confirmed. Total: Rs. ${order.totalAmount}. Thank you for shopping with RUVA!`;
-            const recipientPhone = order.shippingAddress?.whatsappNumber || order.user.phone;
+            const recipientPhone = order.user.phone;
+            const recipientEmail = order.shippingAddress?.email || order.user.email;
             await notifyWithFallback({
                 phone: recipientPhone,
-                email: order.user.email,
+                email: recipientEmail,
                 subject: `Order #${order._id} confirmed`,
                 message,
             });
@@ -544,7 +546,7 @@ const getMyOrders = async (req, res, next) => {
 // @access  Private/Admin
 const getOrders = async (req, res, next) => {
     try {
-        const orders = await Order.find({})
+        const orders = await Order.find({ status: { $ne: 'pending' } })
             .populate('user', 'id name phone email')
             .populate('items.product', 'name images')
             .sort({ createdAt: -1 });
@@ -657,10 +659,11 @@ const updateOrderStatus = async (req, res, next) => {
             }
 
             if (message) {
-                 const recipientPhone = order.shippingAddress?.whatsappNumber || order.user.phone;
+                 const recipientPhone = order.user.phone;
+                 const recipientEmail = order.shippingAddress?.email || order.user.email;
                  await notifyWithFallback({
                      phone: recipientPhone,
-                     email: order.user.email,
+                     email: recipientEmail,
                      subject: `Order #${order._id} status update`,
                      message,
                  });
@@ -714,10 +717,11 @@ const requestRefund = async (req, res, next) => {
         });
 
         const message = `Hi ${order.user.name}, your refund for order #${order._id} is initiated. Refund reference: ${refund.id}.`;
-        const recipientPhone = order.shippingAddress?.whatsappNumber || order.user.phone;
+        const recipientPhone = order.user.phone;
+        const recipientEmail = order.shippingAddress?.email || order.user.email;
         await notifyWithFallback({
             phone: recipientPhone,
-            email: order.user.email,
+            email: recipientEmail,
             subject: `Refund initiated for order #${order._id}`,
             message,
         });
@@ -774,10 +778,11 @@ const cancelMyOrder = async (req, res, next) => {
                 initiatedBy: 'user',
             });
             const message = `Hi ${order.user.name}, your order #${order._id} has been cancelled and refund initiated. Refund ref: ${refund.id}.`;
-            const recipientPhone = order.shippingAddress?.whatsappNumber || order.user.phone;
+            const recipientPhone = order.user.phone;
+            const recipientEmail = order.shippingAddress?.email || order.user.email;
             await notifyWithFallback({
                 phone: recipientPhone,
-                email: order.user.email,
+                email: recipientEmail,
                 subject: `Order #${order._id} cancelled`,
                 message,
             });
@@ -792,10 +797,11 @@ const cancelMyOrder = async (req, res, next) => {
             const updatedOrder = await order.save();
 
             const message = `Hi ${order.user.name}, your order #${order._id} has been cancelled successfully.`;
-            const recipientPhone = order.shippingAddress?.whatsappNumber || order.user.phone;
+            const recipientPhone = order.user.phone;
+            const recipientEmail = order.shippingAddress?.email || order.user.email;
             await notifyWithFallback({
                 phone: recipientPhone,
-                email: order.user.email,
+                email: recipientEmail,
                 subject: `Order #${order._id} cancelled`,
                 message,
             });
@@ -923,17 +929,27 @@ const processAdminRefund = async (req, res, next) => {
             throw new Error('No captured payment found for refund');
         }
 
-        const { updatedOrder, refund } = await processRefund({
-            order,
-            reason,
-            initiatedBy: 'admin',
-        });
+        let refundResult;
+        try {
+            refundResult = await processRefund({
+                order,
+                reason,
+                initiatedBy: 'admin',
+            });
+        } catch (refundError) {
+            console.error('Razorpay Refund Error:', refundError);
+            res.status(400);
+            throw new Error(`Refund Gateway Error: ${refundError?.error?.description || refundError.message || 'Unknown error'}`);
+        }
+
+        const { updatedOrder, refund } = refundResult;
 
         const message = `Hi ${order.user.name}, your refund for order #${order._id} was initiated by support. Refund reference: ${refund.id}.`;
-        const recipientPhone = order.shippingAddress?.whatsappNumber || order.user.phone;
+        const recipientPhone = order.user.phone;
+        const recipientEmail = order.shippingAddress?.email || order.user.email;
         await notifyWithFallback({
             phone: recipientPhone,
-            email: order.user.email,
+            email: recipientEmail,
             subject: `Support refund initiated for order #${order._id}`,
             message,
         });

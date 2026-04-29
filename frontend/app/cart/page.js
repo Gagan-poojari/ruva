@@ -32,7 +32,7 @@ export default function CartPage() {
     city: "",
     state: "",
     pincode: "",
-    whatsappNumber: "",
+    email: "",
   });
 
   const subtotal = cartItems.reduce((sum, item) => {
@@ -72,8 +72,8 @@ export default function CartPage() {
         order_id: razorpayOrder.id,
         prefill: {
           name: user?.name || "",
-          email: user?.email || "",
-          contact: shippingAddress.whatsappNumber || user?.phone || "",
+          email: shippingAddress.email || user?.email || "",
+          contact: user?.phone || "",
         },
         theme: { color: "#4d1f73" },
 
@@ -144,8 +144,9 @@ export default function CartPage() {
       return;
     }
 
-    if (!shippingAddress.whatsappNumber || shippingAddress.whatsappNumber.length < 10) {
-      toast.error("Please enter a valid WhatsApp number for order updates.");
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!shippingAddress.email || !emailRegex.test(shippingAddress.email)) {
+      toast.error("Please enter a valid Email Address for order updates.");
       return;
     }
 
@@ -369,10 +370,11 @@ export default function CartPage() {
                       className="w-full rounded-xl border border-[#d9b06d]/35 bg-white px-3 py-2 text-sm outline-none"
                     />
                     <input
-                      id="shipping-whatsapp"
-                      value={shippingAddress.whatsappNumber}
-                      onChange={(e) => setShippingAddress((s) => ({ ...s, whatsappNumber: e.target.value }))}
-                      placeholder="WhatsApp No. *"
+                      type="email"
+                      id="shipping-email"
+                      value={shippingAddress.email}
+                      onChange={(e) => setShippingAddress((s) => ({ ...s, email: e.target.value }))}
+                      placeholder="Email Address *"
                       className="w-full rounded-xl border border-[#d9b06d]/35 bg-white px-3 py-2 text-sm outline-none"
                     />
                   </div>

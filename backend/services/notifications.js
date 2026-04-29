@@ -3,26 +3,8 @@ const twilio = require('twilio');
 const { sendWhatsApp } = require('./whatsapp');
 const { alert, ALERT_SEVERITY } = require('./monitoring');
 
-let transporter;
-const getTransporter = () => {
-    if (transporter) return transporter;
-
-    const host = process.env.SMTP_HOST;
-    const port = Number(process.env.SMTP_PORT || 587);
-    const user = process.env.SMTP_USER;
-    const pass = process.env.SMTP_PASS;
-
-    if (!host || !user || !pass) return null;
-
-    transporter = nodemailer.createTransport({
-        host,
-        port,
-        secure: port === 465,
-        auth: { user, pass },
-    });
-
-    return transporter;
-};
+// EmailJS configured via direct HTTP API
+// No transporter needed
 
 const getTwilioClient = () => {
     if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN) {
@@ -55,21 +37,42 @@ const sendSms = async (toPhone, message) => {
 };
 
 const sendEmail = async ({ toEmail, subject, message }) => {
-    const emailFrom = process.env.EMAIL_FROM || process.env.SMTP_USER;
-    const transport = getTransporter();
+    const serviceId = process.env.EMAILJS_SERVICE_ID;
+    const templateId = process.env.EMAILJS_TEMPLATE_ID;
+    const publicKey = process.env.EMAILJS_PUBLIC_KEY;
+    const privateKey = process.env.EMAILJS_PRIVATE_KEY; // Optional but recommended
 
-    if (!transport || !toEmail || !emailFrom) return false;
+    if (!serviceId || !templateId || !publicKey || !toEmail) return false;
 
     try {
-        await transport.sendMail({
-            from: emailFrom,
-            to: toEmail,
-            subject,
-            text: message,
+        const payload = {
+            service_id: serviceId,
+            template_id: templateId,
+            user_id: publicKey,
+            accessToken: privateKey, // Optional security
+            template_params: {
+                to_email: toEmail,
+                subject: subject,
+                message: message
+            }
+        };
+
+        const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload),
         });
-        return true;
+
+        if (response.ok) {
+            return true;
+        } else {
+            const errorText = await response.text();
+            throw new Error(`EmailJS Error: ${errorText}`);
+        }
     } catch (error) {
-        await alert(ALERT_SEVERITY.WARN, 'notification.email_failed', {
+        await alert(ALERT_SEVERITY.WARN, 'notification.emailjs_failed', {
             toEmail,
             reason: error.message,
         });
@@ -83,31 +86,34 @@ const notifyWithFallback = async ({
     subject = 'RUVA Order Update',
     message,
 }) => {
-    const whatsappSent = await sendWhatsApp(phone, message);
-
-    if (whatsappSent) {
-        return { channel: 'whatsapp', delivered: true };
-    }
-
-    await alert(ALERT_SEVERITY.WARN, 'notification.whatsapp_failed', {
-        phone,
-        email,
-    });
-
-    const smsSent = await sendSms(phone, message);
-    if (smsSent) {
-        return { channel: 'sms', delivered: true };
-    }
-
+    // Try email first
     const emailSent = await sendEmail({
         toEmail: email,
         subject,
         message,
     });
 
+    if (emailSent) {
+        return { channel: 'email', delivered: true };
+    }
+
+    await alert(ALERT_SEVERITY.WARN, 'notification.email_failed', {
+        email,
+        phone,
+    });
+
+    // Fallback to SMS
+    const smsSent = await sendSms(phone, message);
+    if (smsSent) {
+        return { channel: 'sms', delivered: true };
+    }
+
+    // Fallback to WhatsApp
+    const whatsappSent = await sendWhatsApp(phone, message);
+    
     return {
-        channel: emailSent ? 'email' : 'none',
-        delivered: Boolean(emailSent),
+        channel: whatsappSent ? 'whatsapp' : 'none',
+        delivered: Boolean(whatsappSent),
     };
 };
 

@@ -102,7 +102,9 @@ export default function AdminRefundPage() {
       setOrderData((prev) => (prev ? { ...prev, order: data.order, refundable: false, refundMessage: 'Already refunded' } : prev));
       toast.success('Refund initiated successfully');
     } catch (error) {
-      toast.error(error?.response?.data?.message || 'Failed to initiate refund');
+      console.error('Refund processing error:', error);
+      const errorMsg = error?.response?.data?.message || error?.message || 'Failed to initiate refund. Check console for details.';
+      toast.error(errorMsg, { duration: 6000 });
     } finally {
       setProcessingRefund(false);
     }
