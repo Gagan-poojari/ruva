@@ -29,7 +29,7 @@ export default function About() {
 
       {/* Gold Accent Rule */}
       <div 
-        className="absolute top-0 left-0 right-0 h-[1px] pointer-events-none" 
+        className="absolute top-0 left-0 right-0 h-px pointer-events-none" 
         style={{
           background: "linear-gradient(to right, transparent, #f0c040 50%, transparent)",
           opacity: 0.4,
