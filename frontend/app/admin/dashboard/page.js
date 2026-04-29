@@ -177,24 +177,24 @@ export default function Dashboard() {
               <div>
                 <div className="flex justify-between text-xs font-bold text-gray-500 uppercase mb-2">
                   <span>Stock Availability</span>
-                  <span className={stats.lowStockCount > 0 ? 'text-red-500' : 'text-emerald-500'}>
-                    {stats.lowStockCount} Low Items
+                  <span className={(stats?.lowStockCount || 0) > 0 ? 'text-red-500' : 'text-emerald-500'}>
+                    {stats?.lowStockCount || 0} Low Items
                   </span>
                 </div>
                 <div className="h-2 bg-gray-50 rounded-full overflow-hidden">
                   <div
-                    className={`h-full transition-all duration-1000 ${stats.lowStockCount > 5 ? 'bg-red-500' : 'bg-primary-500'}`}
-                    style={{ width: `${Math.max(100 - (stats.lowStockCount * 5), 10)}%` }}
+                    className={`h-full transition-all duration-1000 ${(stats?.lowStockCount || 0) > 5 ? 'bg-red-500' : 'bg-primary-500'}`}
+                    style={{ width: `${Math.max(100 - ((stats?.lowStockCount || 0) * 5), 10)}%` }}
                   />
                 </div>
               </div>
 
-              {stats.lowStockCount > 0 && (
+              {(stats?.lowStockCount || 0) > 0 && (
                 <div className="p-3 bg-red-50 border border-red-100 rounded-xl flex items-start gap-3">
                   <AlertTriangle className="text-red-500 mt-0.5" size={16} />
                   <div>
                     <p className="text-xs font-bold text-red-700">Restock Warning</p>
-                    <p className="text-[10px] text-red-600 mt-1">{stats.lowStockCount} sarees are running low on stock. Check inventory soon.</p>
+                    <p className="text-[10px] text-red-600 mt-1">{stats?.lowStockCount || 0} sarees are running low on stock. Check inventory soon.</p>
                   </div>
                 </div>
               )}
