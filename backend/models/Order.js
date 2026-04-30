@@ -25,6 +25,7 @@ const orderSchema = mongoose.Schema(
             state: { type: String, required: true },
             pincode: { type: String, required: true },
             email: { type: String, required: true },
+            phone: { type: String, required: true },
         },
         paymentMethod: {
             type: String,
@@ -57,6 +58,14 @@ const orderSchema = mongoose.Schema(
             type: Number,
             required: true,
             default: 0.0,
+        },
+        deliveryFee: {
+            type: Number,
+            default: 49,
+        },
+        taxAmount: {
+            type: Number,
+            default: 0,
         },
         holdExpiresAt: {
             type: Date,

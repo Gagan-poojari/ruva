@@ -237,12 +237,18 @@ const addOrderItems = async (req, res, next) => {
             });
         }
 
-        // Use verified total for Razorpay (prevents price manipulation)
-        let finalAmount = Math.round(verifiedTotal * 100); // paise
+        // ---- Add delivery fee (₹49) and 2% tax on base price ----
+        const DELIVERY_FEE = 49;
+        const TAX_RATE = 0.02; // 2%
+        const taxAmount = Math.round(verifiedTotal * TAX_RATE * 100) / 100;
+        const grandTotal = verifiedTotal + DELIVERY_FEE + taxAmount;
+
+        // Use verified grand total for Razorpay (prevents price manipulation)
+        let finalAmount = Math.round(grandTotal * 100); // paise
 
         // Optional test override. Disabled by default for production-like flows.
         if (process.env.RAZORPAY_FORCE_TEST_AMOUNT === 'true') {
-            console.log(`[PAYMENT] Overriding Razorpay amount from Rs.${verifiedTotal} to Rs.1`);
+            console.log(`[PAYMENT] Overriding Razorpay amount from Rs.${grandTotal} to Rs.1`);
             finalAmount = 100;
         }
 
@@ -275,7 +281,9 @@ const addOrderItems = async (req, res, next) => {
             paymentMethod: paymentMethod || 'Razorpay',
             paymentStatus: 'pending',
             status: 'pending',
-            totalAmount: verifiedTotal,
+            totalAmount: grandTotal,
+            deliveryFee: DELIVERY_FEE,
+            taxAmount,
             razorpayOrderId: rzOrder.id,
             holdExpiresAt: new Date(Date.now() + holdTimeout),
         });

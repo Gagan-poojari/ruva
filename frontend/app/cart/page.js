@@ -33,12 +33,17 @@ export default function CartPage() {
     state: "",
     pincode: "",
     email: "",
+    phone: "",
   });
 
   const subtotal = cartItems.reduce((sum, item) => {
     const price = Number(item.price) || 0;
     return sum + price * (item.qty || 1);
   }, 0);
+
+  const DELIVERY_FEE = 49;
+  const taxAmount = Math.round(subtotal * 0.02 * 100) / 100;
+  const grandTotal = subtotal + DELIVERY_FEE + taxAmount;
 
   useEffect(() => {
     if (typeof window !== "undefined" && window.Razorpay) {
@@ -150,6 +155,12 @@ export default function CartPage() {
       return;
     }
 
+    const phoneRegex = /^[0-9]{10}$/;
+    if (!shippingAddress.phone || !phoneRegex.test(shippingAddress.phone)) {
+      toast.error("Please enter a valid 10-digit Phone Number.");
+      return;
+    }
+
     if (!cartItems.length) {
       toast.error("Your cart is empty.");
       return;
@@ -181,9 +192,9 @@ export default function CartPage() {
         shippingAddress,
         paymentMethod: "Razorpay",
         itemsPrice: subtotal,
-        taxPrice: 0,
-        shippingPrice: 0,
-        totalPrice: subtotal,
+        taxPrice: taxAmount,
+        shippingPrice: DELIVERY_FEE,
+        totalPrice: grandTotal,
       };
 
       const { data } = await api.post("/orders", payload);
@@ -327,13 +338,17 @@ export default function CartPage() {
                     <span>₹{subtotal.toLocaleString("en-IN")}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Shipping</span>
-                    <span>{subtotal > 0 ? "Free" : "—"}</span>
+                    <span>Delivery Fee</span>
+                    <span>₹{DELIVERY_FEE.toLocaleString("en-IN")}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Tax (2%)</span>
+                    <span>₹{taxAmount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </div>
                   <div className="h-px bg-[#d9b06d]/35 my-2" />
                   <div className="flex justify-between text-[#2f0f45] font-semibold text-lg">
                     <span>Total</span>
-                    <span>₹{subtotal.toLocaleString("en-IN")}</span>
+                    <span>₹{grandTotal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </div>
                 </div>
 
@@ -378,6 +393,17 @@ export default function CartPage() {
                       className="w-full rounded-xl border border-[#d9b06d]/35 bg-white px-3 py-2 text-sm outline-none"
                     />
                   </div>
+                  <div className="grid grid-cols-1 gap-2">
+                    <input
+                      type="tel"
+                      id="shipping-phone"
+                      value={shippingAddress.phone}
+                      onChange={(e) => setShippingAddress((s) => ({ ...s, phone: e.target.value }))}
+                      placeholder="Phone Number *"
+                      maxLength={10}
+                      className="w-full rounded-xl border border-[#d9b06d]/35 bg-white px-3 py-2 text-sm outline-none"
+                    />
+                  </div>
                 </div>
 
                 <button
@@ -394,7 +420,7 @@ export default function CartPage() {
                   ) : (
                     <>
                       <ShieldCheck size={16} />
-                      Pay ₹{subtotal.toLocaleString("en-IN")}
+                      Pay ₹{grandTotal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </>
                   )}
                 </button>
