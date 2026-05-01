@@ -235,7 +235,7 @@ export default function ProfilePage(){
           <motion.div variants={fd} initial="hidden" animate="show">
             <p style={{...LB,color:"rgba(240,201,122,.55)",marginBottom:14}}>✦ Account Atelier ✦</p>
             <div style={{width:84,height:84,borderRadius:"50%",margin:"0 auto 18px",overflow:"hidden",border:"2px solid rgba(201,133,60,.5)",boxShadow:"0 0 32px rgba(201,133,60,.2)"}}>
-              {user.avatar
+              {user.avatar && user.avatar.trim() !== ""
                 ? <img src={user.avatar} alt={user.name} style={{width:"100%",height:"100%",objectFit:"cover"}}/>
                 : <div style={{width:"100%",height:"100%",background:"linear-gradient(135deg,#6b1a1a,#a03030)",display:"flex",alignItems:"center",justifyContent:"center",...CG,fontSize:"1.8rem",fontWeight:700,color:"#ffe8b0"}}>{ini}</div>
               }
@@ -266,9 +266,16 @@ export default function ProfilePage(){
 
             {tab==="overview" && (
               <motion.div key="ov" variants={fd} initial="hidden" animate="show" exit={{opacity:0}} style={{display:"flex",flexDirection:"column",gap:14}}>
-                {[{label:"Browse Collection",sub:"Heritage silks & designer blouses",href:"/shop"},{label:"Your Cart",sub:cartItems.length+" items saved",href:"/cart"}].map((l,i)=>(
+                {[
+                  {label:"Browse Collection",sub:"Heritage silks & designer blouses",href:"/shop"},
+                  {label:"Your Cart",sub:cartItems.length+" items saved",href:"/cart"},
+                  {label:"Help Center",sub:"Contact support on WhatsApp",href:"https://wa.me/+917026256266", isExternal: true}
+                ].map((l,i)=>(
                   <motion.div key={l.label} custom={i} variants={fd} initial="hidden" animate="show">
-                    <Link href={l.href} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"20px 24px",borderRadius:16,background:"rgba(255,245,220,.04)",border:"1px solid rgba(201,133,60,.18)",textDecoration:"none"}}
+                    <Link 
+                      href={l.href} 
+                      target={l.isExternal ? "_blank" : undefined}
+                      style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"20px 24px",borderRadius:16,background:"rgba(255,245,220,.04)",border:"1px solid rgba(201,133,60,.18)",textDecoration:"none"}}
                       onMouseEnter={e=>{e.currentTarget.style.background="rgba(201,133,60,.08)";e.currentTarget.style.borderColor="rgba(201,133,60,.4)"}}
                       onMouseLeave={e=>{e.currentTarget.style.background="rgba(255,245,220,.04)";e.currentTarget.style.borderColor="rgba(201,133,60,.18)"}}>
                       <div>

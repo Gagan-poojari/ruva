@@ -71,10 +71,16 @@ export default function ApprovalsPage() {
           {submissions.map((sub) => (
             <div key={sub._id} className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm flex flex-col">
               <div className="relative h-48 bg-gray-50 flex items-center justify-center">
-                {sub.mediaType === "video" ? (
-                  <video src={sub.mediaUrl} controls className="w-full h-full object-cover" />
+                {sub.mediaUrl ? (
+                  sub.mediaType === "video" ? (
+                    <video src={sub.mediaUrl} controls className="w-full h-full object-cover" />
+                  ) : (
+                    <img src={sub.mediaUrl} alt="" className="w-full h-full object-cover" />
+                  )
                 ) : (
-                  <img src={sub.mediaUrl} alt="" className="w-full h-full object-cover" />
+                  <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400 text-xs">
+                    No media
+                  </div>
                 )}
                 <div className="absolute top-2 left-2 bg-black/50 backdrop-blur-sm text-white px-2 py-1 rounded-lg text-xs font-bold flex items-center gap-1">
                   {sub.mediaType === "video" ? <Video size={12} /> : <ImageIcon size={12} />}

@@ -237,11 +237,11 @@ const addOrderItems = async (req, res, next) => {
             });
         }
 
-        // ---- Add delivery fee (₹49) and 2% tax on base price ----
+        // ---- Add delivery fee (₹49) on base price ----
         const DELIVERY_FEE = 49;
-        const TAX_RATE = 0.02; // 2%
-        const taxAmount = Math.round(verifiedTotal * TAX_RATE * 100) / 100;
-        const grandTotal = verifiedTotal + DELIVERY_FEE + taxAmount;
+        // const TAX_RATE = 0.02; // 2%
+        const taxAmount = 0; // taxAmount disabled by user request
+        const grandTotal = verifiedTotal + DELIVERY_FEE;
 
         // Use verified grand total for Razorpay (prevents price manipulation)
         let finalAmount = Math.round(grandTotal * 100); // paise

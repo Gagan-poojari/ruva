@@ -394,7 +394,7 @@ export default function OrdersPage() {
                               <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
                                   {item.product?.images?.[0] ? (
-                                    <img src={item.product.images[0]} alt="" className="w-full h-full object-cover" />
+                                    <img src={item.product.images[0] || null} alt="" className="w-full h-full object-cover" />
                                   ) : (
                                     <div className="w-full h-full flex items-center justify-center">
                                       <ShoppingBag size={16} className="text-gray-300" />

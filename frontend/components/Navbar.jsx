@@ -18,10 +18,10 @@ import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 
 const NAV_LINKS = [
-  { label: "Home", sectionId: "home" },
+  { label: "Home", href: "/" },
   { label: "Categories", sectionId: "categories" },
-  { label: "Shop", sectionId: "shop" },
-  { label: "Collections", sectionId: "collections" },
+  { label: "Shop", href: "/shop" },
+  { label: "Collections", href: "/collections" },
 ];
 
 const BOTTOM_TABS = [
@@ -74,9 +74,16 @@ export default function Navbar() {
     return true;
   };
 
-  const handleSectionNav = (id) => {
+  const handleSectionNav = (item) => {
     setMobileOpen(false);
     setCollOpen(false);
+
+    if (item.href) {
+      router.push(item.href);
+      return;
+    }
+
+    const id = item.sectionId;
     if (pathname === "/") {
       const ok = scrollToSection(id);
       if (!ok) window.location.assign(`/#${id}`);
@@ -94,6 +101,13 @@ export default function Navbar() {
     return () => window.clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
+
+  const handleSearch = () => {
+    if (searchVal.trim()) {
+      router.push(`/shop?q=${encodeURIComponent(searchVal.trim())}`);
+      setSearchOpen(false);
+    }
+  };
 
   return (
     <>
@@ -292,15 +306,15 @@ export default function Navbar() {
 
             {/* ── DESKTOP LINKS ── */}
             <div className="hidden md:flex items-center gap-8">
-              {NAV_LINKS.map(({ label, sectionId }) => (
+              {NAV_LINKS.map((link) => (
                 <button
-                  key={label}
+                  key={link.label}
                   type="button"
                   className="nav-link"
                   style={{ color: navColor, background: "transparent", border: "none" }}
-                  onClick={() => handleSectionNav(sectionId)}
+                  onClick={() => handleSectionNav(link)}
                 >
-                  <span className="text-lg">{label}</span>
+                  <span className="text-lg">{link.label}</span>
                 </button>
               ))}
             </div>
@@ -322,16 +336,26 @@ export default function Navbar() {
                       type="text"
                       value={searchVal}
                       onChange={e => setSearchVal(e.target.value)}
-                      onKeyDown={e => e.key === "Escape" && setSearchOpen(false)}
+                      onKeyDown={e => {
+                        if (e.key === "Escape") setSearchOpen(false);
+                        if (e.key === "Enter") handleSearch();
+                      }}
                       placeholder="Search sarees…"
                       className="bg-transparent outline-none w-full"
                       style={{ fontFamily: "'Cormorant Garamond',Georgia,serif", fontSize: "0.9rem", color: navColor }}
                     />
                   </div>
                 </div>
-                <button onClick={() => { setSearchOpen(s => !s); if (searchOpen) setSearchVal(""); }}
+                <button onClick={() => {
+                  if (searchOpen && searchVal.trim()) {
+                    handleSearch();
+                  } else {
+                    setSearchOpen(s => !s);
+                    if (searchOpen) setSearchVal("");
+                  }
+                }}
                   className="transition-transform hover:scale-110" aria-label="Search" style={{ color: navColor }}>
-                  {searchOpen ? <X size={19} /> : <VscSearchSparkle size={19} />}
+                  {searchOpen ? (searchVal.trim() ? <VscSearchSparkle size={19} /> : <X size={19} />) : <VscSearchSparkle size={19} />}
                 </button>
               </div>
               <Link href="/wishlist" className="relative transition-transform hover:scale-110" aria-label="Wishlist" style={{ color: navColor }}>
@@ -370,7 +394,10 @@ export default function Navbar() {
                     type="text"
                     value={searchVal}
                     onChange={e => setSearchVal(e.target.value)}
-                    onKeyDown={e => { if (e.key === "Escape") { setSearchOpen(false); setSearchVal(""); } }}
+                    onKeyDown={e => {
+                      if (e.key === "Escape") { setSearchOpen(false); setSearchVal(""); }
+                      if (e.key === "Enter") handleSearch();
+                    }}
                     placeholder="Search sarees…"
                     style={{ color: overHero ? "#fdf3e3" : "#3d0a0a" }}
                   />
@@ -379,7 +406,14 @@ export default function Navbar() {
 
               {/* Search icon button — always visible, top-right */}
               <button
-                onClick={() => { setSearchOpen(s => !s); if (searchOpen) setSearchVal(""); }}
+                onClick={() => {
+                  if (searchOpen && searchVal.trim()) {
+                    handleSearch();
+                  } else {
+                    setSearchOpen(s => !s);
+                    if (searchOpen) setSearchVal("");
+                  }
+                }}
                 aria-label="Search"
                 style={{
                   color: overHero ? "#fdf3e3" : "#3d0a0a",
@@ -389,7 +423,7 @@ export default function Navbar() {
                 }}
               >
                 {searchOpen
-                  ? <X size={20} strokeWidth={1.8} />
+                  ? (searchVal.trim() ? <VscSearchSparkle size={20} /> : <X size={20} strokeWidth={1.8} />)
                   : <VscSearchSparkle size={20} />
                 }
               </button>
@@ -482,20 +516,20 @@ export default function Navbar() {
           <div className="mx-6 my-4 relative z-10" style={{ height: 1, background: "rgba(200,125,26,0.25)" }} />
           <div className="flex-1 flex flex-col justify-center px-8 gap-1 relative z-10">
             {[
-              { label: "Home", sectionId: "home" },
-              { label: "Shop", sectionId: "shop" },
-              { label: "Collections", sectionId: "collections" },
+              { label: "Home", href: "/" },
+              { label: "Shop", href: "/shop" },
+              { label: "Collections", href: "/collections" },
               { label: "Account", href: "/profile" },
               { label: "Wishlist", href: "/wishlist" },
               { label: "Cart", href: "/cart" },
-            ].map(({ label, href, sectionId }) => (
-              <div key={label} className="mlink">
+            ].map((item) => (
+              <div key={item.label} className="mlink">
                 <Link
-                  href={href || "/"}
+                  href={item.href || "/"}
                   onClick={(e) => {
-                    if (sectionId) {
+                    if (item.sectionId) {
                       e.preventDefault();
-                      handleSectionNav(sectionId);
+                      handleSectionNav(item);
                       return;
                     }
                     setMobileOpen(false);
@@ -506,7 +540,7 @@ export default function Navbar() {
                     fontFamily: "'Cormorant Garamond',Georgia,serif",
                     fontSize: "clamp(2rem,6vw,2.6rem)", fontWeight: 700,
                     color: "#3d0a0a", letterSpacing: "-0.01em",
-                  }}>{label}</span>
+                  }}>{item.label}</span>
                   <span className="group-hover:translate-x-1 transition-transform" style={{ color: "#d4891e", opacity: .65 }}>→</span>
                 </Link>
               </div>

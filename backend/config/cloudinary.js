@@ -1,4 +1,4 @@
-const cloudinary = require('cloudinary');
+const cloudinaryModule = require('cloudinary');
 const cloudinaryStorageModule = require('multer-storage-cloudinary');
 const CloudinaryStorage =
   cloudinaryStorageModule.CloudinaryStorage || cloudinaryStorageModule;
@@ -10,18 +10,28 @@ const dotenv = require('dotenv');
 
 dotenv.config();
 
-cloudinary.v2.config({
+const cloudinary = cloudinaryModule.v2;
+
+cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
 const storage = new CloudinaryStorage({
-  cloudinary: cloudinary,
-  params: {
-    folder: 'saree-shop',
-    allowed_formats: ['jpg', 'png', 'jpeg', 'webp'],
-    transformation: [{ width: 800, crop: 'limit' }],
+  cloudinary,
+  params: async (req, file) => {
+    const isVideoByMime = file.mimetype && file.mimetype.startsWith('video/');
+    const isVideoByName = /\.(mp4|webm|mov|avi|mkv|m4v)$/i.test(file.originalname || '');
+    const isVideo = isVideoByMime || isVideoByName;
+    return {
+      folder: 'saree-shop',
+      resource_type: isVideo ? 'video' : 'image',
+      // Only apply image transformations if it's an image
+      transformation: isVideo ? [] : [{ width: 1200, crop: 'limit' }],
+      // Remove format restrictions to avoid "Invalid image file"
+      allowed_formats: undefined,
+    };
   },
 });
 
@@ -45,8 +55,8 @@ const submissionDiskParser = multer({
     },
   }),
   limits: { 
-    fileSize: 200 * 1024 * 1024, // 200MB
-    fieldSize: 200 * 1024 * 1024 // 200MB for fields as well
+    fileSize: 40 * 1024 * 1024, // 40MB
+    fieldSize: 40 * 1024 * 1024 // 40MB
   },
 });
 

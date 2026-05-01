@@ -19,7 +19,9 @@ const createReview = async (req, res, next) => {
         let mediaUrl = '', publicId = '', mediaType = 'none';
 
         if (req.file) {
-            const isVideo = req.file.mimetype?.startsWith('video/');
+            const isVideo =
+                req.file.mimetype?.startsWith('video/') ||
+                /\.(mp4|webm|mov|avi|mkv|m4v)$/i.test(req.file.originalname || '');
             mediaType = isVideo ? 'video' : 'image';
             let result;
             try {
@@ -74,7 +76,9 @@ const updateReview = async (req, res, next) => {
             if (review.publicId) {
                 try { await cloudinary.uploader.destroy(review.publicId, { resource_type: review.mediaType === 'video' ? 'video' : 'image' }); } catch { }
             }
-            const isVideo = req.file.mimetype?.startsWith('video/');
+            const isVideo =
+                req.file.mimetype?.startsWith('video/') ||
+                /\.(mp4|webm|mov|avi|mkv|m4v)$/i.test(req.file.originalname || '');
             review.mediaType = isVideo ? 'video' : 'image';
             let result;
             try {

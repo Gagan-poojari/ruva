@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useMemo, useRef } from "react";
+import React, { useMemo, useRef, useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import toast from "react-hot-toast";
 
 import { useCart } from "@/context/CartContext";
+import api from "@/utils/api";
 
 const styles = {
   display: { fontFamily: "'Cormorant Garamond', Georgia, serif" },
@@ -81,13 +82,27 @@ const BESTSELLERS = [
     tag: "Limited",
   },
   {
-    title: "Blouse Edit",
-    sub: "Ready-To-Wear",
-    price: "₹3,299",
-    img: "/blouses/b3.jpeg",
-    tag: "New",
+    title: "Kanchipuram Heritage",
+    sub: "Temple Border Classic",
+    price: "₹15,999",
+    img: "/sarees/saree1.jpeg",
+    tag: "Trending",
   },
 ];
+
+const normalizeTagList = (product) =>
+  Array.isArray(product?.tags)
+    ? product.tags.map((tag) => String(tag).trim().toLowerCase())
+    : [];
+
+const getBestsellerTag = (product) => {
+  const tags = normalizeTagList(product);
+  if (product?.isBestseller) return "Bestseller";
+  if (product?.isTrending) return "Trending";
+  if (tags.includes("limited")) return "Limited";
+  if (tags.includes("new")) return "New";
+  return product?.tag || "New";
+};
 
 /* ── Gold card border via CSS custom property mouse tracking ── */
 function GoldCard({ children, className = "", href }) {
@@ -117,24 +132,58 @@ export default function Categories() {
   const { scrollYProgress } = useScroll({ target: sectionRef, offset: ["start end", "end start"] });
   const bgY = useTransform(scrollYProgress, [0, 1], ["0%", "14%"]);
   const { addToCart } = useCart();
+  const [bestsellers, setBestsellers] = useState([]);
+
+  useEffect(() => {
+    const fetchHomeProducts = async () => {
+      try {
+        const { data } = await api.get('/products', {
+          params: { pageSize: 50 }
+        });
+        
+        // Only show sarees marked for this showcase.
+        const bs = data.products.filter((p) => {
+          const isSaree = String(p.category || "").toLowerCase() === "sarees";
+          const tags = normalizeTagList(p);
+          return isSaree && (p.isBestseller || p.isTrending || tags.includes("new") || tags.includes("limited"));
+        });
+        setBestsellers(bs.length > 0 ? bs.slice(0, 4) : []);
+      } catch (error) {
+        console.error("Failed to fetch home products", error);
+      }
+    };
+    fetchHomeProducts();
+  }, []);
+
+  const formatPrice = (p) => {
+    if (typeof p === 'string' && p.includes('₹')) return p;
+    return `₹${Number(p).toLocaleString('en-IN')}`;
+  };
 
   const bestsellersForCart = useMemo(() => {
-    const toNumber = (v) => Number(String(v || "").replace(/[^\d.]/g, "")) || 0;
-    const slugify = (s) =>
-      String(s || "")
-        .toLowerCase()
-        .trim()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/(^-|-$)/g, "");
-
-    return BESTSELLERS.map((p) => ({
-      _id: `bestseller-${slugify(p.title)}`,
-      name: p.title,
-      category: p.title.toLowerCase().includes("blouse") ? "Blouse" : "Sarees",
-      image: p.img,
-      price: toNumber(p.price),
-    }));
-  }, []);
+    const itemsToMap = bestsellers.length > 0 ? bestsellers : BESTSELLERS;
+    const toNumber = (v) => typeof v === 'number' ? v : Number(String(v || "").replace(/[^\d.]/g, "")) || 0;
+    
+    return itemsToMap.map((p, idx) => {
+      if (p._id) {
+        return {
+          _id: p._id,
+          name: p.name,
+          category: p.category,
+          image: p.images?.[0]?.url,
+          price: p.discountPrice || p.price,
+        };
+      }
+      // Fallback for static items
+      return {
+        _id: `static-bs-${idx}`,
+        name: p.title,
+        category: p.title?.toLowerCase().includes("blouse") ? "Blouse" : "Sarees",
+        image: p.img,
+        price: toNumber(p.price),
+      };
+    });
+  }, [bestsellers]);
 
   return (
     <>
@@ -426,9 +475,9 @@ export default function Categories() {
 
           {/* Horizontal scroll on mobile, 4-col grid on desktop */}
           <div className="scroll-row">
-            {BESTSELLERS.map((p, i) => (
+            {(bestsellers.length > 0 ? bestsellers : BESTSELLERS).map((p, i) => (
               <motion.div
-                key={p.title}
+                key={p._id || p.title}
                 custom={i}
                 variants={scaleIn}
                 initial="hidden"
@@ -443,27 +492,29 @@ export default function Categories() {
                     boxShadow: "0 8px 28px rgba(42,5,5,0.09), 0 2px 8px rgba(201,133,60,0.08)",
                   }}
                 >
-                  {/* Image */}
-                  <div className="relative overflow-hidden" style={{ aspectRatio: "3/4" }}>
-                    <img
-                      src={p.img}
-                      alt={p.title}
-                      className="w-full h-full object-cover transition-transform duration-1100ms hover:scale-[1.06]"
-                    />
+                  <Link href={p._id ? `/products/${p._id}` : '#'}>
+                    {/* Image */}
+                    <div className="relative overflow-hidden" style={{ aspectRatio: "3/4" }}>
+                      <img
+                        src={p.images?.[0]?.url || p.img}
+                        alt={p.name || p.title}
+                        className="w-full h-full object-cover transition-transform duration-1100ms hover:scale-[1.06]"
+                      />
 
-                    {/* Tag */}
-                    <span
-                      className="tag-pill absolute top-2.5 left-2.5 px-2 py-0.5 rounded-full"
-                      style={{
-                        background: "rgba(20,4,4,0.6)",
-                        backdropFilter: "blur(6px)",
-                        border: "1px solid rgba(240,201,122,0.45)",
-                        color: "#f0c97a",
-                      }}
-                    >
-                      {p.tag}
-                    </span>
-                  </div>
+                      {/* Tag */}
+                      <span
+                        className="tag-pill absolute top-2.5 left-2.5 px-2 py-0.5 rounded-full"
+                        style={{
+                          background: "rgba(20,4,4,0.6)",
+                          backdropFilter: "blur(6px)",
+                          border: "1px solid rgba(240,201,122,0.45)",
+                          color: "#f0c97a",
+                        }}
+                      >
+                        {getBestsellerTag(p)}
+                      </span>
+                    </div>
+                  </Link>
 
                   {/* Info */}
                   <div className="px-3.5 py-3.5 sm:px-5 sm:py-4 text-center">
@@ -471,13 +522,13 @@ export default function Categories() {
                       className="text-base sm:text-lg font-bold text-[#3d0a0a] leading-snug"
                       style={styles.display}
                     >
-                      {p.title}
+                      {p.name || p.title}
                     </h3>
                     <p
-                      className="text-[0.58rem] text-[#5a2a1a]/55 uppercase tracking-widest mb-3 mt-0.5"
+                      className="text-[0.58rem] text-[#5a2a1a]/55 uppercase tracking-widest mb-3 mt-0.5 line-clamp-1"
                       style={{ fontFamily: "'Cormorant Garamond',Georgia,serif", letterSpacing: "0.16em" }}
                     >
-                      {p.sub}
+                      {p.category || p.sub}
                     </p>
 
                     <div className="flex items-center justify-between">
@@ -485,7 +536,7 @@ export default function Categories() {
                         className="text-base sm:text-lg font-bold"
                         style={{ ...styles.display, color: "#6b1a1a" }}
                       >
-                        {p.price}
+                        {formatPrice(p.discountPrice || p.price)}
                       </span>
 
                       {/* Quick add button */}
@@ -516,7 +567,7 @@ export default function Categories() {
 
           {/* Mobile scroll hint dots */}
           <div className="flex justify-center gap-1.5 mt-5 sm:hidden">
-            {BESTSELLERS.map((_, i) => (
+            {(bestsellers.length > 0 ? bestsellers : BESTSELLERS).map((_, i) => (
               <span
                 key={i}
                 className="block rounded-full transition-all"

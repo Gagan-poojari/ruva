@@ -128,9 +128,9 @@ export default function Footer() {
             {/* Socials */}
             <div className="flex gap-3">
               {[
-                { icon:<FaFacebookF size={16}/>, href:"#", label:"Facebook" },
-                { icon:<FaInstagram size={16}/>, href:"#", label:"Instagram" },
-                { icon:<FaXTwitter  size={16}/>, href:"#", label:"X" },
+                { icon:<FaFacebookF size={16}/>, href:"https://www.facebook.com/61567030845587/videos/", label:"Facebook" },
+                { icon:<FaInstagram size={16}/>, href:"https://www.instagram.com/ruvahandlooms", label:"Instagram" },
+                // { icon:<FaXTwitter  size={16}/>, href:"#", label:"X" },
               ].map(({ icon, href, label }) => (
                 <a key={label} href={href} aria-label={label} className="social-btn">{icon}</a>
               ))}
@@ -168,10 +168,10 @@ export default function Footer() {
               }}>Concierge</h4>
               <ul className="flex flex-col gap-4">
                 {[
-                  { label:"Shipping & Delivery", href:"/track" },
-                  { label:"Returns & Exchange",  href:"/returns" },
-                  { label:"Saree Care Guide",    href:"/faq" },
-                  { label:"Contact an Expert",   href:"/contact" },
+                  { label:"Shipping & Delivery", href:"/" },
+                  { label:"Returns & Exchange",  href:"/" },
+                  { label:"Saree Care Guide",    href:"/" },
+                  { label:"Contact an Expert",   href:"/" },
                 ].map(({ label, href }) => (
                   <li key={label}><Link href={href} className="footer-link">{label}</Link></li>
                 ))}
@@ -243,7 +243,7 @@ export default function Footer() {
             fontFamily:"'Lora',Georgia,serif",
             fontSize:"0.65rem", letterSpacing:"0.14em",
             textTransform:"uppercase", color:"rgba(253,243,227,0.22)",
-          }}>&copy; {year} RUVA. Passionately designed by Marketsphere Chikkamagaluru.</p>
+          }}>&copy; {year} RUVA. Passionately designed by <a href="https://www.marketspherechikkamagaluru.in/" target="_blank" rel="noopener noreferrer" className="hover:text-[#d4a017] transition-colors">Marketsphere Chikkamagaluru</a>.</p>
 
           {/* Trust badges */}
           <div className="flex items-center gap-3 opacity-50">
@@ -256,8 +256,8 @@ export default function Footer() {
           {/* Legal */}
           <div className="flex gap-6">
             {[
-              { label:"Privacy", href:"/privacy" },
-              { label:"Terms",   href:"/terms" },
+              { label:"Privacy", href:"/" },
+              { label:"Terms",   href:"/" },
             ].map(({ label, href }) => (
               <Link key={label} href={href} style={{
                 fontFamily:"'Cormorant Garamond',Georgia,serif",

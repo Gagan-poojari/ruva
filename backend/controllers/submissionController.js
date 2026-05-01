@@ -2,6 +2,37 @@ const UserSubmission = require('../models/UserSubmission');
 const { cloudinary } = require('../config/cloudinary');
 const fs = require('fs/promises');
 
+const CLOUDINARY_TIMEOUT_MS = 2 * 60 * 1000;
+
+const withTimeout = (promise, timeoutMs, message) =>
+    new Promise((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error(message)), timeoutMs);
+        promise
+            .then((result) => {
+                clearTimeout(timer);
+                resolve(result);
+            })
+            .catch((error) => {
+                clearTimeout(timer);
+                reject(error);
+            });
+    });
+
+const uploadLargeToCloudinary = (filePath, options) =>
+    withTimeout(
+        new Promise((resolve, reject) => {
+            cloudinary.uploader.upload_large(filePath, options, (error, result) => {
+                if (error) {
+                    reject(error);
+                    return;
+                }
+                resolve(result);
+            });
+        }),
+        CLOUDINARY_TIMEOUT_MS,
+        'Cloudinary large upload timed out'
+    );
+
 // @desc    Upload media submission
 // @route   POST /api/submissions
 // @access  Private
@@ -22,21 +53,63 @@ const uploadSubmission = async (req, res, next) => {
         const publicId = `${safeName}_${timestamp}`;
 
         if (req.file) {
-            mediaType = req.file.mimetype?.startsWith('video/') ? 'video' : 'image';
             let uploadResult;
             try {
-                if (mediaType === 'video') {
-                    uploadResult = await cloudinary.uploader.upload(req.file.path, {
-                        folder: 'ruva_user_submissions/approved',
-                        resource_type: 'video',
-                        public_id: publicId,
-                    });
+                const baseOptions = {
+                    folder: 'ruva_user_submissions/approved',
+                    public_id: publicId,
+                };
+                const mimeType = String(req.file.mimetype || '').toLowerCase();
+                const fileName = String(req.file.originalname || '').toLowerCase();
+                const isLikelyVideo =
+                    mimeType.startsWith('video/') ||
+                    /\.(mp4|webm|mov|avi|mkv|m4v|3gp)$/i.test(fileName);
+
+                if (isLikelyVideo) {
+                    // For small/medium videos, normal video upload is faster and more reliable.
+                    try {
+                        uploadResult = await withTimeout(
+                            cloudinary.uploader.upload(req.file.path, {
+                                ...baseOptions,
+                                resource_type: 'video',
+                            }),
+                            CLOUDINARY_TIMEOUT_MS,
+                            'Cloudinary video upload timed out'
+                        );
+                    } catch (videoUploadError) {
+                        // Fallback to chunked upload when direct upload fails.
+                        uploadResult = await uploadLargeToCloudinary(req.file.path, {
+                            ...baseOptions,
+                            resource_type: 'video',
+                            chunk_size: 20000000,
+                        });
+                    }
                 } else {
-                    uploadResult = await cloudinary.uploader.upload(req.file.path, {
-                        folder: 'ruva_user_submissions/approved',
-                        resource_type: 'image',
-                        public_id: publicId,
-                    });
+                    try {
+                        // Primary path: auto-detect type in Cloudinary.
+                        uploadResult = await withTimeout(
+                            cloudinary.uploader.upload(req.file.path, {
+                                ...baseOptions,
+                                resource_type: 'auto',
+                            }),
+                            CLOUDINARY_TIMEOUT_MS,
+                            'Cloudinary upload timed out'
+                        );
+                    } catch (err) {
+                        const errorMessage = String(err?.message || '').toLowerCase();
+                        const isInvalidImage = errorMessage.includes('invalid image file');
+
+                        if (!isInvalidImage) {
+                            throw err;
+                        }
+
+                        // Fallback path for videos mislabeled by client/browser metadata.
+                        uploadResult = await uploadLargeToCloudinary(req.file.path, {
+                            ...baseOptions,
+                            resource_type: 'video',
+                            chunk_size: 20000000,
+                        });
+                    }
                 }
             } finally {
                 // Always try to clean up the temp file
@@ -47,13 +120,56 @@ const uploadSubmission = async (req, res, next) => {
                 }
             }
 
-            mediaUrl = uploadResult.secure_url || uploadResult.url;
-            resultPublicId = uploadResult.public_id;
+            const uploadCandidates = Array.isArray(uploadResult)
+                ? uploadResult.filter((item) => item && typeof item === 'object')
+                : [uploadResult];
+            const normalizedResult =
+                uploadCandidates.find((item) => item.public_id || item.secure_url || item.url) ||
+                uploadCandidates[uploadCandidates.length - 1] ||
+                null;
+
+            mediaUrl =
+                normalizedResult?.secure_url ||
+                normalizedResult?.url ||
+                normalizedResult?.playback_url ||
+                normalizedResult?.eager?.[0]?.secure_url ||
+                normalizedResult?.eager?.[0]?.url ||
+                '';
+            resultPublicId = normalizedResult?.public_id || normalizedResult?.asset_id || '';
+            mediaType = normalizedResult?.resource_type === 'video' ? 'video' : 'image';
+
+            // Some Cloudinary flows return public_id without URL in upload response.
+            // Re-fetch the resource metadata to resolve a stable delivery URL.
+            if (!mediaUrl && resultPublicId) {
+                const resourceTypesToTry = mediaType === 'video' ? ['video', 'image'] : ['image', 'video'];
+                for (const type of resourceTypesToTry) {
+                    try {
+                        const resource = await withTimeout(
+                            cloudinary.api.resource(resultPublicId, { resource_type: type }),
+                            CLOUDINARY_TIMEOUT_MS,
+                            `Cloudinary resource lookup timed out for ${type}`
+                        );
+                        const resolvedUrl = resource?.secure_url || resource?.url;
+                        if (resolvedUrl) {
+                            mediaUrl = resolvedUrl;
+                            mediaType = type === 'video' ? 'video' : 'image';
+                            break;
+                        }
+                    } catch {
+                        // Try next resource type
+                    }
+                }
+            }
 
             if (!mediaUrl || !resultPublicId) {
-                console.error("Cloudinary upload failed or returned unexpected object:", uploadResult);
+                const cloudinaryMessage =
+                    normalizedResult?.error?.message ||
+                    normalizedResult?.message ||
+                    'Cloudinary failed to return valid URLs';
+                console.error('Cloudinary upload failed or returned unexpected object:', uploadResult);
+                console.error('Cloudinary normalized upload candidate keys:', normalizedResult ? Object.keys(normalizedResult) : null);
                 res.status(500);
-                throw new Error('Cloudinary failed to return valid URLs');
+                throw new Error(cloudinaryMessage);
             }
         }
 

@@ -30,20 +30,27 @@ export default function ProductDetailsPage() {
   const id = params?.id;
 
   const [product, setProduct] = useState(null);
+  const [relatedSarees, setRelatedSarees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [qty, setQty] = useState(1);
   const [selectedSize, setSelectedSize] = useState("");
   const [selectedVariant, setSelectedVariant] = useState(0);
+
 
   const currentVariant = useMemo(
     () => (Array.isArray(product?.colorVariants) ? product.colorVariants[selectedVariant] : null),
     [product, selectedVariant]
   );
 
-  const inStock = useMemo(() => {
-    if (currentVariant) return (currentVariant.stock ?? 0) > 0;
-    return (product?.stock ?? 0) > 0;
+  const currentStock = useMemo(() => {
+    const variantStock = Number(currentVariant?.stock || 0);
+    const productStock = Number(product?.stock || 0);
+    return variantStock > 0 ? variantStock : productStock;
   }, [product, currentVariant]);
+
+  const inStock = useMemo(() => {
+    return currentStock > 0;
+  }, [currentStock]);
 
   const effectivePrice = useMemo(() => {
     if (!product) return 0;
@@ -80,12 +87,36 @@ export default function ProductDetailsPage() {
     run();
   }, [id, router]);
 
-  const primaryImg =
-    currentVariant?.images?.[0]?.url ||
-    product?.images?.[0]?.url ||
-    "https://via.placeholder.com/600x800?text=Ruva";
 
-  const maxQty = Math.max(1, Number(currentVariant?.stock || product?.stock || 1));
+
+  useEffect(() => {
+    const loadRelated = async () => {
+      if (!product?._id) return;
+      try {
+        const { data } = await api.get("/products", {
+          params: { category: "Sarees", pageSize: 12, pageNumber: 1 },
+        });
+        const items = Array.isArray(data?.products) ? data.products : [];
+        setRelatedSarees(items.filter((item) => item._id !== product._id).slice(0, 4));
+      } catch {
+        setRelatedSarees([]);
+      }
+    };
+    loadRelated();
+  }, [product?._id]);
+
+  const displayImages = useMemo(() => {
+    const variantImgs = Array.isArray(currentVariant?.images) ? currentVariant.images : [];
+    const baseImgs = Array.isArray(product?.images) ? product.images : [];
+    const merged = variantImgs.length > 0 ? variantImgs : baseImgs;
+    const safe = merged.filter((img) => img?.url);
+    if (safe.length > 0) return safe;
+    return [{ url: "https://via.placeholder.com/600x800?text=Ruva" }];
+  }, [currentVariant, product]);
+
+  const primaryImg = displayImages[0]?.url;
+
+  const maxQty = Math.max(1, currentStock || 1);
   const liked = isInWishlist(product?._id);
 
   const handleAddToCart = () => {
@@ -98,6 +129,7 @@ export default function ProductDetailsPage() {
     addToCart(
       {
         ...product,
+        price: effectivePrice,
         image: primaryImg,
         selectedColor: currentVariant?.colorName || product?.colors?.[0] || "",
       },
@@ -145,27 +177,34 @@ export default function ProductDetailsPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div className="rounded-3xl overflow-hidden border border-[#c87d1a]/15 bg-white/60">
-            <div className="relative aspect-[3/4] bg-[#f6efe5] overflow-hidden">
-              <img src={primaryImg} alt={product.name} className="w-full h-full object-cover" />
-              {discountPercent ? (
-                <div className="absolute top-4 left-4">
-                  <span className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded-full bg-emerald-600 text-white shadow">
-                    {discountPercent}% off
-                  </span>
+          <div className="flex flex-row lg:flex-col gap-4 lg:gap-6 overflow-x-auto lg:overflow-visible snap-x snap-mandatory pb-4 lg:pb-0 no-scrollbar">
+            {displayImages.map((img, idx) => (
+              <div 
+                key={`${img.url}-${idx}`} 
+                className="min-w-[85%] sm:min-w-[70%] lg:min-w-full snap-center rounded-3xl overflow-hidden border border-[#c87d1a]/15 bg-white/60"
+              >
+                <div className="relative aspect-[3/4] bg-[#f6efe5] overflow-hidden">
+                  <img src={img.url} alt={`${product.name} view ${idx + 1}`} className="w-full h-full object-cover" />
+                  {idx === 0 && discountPercent ? (
+                    <div className="absolute top-4 left-4">
+                      <span className="text-[10px] font-extrabold uppercase tracking-widest px-2 py-1 rounded-full bg-emerald-600 text-white shadow">
+                        {discountPercent}% off
+                      </span>
+                    </div>
+                  ) : null}
+                  {idx === 0 && !inStock ? (
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                      <span className="text-[10px] tracking-widest uppercase font-bold text-white px-3 py-1.5 rounded-full bg-black/50 border border-white/20">
+                        Out of stock
+                      </span>
+                    </div>
+                  ) : null}
                 </div>
-              ) : null}
-              {!inStock ? (
-                <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                  <span className="text-[10px] tracking-widest uppercase font-bold text-white px-3 py-1.5 rounded-full bg-black/50 border border-white/20">
-                    Out of stock
-                  </span>
-                </div>
-              ) : null}
-            </div>
+              </div>
+            ))}
           </div>
 
-          <div className="rounded-3xl border border-[#c87d1a]/15 bg-white/70 backdrop-blur-md p-6 lg:p-8">
+          <div className="lg:sticky lg:top-8 self-start rounded-3xl border border-[#c87d1a]/15 bg-white/70 backdrop-blur-md p-6 lg:p-8">
             <div
               className="text-3xl lg:text-4xl font-black text-[#2a0505]"
               style={{ fontFamily: "'Cormorant Garamond', serif" }}
@@ -272,9 +311,11 @@ export default function ProductDetailsPage() {
                   <Plus className="w-4 h-4" />
                 </button>
               </div>
-              <div className="mt-2 text-[11px] text-[#6b1a1a]/55">
-                {inStock ? `${currentVariant?.stock ?? product.stock} available` : "Currently unavailable"}
-              </div>
+              {(!inStock || currentStock <= 10) && (
+                <div className="mt-2 text-[11px] text-[#6b1a1a]/55">
+                  {inStock ? "Only few left" : "Currently unavailable"}
+                </div>
+              )}
             </div>
 
             <div className="mt-7 grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -307,6 +348,46 @@ export default function ProductDetailsPage() {
             </div>
           </div>
         </div>
+
+        {relatedSarees.length > 0 ? (
+          <div className="mt-12">
+            <div className="mb-4 text-[11px] font-extrabold uppercase tracking-widest text-[#6b1a1a]/70">
+              Related Sarees
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {relatedSarees.map((item) => {
+                const image =
+                  item?.colorVariants?.[0]?.images?.[0]?.url ||
+                  item?.images?.[0]?.url ||
+                  "https://via.placeholder.com/400x533?text=Ruva";
+                const itemPrice =
+                  item?.discountPrice > 0 && item?.discountPrice < item?.price
+                    ? item.discountPrice
+                    : item.price;
+                return (
+                  <Link
+                    key={item._id}
+                    href={`/products/${item._id}`}
+                    className="rounded-2xl overflow-hidden border border-[#c87d1a]/15 bg-white hover:shadow-md transition"
+                  >
+                    <div className="aspect-[3/4] bg-[#f6efe5]">
+                      <img src={image} alt={item.name} className="w-full h-full object-cover" />
+                    </div>
+                    <div className="p-3">
+                      <div className="text-[10px] uppercase tracking-widest text-[#6b1a1a]/55">
+                        {item.category || "Sarees"}
+                      </div>
+                      <div className="mt-1 text-sm font-bold text-[#2a0505] line-clamp-2">{item.name}</div>
+                      <div className="mt-2 text-sm font-extrabold text-[#6b1a1a]">
+                        {formatINR(itemPrice)}
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   );

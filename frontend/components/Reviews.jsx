@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import api from "@/utils/api";
+import toast from "react-hot-toast";
 import { motion, AnimatePresence, useMotionValue, useTransform, useSpring } from "framer-motion";
 import { Upload, X, Play, Star, Camera, Sparkles, ChevronLeft, ChevronRight, Quote } from "lucide-react";
 import { RiVerifiedBadgeFill } from "react-icons/ri";
@@ -341,9 +342,67 @@ function UploadModal({ onClose, onSuccess }) {
   const [error,   setError]   = useState("");
   const [done,    setDone]    = useState(false);
   const [drag,    setDrag]    = useState(false);
+  const [compressing, setCompressing] = useState(false);
   const inputRef = useRef(null);
+  
+  const compressImage = (file) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (e) => {
+        const img = new Image();
+        img.src = e.target.result;
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          let width = img.width;
+          let height = img.height;
+          const MAX_DIM = 1600;
+          if (width > height && width > MAX_DIM) {
+            height *= MAX_DIM / width;
+            width = MAX_DIM;
+          } else if (height > MAX_DIM) {
+            width *= MAX_DIM / height;
+            height = MAX_DIM;
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, width, height);
+          canvas.toBlob((blob) => {
+            resolve(new File([blob], file.name, { type: "image/jpeg" }));
+          }, "image/jpeg", 0.8);
+        };
+      };
+    });
+  };
 
-  const handleFile = (f) => { if (!f) return; setFile(f); setPreview(URL.createObjectURL(f)); setError(""); };
+  const handleFile = async (f) => {
+    if (!f) return;
+    
+    setCompressing(true);
+    let fileToProcess = f;
+    
+    try {
+      // Client-side image compression
+      if (f.type.startsWith("image/")) {
+        fileToProcess = await compressImage(f);
+      }
+    } catch (err) {
+      console.error("Compression failed", err);
+    } finally {
+      setCompressing(false);
+    }
+    
+    // 40MB limit check
+    if (fileToProcess.size > 40 * 1024 * 1024) {
+      setError("Video/Image is too large. Please keep it under 40MB.");
+      return;
+    }
+    
+    setFile(fileToProcess);
+    setPreview(URL.createObjectURL(fileToProcess));
+    setError("");
+  };
 
   const submit = async () => {
     if (!file && !desc.trim()) { setError("Add a photo/video or write something."); return; }
@@ -352,10 +411,19 @@ function UploadModal({ onClose, onSuccess }) {
       const fd = new FormData();
       if (file) fd.append("media", file);
       fd.append("description", desc.trim());
-      await api.post("/submissions", fd, { headers:{ "Content-Type":"multipart/form-data" } });
+      await api.post("/submissions", fd, {
+        headers:{ "Content-Type":"multipart/form-data" },
+        timeout: 180000,
+      });
+      toast.success("Review submitted successfully!");
       setDone(true); onSuccess?.();
     } catch (e) {
-      setError(e.response?.data?.message || "Upload failed — please try again.");
+      const isTimeout = e?.code === "ECONNABORTED" || String(e?.message || "").toLowerCase().includes("timeout");
+      setError(
+        isTimeout
+          ? "Upload is taking too long. Please retry with a smaller file or faster network."
+          : (e.response?.data?.message || "Upload failed — please try again.")
+      );
     } finally { setLoading(false); }
   };
 
@@ -469,7 +537,22 @@ function UploadModal({ onClose, onSuccess }) {
                     onChange={(e) => handleFile(e.target.files[0])} />
 
                   <AnimatePresence mode="wait">
-                    {preview ? (
+                    {compressing ? (
+                      <motion.div key="compressing"
+                        initial={{ opacity:0 }} animate={{ opacity:1 }}
+                        style={{ position:"absolute", inset:0, background:"rgba(253,249,242,0.9)",
+                          display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", zIndex:10 }}
+                      >
+                        <span className="upload-spin" style={{ width:24, height:24, marginBottom:12 }} />
+                        <p style={{ margin:0, fontFamily:F.label, fontSize:"0.65rem", letterSpacing:"0.15em",
+                          textTransform:"uppercase", color:"#6b1a1a", fontWeight:700 }}>
+                          Optimizing Image...
+                        </p>
+                        <p style={{ margin:"5px 0 0", fontFamily:F.body, fontSize:"0.65rem", color:"rgba(107,26,26,0.5)" }}>
+                          This may take a moment
+                        </p>
+                      </motion.div>
+                    ) : preview ? (
                       <motion.div key="preview"
                         initial={{ opacity:0 }} animate={{ opacity:1 }}
                         style={{ position:"absolute", inset:0 }}
@@ -506,7 +589,7 @@ function UploadModal({ onClose, onSuccess }) {
                           Add photo / video (optional)
                         </p>
                         <p style={{ margin:0, fontFamily:F.body, fontSize:"0.7rem", color:"rgba(90,42,26,0.36)" }}>
-                          or click to browse · up to 200 MB
+                          or click to browse · max 40 MB (auto-compressed)
                         </p>
                       </motion.div>
                     )}

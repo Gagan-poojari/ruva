@@ -9,17 +9,17 @@ const {
     createProductReview,
 } = require('../controllers/productController');
 const { protect, admin } = require('../middleware/authMiddleware');
-const { parser } = require('../config/cloudinary');
+const { submissionDiskParser } = require('../config/cloudinary');
 
 router.route('/')
     .get(getProducts)
-    .post(protect, admin, parser.any(), createProduct);
+    .post(protect, admin, submissionDiskParser.any(), createProduct);
 
 router.route('/:id/reviews').post(protect, createProductReview);
 
 router.route('/:id')
     .get(getProductById)
-    .put(protect, admin, parser.any(), updateProduct)
+    .put(protect, admin, submissionDiskParser.any(), updateProduct)
     .delete(protect, admin, deleteProduct);
 
 module.exports = router;

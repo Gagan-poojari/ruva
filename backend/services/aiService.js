@@ -15,17 +15,17 @@ const generateProductDescription = async (productDetails) => {
     const colorString = colors && colors.length > 0 ? colors.join(', ') : 'Exquisite palette';
 
     const prompt = `
-        You are a luxury fashion copywriter specializing in Indian ethnic wear, specifically Sarees.
-        Write an elegant, poetic, and detailed product description for a saree with the following details:
+        You are a fashion copywriter for Indian ethnic wear.
+        Write a short and clear product description for a saree with the following details:
         - Name: ${name || 'Exquisite Saree'}
         - Category: ${category || 'Ethnic Wear'}
         - Fabric: ${fabric || 'Premium weaving'}
         - Colors: ${colorString}
         - Occasion: ${occasion || 'Special occasions'}
         
-        The description should be 1 paragraph long. 
-        Focus on the drape, the texture of the fabric, how the ${colorString} shades complement each other, the craftsmanship, and how it makes the wearer feel.
-        Do not use placeholders. Use simple english.
+        Keep it to 2 short sentences only (max 45 words).
+        Use simple English and focus on fabric feel, color appeal, and occasion use.
+        Avoid poetic language, fluff, and repeated adjectives.
         Return only the description text.
     `;
 

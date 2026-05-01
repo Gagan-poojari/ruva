@@ -16,6 +16,15 @@ import {
 import api from '@/utils/api';
 import toast from 'react-hot-toast';
 
+const SAREE_FABRICS = [
+  "Banarasi", "Kanjivaram", "Mysore Silk", "Patola", "Chanderi", 
+  "Maheshwari", "Tant", "Khadi", "Organza", "Georgette", "Net", 
+  "Ruffle", "Bandhani", "Paithani", "Leheriya", "Kasavu", 
+  "Sambalpuri", "Baluchari","silk-cotton", "cotton",
+];
+
+const CATEGORIES = ["Sarees", "Blouse", "Dupatta"];
+
 const createEmptyVariant = () => ({
   colorName: '',
   colorHex: '#cccccc',
@@ -43,6 +52,8 @@ export default function EditProduct({ params }) {
     discountPrice: '',
     stock: '',
     isFeatured: false,
+    isBestseller: false,
+    isTrending: false,
     tags: [],
     sizes: [{ label: "One Size", stock: 10 }],
     colors: "",
@@ -101,6 +112,8 @@ export default function EditProduct({ params }) {
           discountPrice: data.discountPrice,
           stock: data.stock,
           isFeatured: data.isFeatured,
+          isBestseller: data.isBestseller,
+          isTrending: data.isTrending,
           tags: data.tags || [],
           sizes: data.sizes || [],
           colors: data.colors ? data.colors.join(', ') : '',
@@ -325,23 +338,31 @@ export default function EditProduct({ params }) {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Category</label>
-                  <input 
-                    type="text" 
+                  <select 
                     name="category"
                     value={productData.category}
                     onChange={handleInputChange}
-                    className="w-full bg-gray-50 border border-gray-100 text-gray-900 rounded-2xl py-3.5 px-5 outline-none focus:border-primary-500 transition-all font-medium"
-                  />
+                    className="w-full bg-gray-50 border border-gray-100 text-gray-900 rounded-2xl py-3.5 px-5 outline-none focus:border-primary-500 transition-all font-medium appearance-none"
+                  >
+                    {CATEGORIES.map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Fabric</label>
-                  <input 
-                    type="text" 
+                  <select 
                     name="fabric"
                     value={productData.fabric}
                     onChange={handleInputChange}
-                    className="w-full bg-gray-50 border border-gray-100 text-gray-900 rounded-2xl py-3.5 px-5 outline-none focus:border-primary-500 transition-all font-medium"
-                  />
+                    className="w-full bg-gray-50 border border-gray-100 text-gray-900 rounded-2xl py-3.5 px-5 outline-none focus:border-primary-500 transition-all font-medium appearance-none"
+                  >
+                    <option value="">Select Fabric</option>
+                    {SAREE_FABRICS.map(fab => (
+                      <option key={fab} value={fab}>{fab}</option>
+                    ))}
+                    <option value="Other">Other</option>
+                  </select>
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Colors (Comma separated)</label>
@@ -365,7 +386,7 @@ export default function EditProduct({ params }) {
               {/* Existing Images */}
               {images.map((img, i) => (
                 <div key={i} className="aspect-[3/4] rounded-2xl overflow-hidden relative border border-gray-100 group">
-                  <img src={img.url} alt="" className="w-full h-full object-cover" />
+                  <img src={img.url || null} alt="" className="w-full h-full object-cover" />
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                     <span className="text-white text-[10px] font-bold uppercase">Current</span>
                   </div>
@@ -455,7 +476,7 @@ export default function EditProduct({ params }) {
                     <div className="grid grid-cols-4 gap-3">
                       {(variantPreviewUrls[variantIndex] || []).map((url, imageIndex) => (
                         <div key={url + imageIndex} className="relative aspect-[3/4] rounded-xl overflow-hidden border">
-                          <img src={url} alt="" className="w-full h-full object-cover" />
+                          <img src={url || null} alt="" className="w-full h-full object-cover" />
                           <button
                             type="button"
                             onClick={() => removeVariantImage(variantIndex, imageIndex)}
@@ -542,6 +563,34 @@ export default function EditProduct({ params }) {
                 className="w-5 h-5 accent-primary-600"
               />
             </div>
+
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
+              <div className="flex items-center gap-3">
+                <Info className="text-primary-500" size={18} />
+                <span className="text-sm font-bold text-gray-700">Bestseller</span>
+              </div>
+              <input 
+                type="checkbox" 
+                name="isBestseller"
+                checked={productData.isBestseller}
+                onChange={handleInputChange}
+                className="w-5 h-5 accent-primary-600"
+              />
+            </div>
+
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
+              <div className="flex items-center gap-3">
+                <Info className="text-primary-500" size={18} />
+                <span className="text-sm font-bold text-gray-700">Trending</span>
+              </div>
+              <input 
+                type="checkbox" 
+                name="isTrending"
+                checked={productData.isTrending}
+                onChange={handleInputChange}
+                className="w-5 h-5 accent-primary-600"
+              />
+            </div>
           </div>
 
           <div className="flex gap-4">
@@ -555,7 +604,7 @@ export default function EditProduct({ params }) {
             <button 
               type="submit" 
               disabled={saving}
-              className="flex-[2] bg-primary-600 text-white font-bold py-4 rounded-2xl shadow-lg shadow-primary-600/20 hover:bg-primary-700 transition-all flex items-center justify-center gap-2"
+              className="flex-[2] bg-black text-white font-bold py-4 rounded-2xl shadow-lg shadow-primary-600/20 hover:bg-primary-700 transition-all flex items-center justify-center gap-2"
             >
               {saving ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
               Save Changes

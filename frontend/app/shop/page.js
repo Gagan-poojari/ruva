@@ -7,6 +7,7 @@ export const metadata = {
 
 export default function ShopPage({ searchParams }) {
   const category = typeof searchParams?.category === "string" ? searchParams.category : "";
-  return <ProductListPage title="Shop" defaultCategory={category} />;
+  const keyword = typeof searchParams?.q === "string" ? searchParams.q : "";
+  return <ProductListPage title="Shop" defaultCategory={category} defaultKeyword={keyword} />;
 }
 

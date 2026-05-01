@@ -15,6 +15,14 @@ import {
 import api from '@/utils/api';
 import toast from 'react-hot-toast';
 
+const SAREE_FABRICS = [
+  "Banarasi", "Kanjivaram", "Mysore Silk", "Patola", "Chanderi", 
+  "Maheshwari", "Tant", "Khadi", "Organza", "Georgette", "Net", 
+  "Ruffle", "Bandhani", "Paithani", "Leheriya", "Kasavu", 
+  "Sambalpuri", "Baluchari", "silk-cotton", "cotton",
+];
+
+const CATEGORIES = ["Sarees", "Blouse", "Dupatta"];
 const createEmptyVariant = () => ({
   colorName: '',
   colorHex: '#cccccc',
@@ -38,6 +46,10 @@ export default function NewProduct() {
     discountPrice: '',
     stock: '10',
     isFeatured: false,
+    isBestseller: false,
+    isTrending: false,
+    isNewArrival: false,
+    isLimitedEdition: false,
     tags: [],
     sizes: [{ label: "One Size", stock: 10 }],
     colors: "",
@@ -161,10 +173,20 @@ export default function NewProduct() {
     
     setSaving(true);
     try {
+      const dynamicTags = [];
+      if (productData.isNewArrival) dynamicTags.push('new');
+      if (productData.isLimitedEdition) dynamicTags.push('limited');
+      const mergedTags = Array.from(new Set([...(productData.tags || []), ...dynamicTags]));
+
       const formData = new FormData();
       Object.keys(productData).forEach(key => {
+        if (key === 'isNewArrival' || key === 'isLimitedEdition') {
+          return;
+        }
         if (key === 'colors') {
           formData.append(key, JSON.stringify(productData[key].split(',').map(c => c.trim())));
+        } else if (key === 'tags') {
+          formData.append('tags', JSON.stringify(mergedTags));
         } else if (key === 'colorVariants') {
           const normalizedVariants = productData.colorVariants
             .filter((variant) => variant.colorName.trim())
@@ -273,23 +295,31 @@ export default function NewProduct() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Category</label>
-                  <input 
-                    type="text" 
+                  <select 
                     name="category"
                     value={productData.category}
                     onChange={handleInputChange}
-                    className="w-full bg-gray-50 border border-gray-100 text-gray-900 rounded-2xl py-3.5 px-5 outline-none focus:border-primary-500 transition-all font-medium"
-                  />
+                    className="w-full bg-gray-50 border border-gray-100 text-gray-900 rounded-2xl py-3.5 px-5 outline-none focus:border-primary-500 transition-all font-medium appearance-none"
+                  >
+                    {CATEGORIES.map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Fabric</label>
-                  <input 
-                    type="text" 
+                  <select 
                     name="fabric"
                     value={productData.fabric}
                     onChange={handleInputChange}
-                    className="w-full bg-gray-50 border border-gray-100 text-gray-900 rounded-2xl py-3.5 px-5 outline-none focus:border-primary-500 transition-all font-medium"
-                  />
+                    className="w-full bg-gray-50 border border-gray-100 text-gray-900 rounded-2xl py-3.5 px-5 outline-none focus:border-primary-500 transition-all font-medium appearance-none"
+                  >
+                    <option value="">Select Fabric</option>
+                    {SAREE_FABRICS.map(fab => (
+                      <option key={fab} value={fab}>{fab}</option>
+                    ))}
+                    <option value="Other">Other</option>
+                  </select>
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Colors (Comma separated)</label>
@@ -477,6 +507,62 @@ export default function NewProduct() {
                 type="checkbox" 
                 name="isFeatured"
                 checked={productData.isFeatured}
+                onChange={handleInputChange}
+                className="w-5 h-5 accent-primary-600"
+              />
+            </div>
+
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
+              <div className="flex items-center gap-3">
+                <Info className="text-primary-500" size={18} />
+                <span className="text-sm font-bold text-gray-700">Bestseller</span>
+              </div>
+              <input 
+                type="checkbox" 
+                name="isBestseller"
+                checked={productData.isBestseller}
+                onChange={handleInputChange}
+                className="w-5 h-5 accent-primary-600"
+              />
+            </div>
+
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
+              <div className="flex items-center gap-3">
+                <Info className="text-primary-500" size={18} />
+                <span className="text-sm font-bold text-gray-700">Trending</span>
+              </div>
+              <input 
+                type="checkbox" 
+                name="isTrending"
+                checked={productData.isTrending}
+                onChange={handleInputChange}
+                className="w-5 h-5 accent-primary-600"
+              />
+            </div>
+
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
+              <div className="flex items-center gap-3">
+                <Info className="text-primary-500" size={18} />
+                <span className="text-sm font-bold text-gray-700">New</span>
+              </div>
+              <input
+                type="checkbox"
+                name="isNewArrival"
+                checked={productData.isNewArrival}
+                onChange={handleInputChange}
+                className="w-5 h-5 accent-primary-600"
+              />
+            </div>
+
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
+              <div className="flex items-center gap-3">
+                <Info className="text-primary-500" size={18} />
+                <span className="text-sm font-bold text-gray-700">Limited</span>
+              </div>
+              <input
+                type="checkbox"
+                name="isLimitedEdition"
+                checked={productData.isLimitedEdition}
                 onChange={handleInputChange}
                 className="w-5 h-5 accent-primary-600"
               />

@@ -26,12 +26,21 @@ function primaryImg(product) {
   return product?.images?.[0]?.url || "https://via.placeholder.com/400x533?text=Ruva";
 }
 
+const SAREE_FABRICS = [
+  "Banarasi", "Kanjivaram", "Mysore Silk", "Patola", "Chanderi", 
+  "Maheshwari", "Tant", "Khadi", "Organza", "Georgette", "Net", 
+  "Ruffle", "Bandhani", "Paithani", "Leheriya", "Kasavu", 
+  "Sambalpuri", "Baluchari","silk-cotton", "cotton",
+];
+
 function getVariantPricing(product, variant) {
-  if (!variant) return { price: product.price, discountPrice: product.discountPrice, stock: product.stock };
+  if (!variant) return { price: product.price, discountPrice: product.discountPrice, stock: Number(product.stock || 0) };
+  const variantStock = Number(variant.stock || 0);
+  const fallbackStock = Number(product?.stock || 0);
   return {
     price: Number(variant.price || 0) > 0 ? Number(variant.price) : product.price,
     discountPrice: Number(variant.discountPrice || 0) > 0 ? Number(variant.discountPrice) : product.discountPrice,
-    stock: Number(variant.stock || 0),
+    stock: variantStock > 0 ? variantStock : fallbackStock,
   };
 }
 
@@ -40,7 +49,7 @@ function ColorPalette({ product, selectedVariant, setSelectedVariant }) {
   if (!variants.length) return null;
 
   return (
-    <div className="absolute right-2 top-2 flex flex-col gap-2 z-10">
+    <div className="absolute right-2 top-12 flex flex-col gap-2 z-10">
       {variants.map((variant, idx) => {
         const active = idx === selectedVariant;
         return (
@@ -152,6 +161,11 @@ function GridCard({ product, index }) {
             {pct && (
               <span className="tag-pill bg-[#1e4d2b] text-[#a3f0b8] border border-[#a3f0b8]/20 px-2 py-0.5">
                 {pct}% off
+              </span>
+            )}
+            {inStock && stock <= 10 && (
+              <span className="tag-pill bg-[#6b1a1a] text-[#ffe8b0] border border-[#ffe8b0]/20 px-2 py-0.5 backdrop-blur-sm">
+                Only few left
               </span>
             )}
             {!inStock && (
@@ -327,7 +341,7 @@ function ListRow({ product, index }) {
               {product.name}
             </h3>
             <div className="mt-2 space-y-1 text-[0.62rem] text-[#5a2a1a]/70 uppercase tracking-[0.15em]">
-              <p>Brand: Devika Textiles</p>
+              <p>Brand: RUVA HANDLOOMS</p>
               <p>Category: {product.category || "Sarees"}</p>
               <p>Fabric: {product.fabric || "Fine Silk"}</p>
               <p>Color: {variant?.colorName || product.colors?.[0] || "Classic"}</p>
@@ -344,17 +358,19 @@ function ListRow({ product, index }) {
                   <span className="text-[0.65rem] text-[#6b1a1a]/40 line-through">{formatINR(price)}</span>
                 )}
               </div>
-              <span
-                className="text-[0.58rem] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border mt-1 inline-block"
-                style={{
-                  background: inStock ? "rgba(16,185,129,0.08)" : "rgba(239,68,68,0.08)",
-                  borderColor: inStock ? "rgba(16,185,129,0.22)" : "rgba(239,68,68,0.22)",
-                  color: inStock ? "#047857" : "#b91c1c",
-                  fontFamily: "var(--font-label)",
-                }}
-              >
-                {inStock ? `${stock} left` : "Sold out"}
-              </span>
+              {(!inStock || (inStock && stock <= 10)) && (
+                <span
+                  className="text-[0.58rem] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border mt-1 inline-block"
+                  style={{
+                    background: inStock ? "rgba(200,125,26,0.08)" : "rgba(239,68,68,0.08)",
+                    borderColor: inStock ? "rgba(200,125,26,0.22)" : "rgba(239,68,68,0.22)",
+                    color: inStock ? "#c87d1a" : "#b91c1c",
+                    fontFamily: "var(--font-label)",
+                  }}
+                >
+                  {inStock ? "Only few left" : "Sold out"}
+                </span>
+              )}
             </div>
 
             <div className="flex flex-col items-end gap-1.5">
@@ -468,12 +484,22 @@ function FilterSheet({ open, onClose, category, setCategory, fabric, setFabric, 
               {/* Fabric */}
               <div className="mb-6">
                 <p className="text-[0.65rem] uppercase tracking-[0.22em] font-bold text-[#6b1a1a]/60 mb-3" style={{ fontFamily: "var(--font-label)" }}>Fabric</p>
-                <input
-                  value={fabric}
-                  onChange={(e) => setFabric(e.target.value)}
-                  placeholder="e.g. Banarasi, Silk Cotton…"
-                  className="w-full px-4 py-3 rounded-xl bg-white/70 border border-[#c87d1a]/15 text-[#2a0505] font-semibold text-sm outline-none placeholder:text-[#6b1a1a]/35"
-                />
+                <div className="relative">
+                  <select
+                    value={fabric}
+                    onChange={(e) => setFabric(e.target.value)}
+                    className="w-full pl-4 pr-10 py-3.5 rounded-2xl bg-white/80 border border-[#c87d1a]/20 text-sm font-bold text-[#3d0a0a] appearance-none focus:outline-none transition-all shadow-sm"
+                    style={{ fontFamily: "var(--font-label)" }}
+                  >
+                    <option value="">All Fabrics</option>
+                    {SAREE_FABRICS.map((f) => (
+                      <option key={f} value={f}>{f}</option>
+                    ))}
+                  </select>
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#6b1a1a]/60">
+                    <ChevronDown size={16} />
+                  </div>
+                </div>
               </div>
 
               <div className="flex gap-3">
@@ -563,6 +589,12 @@ function ProductListContent({ title = "Shop", defaultCategory = "" }) {
     }, 0);
     return () => clearTimeout(timer);
   }, [queryParams]);
+
+  useEffect(() => {
+    if (urlKeyword !== undefined) {
+      setKeyword(urlKeyword);
+    }
+  }, [urlKeyword]);
 
   const handleReset = () => {
     setKeyword(""); setCategory(defaultCategory); setFabric(""); setSort("new");

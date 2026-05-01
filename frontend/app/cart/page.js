@@ -42,8 +42,8 @@ export default function CartPage() {
   }, 0);
 
   const DELIVERY_FEE = 49;
-  const taxAmount = Math.round(subtotal * 0.02 * 100) / 100;
-  const grandTotal = subtotal + DELIVERY_FEE + taxAmount;
+  const taxAmount = 0; // taxAmount disabled by user request
+  const grandTotal = subtotal + DELIVERY_FEE;
 
   useEffect(() => {
     if (typeof window !== "undefined" && window.Razorpay) {
@@ -341,10 +341,10 @@ export default function CartPage() {
                     <span>Delivery Fee</span>
                     <span>₹{DELIVERY_FEE.toLocaleString("en-IN")}</span>
                   </div>
-                  <div className="flex justify-between">
+                  {/* <div className="flex justify-between">
                     <span>Tax (2%)</span>
                     <span>₹{taxAmount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                  </div>
+                  </div> */}
                   <div className="h-px bg-[#d9b06d]/35 my-2" />
                   <div className="flex justify-between text-[#2f0f45] font-semibold text-lg">
                     <span>Total</span>
