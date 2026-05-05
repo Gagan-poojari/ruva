@@ -11,7 +11,7 @@ dotenv.config();
 
 // Connect to database
 connectDB();
-
+ 
 const app = express();
 
 // CORS: explicit allowlist only
