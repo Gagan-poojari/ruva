@@ -83,7 +83,7 @@ function MediaCard({ item, index, onClick }) {
           borderRadius:18, overflow:"hidden",
           background:"rgba(22,5,5,0.72)",
           border:"1px solid rgba(201,133,60,0.22)",
-          boxShadow:"0 16px 48px rgba(0,0,0,0.38)",
+          // boxShadow:"0 16px 48px rgba(0,0,0,0.38)",
           backdropFilter:"blur(14px)",
         }}
       >

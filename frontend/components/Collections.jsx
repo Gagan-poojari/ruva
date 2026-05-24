@@ -129,7 +129,7 @@ export default function Collections() {
                     <div className="absolute inset-0 bg-linear-to-t from-[#140404]/75 via-transparent to-transparent" />
                     <div className="absolute bottom-0 left-0 right-0 p-3">
                       <div className="inline-flex items-center gap-2 tag-pill px-2.5 py-1 bg-[rgba(20,4,4,0.55)] border border-[#f0c97a]/35 text-[#ffe8b0] backdrop-blur-md">
-                        <Sparkles size={12} />
+                        {/* <Sparkles size={12} /> */}
                         {c.name}
                       </div>
                     </div>
