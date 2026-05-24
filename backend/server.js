@@ -28,6 +28,8 @@ const allowedOrigins = new Set(
         "http://localhost:3000",
         "http://localhost:3001",
         "https://ruva-five.vercel.app",
+        "https://www.ruvaonline.com/",
+        "https://ruvaonline.com/"
     ].filter(Boolean)
 );
 
