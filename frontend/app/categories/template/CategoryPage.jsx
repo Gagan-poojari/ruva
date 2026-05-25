@@ -1,20 +1,12 @@
-/**
- * CategoryPage.jsx - shared template
- * Used by all 6 category pages. Import and pass config.
- *
- * Usage (e.g. app/categories/sarees/page.jsx):
- *   import CategoryPage from "@/components/CategoryPage";
- *   import { SAREES_CONFIG } from "@/components/CategoryPage";
- *   export default function SareesPage() { return <CategoryPage config={SAREES_CONFIG} />; }
- */
 "use client";
 
-import React, { useRef, useState, useMemo } from "react";
+import React, { useRef, useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, SlidersHorizontal, X, ShoppingBag, Clock } from "lucide-react";
+import { ArrowLeft, ArrowRight, SlidersHorizontal, X, ShoppingBag, Clock, Loader2 } from "lucide-react";
 import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
 import { useCart } from "@/context/CartContext";
 import toast from "react-hot-toast";
+import api from "@/utils/api";
 
 /* ─── Design tokens ─────────────────────────────────────── */
 const D = {
@@ -23,16 +15,15 @@ const D = {
   body: { fontFamily: "'Lora', Georgia, serif" },
 };
 
-/* ─── Animation presets ──────────────────────────────────── */
 const fadeUp = (i = 0) => ({
   hidden: { opacity: 0, y: 28 },
   show: { opacity: 1, y: 0, transition: { duration: 0.72, delay: i * 0.09, ease: [0.22, 1, 0.36, 1] } },
 });
 
-/* ─── Countdown (for Limited Offers) ────────────────────── */
+/* ─── Countdown ──────────────────────────────────────────── */
 function Countdown() {
   const [t, setT] = useState({ h: 11, m: 42, s: 7 });
-  React.useEffect(() => {
+  useEffect(() => {
     const id = setInterval(() => setT(p => {
       let { h, m, s } = p; s--; if (s < 0) { s = 59; m--; } if (m < 0) { m = 59; h--; } if (h < 0) { h = 23; m = 59; s = 59; }
       return { h, m, s };
@@ -72,14 +63,13 @@ function GoldCard({ children, className = "", style = {} }) {
   return <div ref={ref} onMouseMove={track} className={`cp-gold ${className}`} style={style}>{children}</div>;
 }
 
-/* ─── Filter drawer (mobile sheet) ──────────────────────── */
+/* ─── Filter drawer ──────────────────────────────────────── */
 function FilterDrawer({ open, onClose, filters, active, onToggle }) {
   return (
     <AnimatePresence>
       {open && (
         <>
-          <motion.div className="fixed inset-0 z-40 bg-black/50" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            onClick={onClose} />
+          <motion.div className="fixed inset-0 z-40 bg-black/50" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
           <motion.div className="fixed bottom-0 left-0 right-0 z-50 rounded-t-2xl overflow-hidden"
             style={{ background: "#fdf6ec", maxHeight: "80vh" }}
             initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
@@ -127,12 +117,32 @@ function FilterDrawer({ open, onClose, filters, active, onToggle }) {
   );
 }
 
+/* ─── Skeleton card ──────────────────────────────────────── */
+function SkeletonCard() {
+  return (
+    <div className="rounded-xl overflow-hidden border border-gray-100 animate-pulse">
+      <div className="bg-gray-100" style={{ aspectRatio: "3/4" }} />
+      <div className="p-3 space-y-2">
+        <div className="h-4 bg-gray-100 rounded w-3/4 mx-auto" />
+        <div className="h-3 bg-gray-100 rounded w-1/2 mx-auto" />
+        <div className="h-4 bg-gray-100 rounded w-1/3 mx-auto" />
+      </div>
+    </div>
+  );
+}
+
 /* ─── Product card ───────────────────────────────────────── */
 function ProductCard({ product, index, onAdd }) {
   const [hov, setHov] = useState(false);
-  const isReal = Boolean(product._id);
-  const price = typeof product.price === "string" && product.price.includes("₹")
-    ? product.price : `₹${Number(product.price).toLocaleString("en-IN")}`;
+  const price = product.discountPrice > 0
+    ? `₹${Number(product.discountPrice).toLocaleString("en-IN")}`
+    : `₹${Number(product.price).toLocaleString("en-IN")}`;
+
+  const tag = product.isBestseller ? "Bestseller"
+    : product.isTrending ? "Trending"
+    : product.tags?.includes("new") ? "New"
+    : product.tags?.includes("limited") ? "Limited"
+    : null;
 
   return (
     <motion.div variants={fadeUp(index % 6)} initial="hidden" whileInView="show"
@@ -140,24 +150,19 @@ function ProductCard({ product, index, onAdd }) {
       onHoverStart={() => setHov(true)} onHoverEnd={() => setHov(false)}
       className="flex flex-col">
       <GoldCard className="rounded-xl overflow-hidden flex flex-col flex-1" style={{ background: "#fff" }}>
-        <Link href={isReal ? `/products/${product._id}` : "#"} className="block shrink-0">
+        <Link href={`/products/${product._id}`} className="block shrink-0">
           <div className="relative overflow-hidden" style={{ aspectRatio: "3/4" }}>
-            <motion.img src={product.img || product.images?.[0]?.url} alt={product.name || product.title}
+            <motion.img
+              src={product.images?.[0]?.url || "https://via.placeholder.com/300x400"}
+              alt={product.name}
               className="w-full h-full object-cover"
               animate={{ scale: hov ? 1.06 : 1 }}
               transition={{ duration: 1.0, ease: [0.22, 1, 0.36, 1] }} />
-            <div className="absolute inset-0"
-              style={{ background: "linear-gradient(to top, rgba(8,1,1,0.45) 0%, transparent 55%)" }} />
-            {product.tag && (
+            <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(8,1,1,0.45) 0%, transparent 55%)" }} />
+            {tag && (
               <span className="cp-tag-pill absolute top-2.5 left-2.5 px-2 py-0.5 rounded-full"
                 style={{ background: "rgba(8,1,1,0.52)", backdropFilter: "blur(6px)", border: "1px solid rgba(240,201,122,0.38)", color: "#f0c97a" }}>
-                {product.tag}
-              </span>
-            )}
-            {product.isNew && (
-              <span className="cp-tag-pill absolute top-2.5 right-2.5 px-2 py-0.5 rounded-full"
-                style={{ background: "rgba(26,80,60,0.7)", backdropFilter: "blur(6px)", border: "1px solid rgba(160,255,204,0.35)", color: "#a0ffd0" }}>
-                New
+                {tag}
               </span>
             )}
             <motion.div className="absolute inset-x-0 bottom-0 flex justify-center pb-3"
@@ -172,12 +177,12 @@ function ProductCard({ product, index, onAdd }) {
         <div className="flex flex-col flex-1 px-3 py-3 sm:px-4 sm:py-3.5 text-center">
           <h3 className="font-bold text-[#3d0a0a] leading-snug flex-1"
             style={{ ...D.display, fontSize: "clamp(0.85rem, 2vw, 1rem)" }}>
-            {product.name || product.title}
+            {product.name}
           </h3>
-          {product.sub && (
+          {product.category && (
             <p className="mt-0.5 mb-2 line-clamp-1 text-[#5a2a1a]/45"
               style={{ fontFamily: "'Cormorant Garamond',Georgia,serif", fontSize: "0.58rem", letterSpacing: "0.15em", textTransform: "uppercase" }}>
-              {product.sub}
+              {product.fabric || product.category}
             </p>
           )}
           <div className="flex items-center justify-between mt-auto pt-2">
@@ -214,8 +219,6 @@ function Hero({ config }) {
       </motion.div>
       <div className="absolute inset-0"
         style={{ background: "linear-gradient(160deg, rgba(8,1,1,0.82) 0%, rgba(8,1,1,0.42) 52%, rgba(8,1,1,0.18) 100%)" }} />
-
-      {/* Breadcrumb */}
       <div className="absolute top-4 left-4 sm:top-6 sm:left-6 flex items-center gap-1.5">
         <Link href="/" className="flex items-center gap-1 opacity-60 hover:opacity-100 transition-opacity"
           style={{ ...D.label, color: "#f0c97a", fontSize: "0.58rem" }}>
@@ -224,20 +227,14 @@ function Hero({ config }) {
         <span style={{ ...D.label, color: "rgba(240,201,122,0.35)", fontSize: "0.58rem" }}>/</span>
         <span style={{ ...D.label, color: "rgba(240,201,122,0.7)", fontSize: "0.58rem" }}>{config.title}</span>
       </div>
-
-      {/* Hero text */}
       <div className="absolute bottom-0 left-0 right-0 p-5 sm:p-9">
         <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.82, ease: [0.22, 1, 0.36, 1] }}>
-          <p style={{ ...D.label, color: "rgba(240,201,122,0.7)", fontSize: "0.62rem", marginBottom: "6px" }}>
-            {config.sub}
-          </p>
-          <h1 className="font-bold text-[#fff5dd] leading-none"
-            style={{ ...D.display, fontSize: "clamp(2rem, 7vw, 3.8rem)" }}>
+          <p style={{ ...D.label, color: "rgba(240,201,122,0.7)", fontSize: "0.62rem", marginBottom: "6px" }}>{config.sub}</p>
+          <h1 className="font-bold text-[#fff5dd] leading-none" style={{ ...D.display, fontSize: "clamp(2rem, 7vw, 3.8rem)" }}>
             {config.title}
           </h1>
-          <p className="mt-2 max-w-sm opacity-75"
-            style={{ ...D.body, color: "#fdf6ec", fontSize: "clamp(0.78rem, 2vw, 0.9rem)", lineHeight: 1.65 }}>
+          <p className="mt-2 max-w-sm opacity-75" style={{ ...D.body, color: "#fdf6ec", fontSize: "clamp(0.78rem, 2vw, 0.9rem)", lineHeight: 1.65 }}>
             {config.desc}
           </p>
           {config.isLimited && (
@@ -254,12 +251,74 @@ function Hero({ config }) {
   );
 }
 
-/* ─── Main CategoryPage template ─────────────────────────── */
+/* ─── Main CategoryPage ───────────────────────────────────── */
 export default function CategoryPage({ config }) {
+  const sentinelRef = useRef(null);
   const { addToCart } = useCart();
   const [filterOpen, setFilterOpen] = useState(false);
   const [activeFilters, setActiveFilters] = useState({});
   const [sort, setSort] = useState("featured");
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const PAGE_SIZE = 12;
+
+  const fetchProducts = useCallback(async (pageNum = 1, append = false) => {
+    try {
+      setLoading(true);
+      const params = new URLSearchParams({ pageSize: PAGE_SIZE, pageNumber: pageNum });
+
+      // Category mapping
+      if (config.isLimited) {
+        params.set("isFeatured", "true");
+      } else {
+        params.set("category", config.categoryKey || config.title);
+      }
+
+      // Active filter mapping
+      if (activeFilters.fabric?.length) params.set("fabric", activeFilters.fabric[0]);
+      if (activeFilters.isBestseller?.length) params.set("isBestseller", "true");
+      if (activeFilters.isTrending?.length) params.set("isTrending", "true");
+
+      const { data } = await api.get(`/products?${params}`);
+      const fetched = data.products || [];
+
+      setProducts(prev => append ? [...prev, ...fetched] : fetched);
+      setHasMore(pageNum < (data.pages || 1));
+    } catch {
+      toast.error("Failed to load products");
+    } finally {
+      setLoading(false);
+    }
+  }, [config.categoryKey, config.title, config.isLimited, activeFilters]);
+
+  // Reset and refetch when filters change
+  useEffect(() => {
+    setPage(1);
+    fetchProducts(1, false);
+  }, [activeFilters, config.categoryKey]);
+
+  useEffect(() => {
+  if (!sentinelRef.current) return;
+  const observer = new IntersectionObserver(
+    (entries) => {
+      if (entries[0].isIntersecting && hasMore && !loading) {
+        loadMore();
+      }
+    },
+    { rootMargin: "200px" }
+  );
+  observer.observe(sentinelRef.current);
+  return () => observer.disconnect();
+}, [hasMore, loading, page]);
+
+
+  const loadMore = () => {
+    const nextPage = page + 1;
+    setPage(nextPage);
+    fetchProducts(nextPage, true);
+  };
 
   const toggleFilter = (key, val) => {
     setActiveFilters(prev => {
@@ -271,15 +330,20 @@ export default function CategoryPage({ config }) {
   const clearFilters = () => setActiveFilters({});
   const activeCount = Object.values(activeFilters).flat().length;
 
-  const sorted = useMemo(() => {
-    const items = [...(config.products || [])];
-    if (sort === "price-asc") items.sort((a, b) => Number(String(a.price).replace(/[^\d]/g, "")) - Number(String(b.price).replace(/[^\d]/g, "")));
-    if (sort === "price-desc") items.sort((a, b) => Number(String(b.price).replace(/[^\d]/g, "")) - Number(String(a.price).replace(/[^\d]/g, "")));
-    return items;
-  }, [config.products, sort]);
+  // Client-side sort only (backend already handles featured default)
+  const sorted = [...products].sort((a, b) => {
+    if (sort === "price-asc") return (a.discountPrice || a.price) - (b.discountPrice || b.price);
+    if (sort === "price-desc") return (b.discountPrice || b.price) - (a.discountPrice || a.price);
+    return 0;
+  });
 
   const handleAdd = (product) => {
-    addToCart({ _id: product._id || product.title, name: product.name || product.title, image: product.img, price: Number(String(product.price).replace(/[^\d]/g, "")) }, 1, "Free Size");
+    addToCart({
+      _id: product._id,
+      name: product.name,
+      image: product.images?.[0]?.url,
+      price: product.discountPrice || product.price,
+    }, 1, "Free Size");
     toast.success("Added to cart");
   };
 
@@ -298,19 +362,16 @@ export default function CategoryPage({ config }) {
         @media(min-width:640px){.cp-grid{grid-template-columns:repeat(3,1fr);gap:14px;}}
         @media(min-width:1024px){.cp-grid{grid-template-columns:repeat(4,1fr);gap:16px;}}
         .cp-sort select{appearance:none;background:transparent;border:none;outline:none;cursor:pointer;font-family:'Cormorant Garamond',Georgia,serif;font-weight:700;font-size:0.72rem;letter-spacing:0.12em;text-transform:uppercase;color:#6b1a1a;}
-        /* Silk bg */
         .cp-silk{background-image:repeating-linear-gradient(-52deg,rgba(176,118,32,0.07) 0px,rgba(176,118,32,0.07) 1px,transparent 1px,transparent 22px),repeating-linear-gradient(38deg,rgba(176,118,32,0.05) 0px,rgba(176,118,32,0.05) 1px,transparent 1px,transparent 22px);}
       `}</style>
 
       <div style={{ background: "linear-gradient(180deg,#fdf8f0 0%,#fffaf3 100%)", minHeight: "100vh" }}>
-        {/* Hero */}
         <Hero config={config} />
 
         {/* Sticky toolbar */}
         <div className="sticky top-0 z-30 cp-silk"
           style={{ background: "rgba(253,246,236,0.92)", backdropFilter: "blur(12px)", borderBottom: "1px solid rgba(201,133,60,0.18)" }}>
           <div className="max-w-6xl mx-auto px-3 sm:px-5 py-2.5 flex items-center justify-between gap-3">
-            {/* Filter button */}
             <button onClick={() => setFilterOpen(true)}
               className="flex items-center gap-2 px-3.5 py-2 rounded-full transition-all active:scale-95"
               style={{ border: "1px solid rgba(107,26,26,0.22)", background: activeCount ? "rgba(201,133,60,0.1)" : "transparent" }}>
@@ -320,7 +381,6 @@ export default function CategoryPage({ config }) {
               </span>
             </button>
 
-            {/* Active filter pills */}
             <div className="flex-1 flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
               {Object.entries(activeFilters).flatMap(([k, vals]) =>
                 vals.map(v => (
@@ -339,7 +399,6 @@ export default function CategoryPage({ config }) {
               )}
             </div>
 
-            {/* Sort */}
             <div className="cp-sort shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-full"
               style={{ border: "1px solid rgba(107,26,26,0.18)" }}>
               <select value={sort} onChange={e => setSort(e.target.value)}>
@@ -351,32 +410,45 @@ export default function CategoryPage({ config }) {
           </div>
         </div>
 
-        {/* Results count */}
+        {/* Count */}
         <div className="max-w-6xl mx-auto px-3 sm:px-5 pt-5 pb-2">
           <p style={{ ...D.label, color: "rgba(107,26,26,0.45)", fontSize: "0.6rem" }}>
-            {sorted.length} items
+            {loading && products.length === 0 ? "Loading..." : `${products.length} items`}
           </p>
         </div>
 
-        {/* Product grid */}
+        {/* Grid */}
         <div className="max-w-6xl mx-auto px-3 sm:px-5 pb-16">
           <div className="cp-grid">
-            {sorted.map((product, i) => (
-              <ProductCard key={product._id || product.title} product={product} index={i} onAdd={handleAdd} />
-            ))}
+            {loading && products.length === 0
+              ? Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)
+              : sorted.map((product, i) => (
+                  <ProductCard key={product._id} product={product} index={i} onAdd={handleAdd} />
+                ))}
           </div>
 
-          {/* Empty state */}
-          {sorted.length === 0 && (
+          {/* Load more */}
+          {!loading && hasMore && sorted.length > 0 && (
+            <div ref={sentinelRef} className="flex justify-center mt-10 h-10">
+  {loading && products.length > 0 && (
+    <Loader2 size={22} className="animate-spin" style={{ color: "#c9853c" }} />
+  )}
+</div>
+          )}
+
+          {loading && products.length > 0 && (
+            <div className="flex justify-center mt-8">
+              <Loader2 size={24} className="animate-spin" style={{ color: "#c9853c" }} />
+            </div>
+          )}
+
+          {!loading && sorted.length === 0 && (
             <div className="flex flex-col items-center py-20 text-center">
-              <div className="w-14 h-14 rounded-full flex items-center justify-center mb-4"
-                style={{ background: "rgba(201,133,60,0.1)" }}>
+              <div className="w-14 h-14 rounded-full flex items-center justify-center mb-4" style={{ background: "rgba(201,133,60,0.1)" }}>
                 <ShoppingBag size={22} color="#c9853c" />
               </div>
               <h3 style={{ ...D.display, fontSize: "1.4rem", color: "#2a0505", fontWeight: 700 }}>No items found</h3>
-              <p className="mt-1.5" style={{ ...D.body, color: "rgba(90,42,26,0.55)", fontSize: "0.85rem" }}>
-                Try adjusting your filters
-              </p>
+              <p className="mt-1.5" style={{ ...D.body, color: "rgba(90,42,26,0.55)", fontSize: "0.85rem" }}>Try adjusting your filters</p>
               <button onClick={clearFilters} className="mt-4 px-5 py-2 rounded-full"
                 style={{ ...D.label, background: "linear-gradient(130deg,#6b1a1a,#9a2828)", color: "#ffe8b0", border: "none", cursor: "pointer" }}>
                 Clear Filters
@@ -385,7 +457,6 @@ export default function CategoryPage({ config }) {
           )}
         </div>
 
-        {/* Filter drawer */}
         <FilterDrawer open={filterOpen} onClose={() => setFilterOpen(false)}
           filters={config.filters || []} active={activeFilters} onToggle={toggleFilter} />
       </div>
@@ -394,28 +465,16 @@ export default function CategoryPage({ config }) {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   CATEGORY CONFIGS
-   Each exported config is used by the respective page file
+   CATEGORY CONFIGS — only UI/hero metadata, no product data
 ══════════════════════════════════════════════════════════ */
-
-const SAREES_PRODUCTS = [
-  { title: "Kanchipuram Heritage", sub: "Temple Border Classic", price: "₹15,999", img: "/sarees/kanchipuram_silk_saree.webp", tag: "Bestseller" },
-  { title: "Silk Cotton Checks", sub: "Festive Drape", price: "₹12,999", img: "/sarees/silk_cotton_checks_saree3.jpeg", tag: "Trending" },
-  { title: "Modal Silk Elegance", sub: "Evening Luxe", price: "₹10,499", img: "/sarees/modal_silk_saree.jpeg", tag: "New" },
-  { title: "Jamdani Weave", sub: "Heirloom Craft", price: "₹14,299", img: "/sarees/jamdani_saree.jpeg", tag: "Limited" },
-  { title: "Banarasi Brocade", sub: "Zari Splendor", price: "₹18,499", img: "/sarees/silk_cotton_checks_saree.jpeg", tag: "Bestseller" },
-  { title: "Chanderi Silk", sub: "Sheer Finesse", price: "₹9,299", img: "/sarees/chanderi_silk_saree.webp" },
-  { title: "Pochampally Ikat", sub: "Geometric Weave", price: "₹11,499", img: "/sarees/modal_silk_saree.jpeg", tag: "New" },
-  { title: "Mysore Crepe", sub: "Lightweight Drape", price: "₹8,799", img: "/sarees/silk_cotton_checks_saree3.jpeg" },
-];
 
 export const SAREES_CONFIG = {
   title: "Sarees",
+  categoryKey: "Sarees",
   sub: "Heritage Silk & Zari",
   desc: "Handpicked from the finest looms of India - each saree a story woven in silk, zari, and tradition.",
   heroImg: "/sarees/mainbg.jpg",
   heroFocus: "center 30%",
-  products: SAREES_PRODUCTS,
   filters: [
     { label: "Fabric", key: "fabric", options: ["Silk", "Cotton", "Modal", "Chanderi", "Banarasi"] },
     { label: "Occasion", key: "occasion", options: ["Festive", "Wedding", "Casual", "Party"] },
@@ -423,22 +482,13 @@ export const SAREES_CONFIG = {
   ],
 };
 
-const BLOUSES_PRODUCTS = [
-  { title: "Zardosi Embroidered", sub: "Bridal Couture", price: "₹4,299", img: "/blouses/b2.jpeg", tag: "Bestseller" },
-  { title: "Brocade Sleeveless", sub: "Contemporary Drape", price: "₹2,799", img: "/blouses/b2.jpeg", tag: "New" },
-  { title: "Cut-Sleeve Mirror", sub: "Festive Glam", price: "₹3,199", img: "/blouses/b2.jpeg", tag: "Trending" },
-  { title: "Plain Silk Readymade", sub: "Everyday Elegance", price: "₹1,899", img: "/blouses/b2.jpeg" },
-  { title: "Puff Sleeve Organza", sub: "Statement Silhouette", price: "₹3,499", img: "/blouses/b2.jpeg", tag: "New" },
-  { title: "Backless Halter", sub: "Modern Fusion", price: "₹2,599", img: "/blouses/b2.jpeg" },
-];
-
 export const BLOUSES_CONFIG = {
   title: "Blouses",
+  categoryKey: "Blouses",
   sub: "Ready-to-Wear Elegance",
   desc: "Perfectly crafted to complement your saree - from bridal zardosi to minimalist silk readymades.",
   heroImg: "/blouses/b2.jpeg",
   heroFocus: "center 25%",
-  products: BLOUSES_PRODUCTS,
   filters: [
     { label: "Style", key: "style", options: ["Sleeveless", "Full Sleeve", "Puff Sleeve", "Halter", "Backless"] },
     { label: "Occasion", key: "occasion", options: ["Bridal", "Festive", "Casual"] },
@@ -446,22 +496,13 @@ export const BLOUSES_CONFIG = {
   ],
 };
 
-const SILVER_PRODUCTS = [
-  { title: "Oxidised Tribal Necklace", sub: "Rajasthani Craft", price: "₹2,199", img: "/silver-jewelries/silver-jewelry.jpg", tag: "Bestseller" },
-  { title: "Temple Coin Haaram", sub: "South Indian Heritage", price: "₹3,499", img: "/silver-jewelries/silver-jewelry.jpg", tag: "Trending" },
-  { title: "Filigree Jhumkas", sub: "Orissa Craft", price: "₹1,299", img: "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=600&q=80&auto=format&fit=crop", tag: "New" },
-  { title: "Silver Kada Bangle Set", sub: "Ethnic Statement", price: "₹1,899", img: "/silver-jewelries/silver-jewelry.jpg" },
-  { title: "Peacock Maang Tikka", sub: "Bridal Essential", price: "₹1,599", img: "/silver-jewelries/silver-jewelry.jpg", tag: "Limited" },
-  { title: "Ghungroo Anklets", sub: "Dance & Festive", price: "₹899", img: "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=600&q=80&auto=format&fit=crop" },
-];
-
 export const SILVER_CONFIG = {
   title: "Silver Jewelry",
+  categoryKey: "Silver Jewelry",
   sub: "Artisan Silvercraft",
   desc: "Each piece shaped by master karigars - oxidised, filigree, and temple jewellery rooted in centuries of craft.",
   heroImg: "/silver-jewelries/mainbg.webp",
   heroFocus: "center 40%",
-  products: SILVER_PRODUCTS,
   filters: [
     { label: "Type", key: "type", options: ["Necklace", "Earrings", "Bangles", "Anklets", "Maang Tikka"] },
     { label: "Finish", key: "finish", options: ["Oxidised", "Polish", "Filigree", "Temple"] },
@@ -469,22 +510,13 @@ export const SILVER_CONFIG = {
   ],
 };
 
-const CRYSTAL_PRODUCTS = [
-  { title: "Rose Quartz Stretch", sub: "Love & Harmony", price: "₹899", img: "/crystal-bracelets/crystal-bracelet.webp", tag: "Bestseller" },
-  { title: "Amethyst Beaded", sub: "Calm & Clarity", price: "₹1,099", img: "/crystal-bracelets/crystal-bracelet.webp", tag: "Trending" },
-  { title: "Black Tourmaline", sub: "Protection & Grounding", price: "₹1,299", img: "/crystal-bracelets/crystal-bracelet.webp", tag: "New" },
-  { title: "Citrine Abundance", sub: "Prosperity & Joy", price: "₹999", img: "/crystal-bracelets/crystal-bracelet.webp" },
-  { title: "Lapis Lazuli", sub: "Wisdom & Truth", price: "₹1,499", img: "/crystal-bracelets/crystal-bracelet.webp", tag: "Limited" },
-  { title: "Clear Quartz Master", sub: "Amplify & Heal", price: "₹799", img: "/crystal-bracelets/crystal-bracelet.webp" },
-];
-
 export const CRYSTAL_CONFIG = {
   title: "Crystal Bracelets",
+  categoryKey: "Crystal Bracelets",
   sub: "Healing Gems & Energy",
   desc: "Ethically sourced crystals, each carrying ancient energies - wear intention, wear beauty.",
   heroImg: "/crystal-bracelets/mainbg.webp",
   heroFocus: "center 50%",
-  products: CRYSTAL_PRODUCTS,
   filters: [
     { label: "Crystal", key: "crystal", options: ["Rose Quartz", "Amethyst", "Black Tourmaline", "Citrine", "Lapis"] },
     { label: "Intent", key: "intent", options: ["Love", "Protection", "Clarity", "Abundance", "Healing"] },
@@ -492,22 +524,13 @@ export const CRYSTAL_CONFIG = {
   ],
 };
 
-const SHAWLS_PRODUCTS = [
-  { title: "Pashmina Embroidered", sub: "Kashmir's Finest", price: "₹8,499", img: "/shawls/shawl.jpg", tag: "Bestseller" },
-  { title: "Kani Woven Shawl", sub: "Loom Masterpiece", price: "₹12,999", img: "/shawls/shawl.jpg", tag: "Limited" },
-  { title: "Jamawar Silk", sub: "Mughal Heritage", price: "₹9,799", img: "/shawls/shawl.jpg", tag: "Trending" },
-  { title: "Pure Wool Sozni", sub: "Hand Needle Work", price: "₹7,299", img: "/shawls/shawl.jpg" },
-  { title: "Stole - Tilla Embroidery", sub: "Gold Thread Work", price: "₹5,499", img: "/shawls/shawl.jpg", tag: "New" },
-  { title: "Block Print Merino", sub: "Modern Kashmiri", price: "₹4,299", img: "/shawls/shawl.jpg" },
-];
-
 export const SHAWLS_CONFIG = {
   title: "Shawls",
+  categoryKey: "Shawls",
   sub: "Kashmiri Pashmina & More",
   desc: "From needle-worked Sozni to richly woven Kani - warmth that carries the soul of Kashmir.",
   heroImg: "/shawls/mainbg.avif",
   heroFocus: "center 40%",
-  products: SHAWLS_PRODUCTS,
   filters: [
     { label: "Type", key: "type", options: ["Pashmina", "Kani", "Jamawar", "Sozni", "Stole"] },
     { label: "Material", key: "material", options: ["Pure Wool", "Silk Blend", "Merino"] },
@@ -515,23 +538,14 @@ export const SHAWLS_CONFIG = {
   ],
 };
 
-const LIMITED_PRODUCTS = [
-  { title: "Bridal Banarasi Set", sub: "Saree + Blouse", price: "₹24,999", img: "/sarees/cotton_saree.jpeg", tag: "Ends Today" },
-  { title: "Kanchipuram Duo", sub: "2 Sarees Bundle", price: "₹26,499", img: "/sarees/silk_cotton_checks_saree.jpeg", tag: "48 hrs left" },
-  { title: "Silver Bridal Haaram", sub: "Necklace Set", price: "₹5,999", img: "/silver-jewelries/silver-jewelry.jpg", tag: "Flash Sale" },
-  { title: "Pashmina Luxury Pack", sub: "2 Shawls", price: "₹14,999", img: "/sarees/jamdani_saree.jpeg", tag: "Ends Soon" },
-  { title: "Crystal Healing Kit", sub: "6 Bracelets Set", price: "₹3,999", img: "/crystal-bracelets/crystal-bracelet.webp", tag: "Flash Sale" },
-  { title: "Festive Blouse Trio", sub: "3 Readymade Blouses", price: "₹6,499", img: "/blouses/b2.jpeg", tag: "48 hrs left" },
-];
-
 export const LIMITED_CONFIG = {
   title: "Limited Offers",
+  categoryKey: null,
+  isLimited: true,
   sub: "Exclusive & Time-Bound",
   desc: "Once they're gone, they're gone - curated bundles and flash deals on our finest pieces.",
   heroImg: "/limited-time/lt.jpg",
   heroFocus: "center 30%",
-  isLimited: true,
-  products: LIMITED_PRODUCTS,
   filters: [
     { label: "Category", key: "category", options: ["Sarees", "Blouses", "Jewelry", "Shawls", "Crystals"] },
     { label: "Deal Type", key: "deal", options: ["Flash Sale", "Bundle", "48 hr Deal"] },

@@ -1,4 +1,4 @@
-import ProductListPage from "@/components/Shop/ProductListPage";
+import ProductListPage from "../template/ProductListPage";
 
 export const metadata = {
   title: "Blouses | Ruva",
@@ -6,5 +6,5 @@ export const metadata = {
 };
 
 export default function BlousesPage() {
-  return <ProductListPage title="Blouses" defaultCategory="Blouse" />;
+  return <ProductListPage title="Blouses" defaultCategory="Blouses" />;
 }

@@ -23,7 +23,10 @@ const SAREE_FABRICS = [
   "Sambalpuri", "Baluchari","silk-cotton", "cotton",
 ];
 
-const CATEGORIES = ["Sarees", "Blouse", "Dupatta"];
+const CATEGORIES = [
+  "Sarees", "Blouses", "Silver Jewelry", 
+  "Crystal Bracelets", "Shawls", "Dupatta"
+];
 
 const createEmptyVariant = () => ({
   colorName: '',
@@ -385,7 +388,7 @@ export default function EditProduct({ params }) {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               {/* Existing Images */}
               {images.map((img, i) => (
-                <div key={i} className="aspect-[3/4] rounded-2xl overflow-hidden relative border border-gray-100 group">
+                <div key={i} className="aspect-3/4 rounded-2xl overflow-hidden relative border border-gray-100 group">
                   <img src={img.url || null} alt="" className="w-full h-full object-cover" />
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                     <span className="text-white text-[10px] font-bold uppercase">Current</span>
@@ -395,7 +398,7 @@ export default function EditProduct({ params }) {
               
               {/* Preview of New Images */}
               {previewUrls.map((url, i) => (
-                <div key={i} className="aspect-[3/4] rounded-2xl overflow-hidden relative border border-primary-100 group">
+                <div key={i} className="aspect-3/4 rounded-2xl overflow-hidden relative border border-primary-100 group">
                   <img src={url} alt="" className="w-full h-full object-cover" />
                   <button 
                     type="button"
@@ -408,7 +411,7 @@ export default function EditProduct({ params }) {
               ))}
               
               {/* Upload Placeholder */}
-              <label className="aspect-[3/4] rounded-2xl border-2 border-dashed border-gray-100 hover:border-primary-500 hover:bg-primary-50 transition-all cursor-pointer flex flex-col items-center justify-center gap-2">
+              <label className="aspect-3/4 rounded-2xl border-2 border-dashed border-gray-100 hover:border-primary-500 hover:bg-primary-50 transition-all cursor-pointer flex flex-col items-center justify-center gap-2">
                 <Upload className="text-gray-300 group-hover:text-primary-500" size={24} />
                 <span className="text-[10px] font-bold text-gray-400 uppercase">Add More</span>
                 <input type="file" multiple className="hidden" onChange={handleImageChange} accept="image/*" />
@@ -475,7 +478,7 @@ export default function EditProduct({ params }) {
                     <p className="text-xs font-bold text-gray-500 uppercase">Variant Images</p>
                     <div className="grid grid-cols-4 gap-3">
                       {(variantPreviewUrls[variantIndex] || []).map((url, imageIndex) => (
-                        <div key={url + imageIndex} className="relative aspect-[3/4] rounded-xl overflow-hidden border">
+                        <div key={url + imageIndex} className="relative aspect-3/4 rounded-xl overflow-hidden border">
                           <img src={url || null} alt="" className="w-full h-full object-cover" />
                           <button
                             type="button"
@@ -486,7 +489,7 @@ export default function EditProduct({ params }) {
                           </button>
                         </div>
                       ))}
-                      <label className="aspect-[3/4] rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center cursor-pointer">
+                      <label className="aspect-3/4 rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center cursor-pointer">
                         <Upload size={18} className="text-gray-400" />
                         <input
                           type="file"
@@ -604,7 +607,7 @@ export default function EditProduct({ params }) {
             <button 
               type="submit" 
               disabled={saving}
-              className="flex-[2] bg-black text-white font-bold py-4 rounded-2xl shadow-lg shadow-primary-600/20 hover:bg-primary-700 transition-all flex items-center justify-center gap-2"
+              className="flex-2 bg-black text-white font-bold py-4 rounded-2xl shadow-lg shadow-primary-600/20 hover:bg-primary-700 transition-all flex items-center justify-center gap-2"
             >
               {saving ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
               Save Changes

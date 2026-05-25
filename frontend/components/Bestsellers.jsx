@@ -180,24 +180,16 @@ export default function Bestsellers() {
     useEffect(() => {
         (async () => {
             try {
-                const { data } = await api.get("/products", { params: { pageSize: 50 } });
-                console.log(data);
-                const bs = data.products.filter((p) => {
-                    const isSaree = String(p.category || "").toLowerCase() === "sarees";
-                    const tags = normalizeTagList(p);
-                    return isSaree && (p.isBestseller || p.isTrending || tags.includes("new") || tags.includes("limited"));
+                const { data } = await api.get("/products", {
+                    params: { isBestseller: "true", pageSize: 8 }
                 });
-
-                // Deduplicate by product name, keeping the first occurrence
+                const unique = [];
                 const seen = new Set();
-                const unique = bs.filter((p) => {
+                for (const p of data.products || []) {
                     const key = (p.name || "").trim().toLowerCase();
-                    if (seen.has(key)) return false;
-                    seen.add(key);
-                    return true;
-                });
-
-                setBestsellers(unique.slice(0, 4));
+                    if (!seen.has(key)) { seen.add(key); unique.push(p); }
+                }
+                if (unique.length > 0) setBestsellers(unique.slice(0, 4));
             } catch { /* fall through to static */ }
         })();
     }, []);

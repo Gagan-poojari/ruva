@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import {
   TrendingUp,
   ShoppingBag,
-  DollarSign,
+  IndianRupee,
   Users,
   ArrowUpRight,
   ArrowDownRight,
@@ -54,10 +54,10 @@ export default function Dashboard() {
   }
 
   const salesCards = [
-    { title: 'Today', amount: stats?.sales?.day?.totalSales || 0, count: stats?.sales?.day?.count || 0, icon: DollarSign, color: 'bg-blue-500' },
+    { title: 'Today', amount: stats?.sales?.day?.totalSales || 0, count: stats?.sales?.day?.count || 0, icon: IndianRupee, color: 'bg-blue-500' },
     { title: 'This Week', amount: stats?.sales?.week?.totalSales || 0, count: stats?.sales?.week?.count || 0, icon: TrendingUp, color: 'bg-purple-500' },
     { title: 'This Month', amount: stats?.sales?.month?.totalSales || 0, count: stats?.sales?.month?.count || 0, icon: ShoppingBag, color: 'bg-orange-500' },
-    { title: 'This Year', amount: stats?.sales?.year?.totalSales || 0, count: stats?.sales?.year?.count || 0, icon: DollarSign, color: 'bg-emerald-500' },
+    { title: 'This Year', amount: stats?.sales?.year?.totalSales || 0, count: stats?.sales?.year?.count || 0, icon: IndianRupee, color: 'bg-emerald-500' },
   ];
 
   const filterOptions = [

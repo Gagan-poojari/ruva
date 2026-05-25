@@ -183,7 +183,7 @@ export default function ProductDetailsPage() {
                 key={`${img.url}-${idx}`} 
                 className="min-w-[85%] sm:min-w-[70%] lg:min-w-full snap-center rounded-3xl overflow-hidden border border-[#c87d1a]/15 bg-white/60"
               >
-                <div className="relative aspect-[3/4] bg-[#f6efe5] overflow-hidden">
+                <div className="relative aspect-3/4 bg-[#f6efe5] overflow-hidden">
                   <img src={img.url} alt={`${product.name} view ${idx + 1}`} className="w-full h-full object-cover" />
                   {idx === 0 && discountPercent ? (
                     <div className="absolute top-4 left-4">
@@ -323,7 +323,7 @@ export default function ProductDetailsPage() {
                 type="button"
                 onClick={handleAddToCart}
                 disabled={!inStock}
-                className="inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 bg-gradient-to-r from-[#c87d1a] to-[#d4a017] text-white font-extrabold uppercase tracking-widest text-xs disabled:opacity-60"
+                className="inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 bg-linear-to-r from-[#c87d1a] to-[#d4a017] text-white font-extrabold uppercase tracking-widest text-xs disabled:opacity-60"
                 style={{ boxShadow: "0 14px 34px rgba(200,125,26,0.25)" }}
               >
                 <ShoppingBag className="w-4 h-4" />
@@ -370,7 +370,7 @@ export default function ProductDetailsPage() {
                     href={`/products/${item._id}`}
                     className="rounded-2xl overflow-hidden border border-[#c87d1a]/15 bg-white hover:shadow-md transition"
                   >
-                    <div className="aspect-[3/4] bg-[#f6efe5]">
+                    <div className="aspect-3/4 bg-[#f6efe5]">
                       <img src={image} alt={item.name} className="w-full h-full object-cover" />
                     </div>
                     <div className="p-3">

@@ -27,14 +27,14 @@ export default function AdminLayout({ children }) {
   const router = useRouter();
   const pathname = usePathname();
 
-  // ✅ Load user ONLY on client
+  // Load user ONLY on client
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("adminUser") || "null");
     setAdminData(user);
     setLoading(false);
   }, []);
 
-  // ✅ Auth Guard (after loading)
+  // Auth Guard (after loading)
   useEffect(() => {
     if (!loading) {
       const token = localStorage.getItem("adminToken");
@@ -54,10 +54,10 @@ export default function AdminLayout({ children }) {
     router.push("/admin/login");
   };
 
-  // ✅ Don't wrap login page
+  // Don't wrap login page
   if (pathname === "/admin/login") return children;
 
-  // ✅ Prevent hydration mismatch
+  // Prevent hydration mismatch
   if (loading) return null;
 
   if (!adminData || adminData.role !== "admin") return null;
@@ -152,10 +152,10 @@ export default function AdminLayout({ children }) {
           </div>
 
           <div className="flex items-center gap-6">
-            <button className="relative text-gray-500 hover:text-primary-600 transition-colors">
+            {/* <button className="relative text-gray-500 hover:text-primary-600 transition-colors">
               <Bell size={20} />
               <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
-            </button>
+            </button> */}
 
             <div className="flex items-center gap-3 pl-6 border-l border-gray-200">
               <div className="text-right hidden sm:block">
@@ -163,7 +163,7 @@ export default function AdminLayout({ children }) {
                   {adminData?.name || "Admin User"}
                 </p>
                 <p className="text-[10px] text-gray-500 uppercase tracking-widest mt-1">
-                  Super Admin
+                  Ruva Admin
                 </p>
               </div>
               <div className="w-10 h-10 rounded-full bg-slate-100 border flex items-center justify-center text-primary-600">

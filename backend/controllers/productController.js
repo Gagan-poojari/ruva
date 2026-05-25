@@ -183,7 +183,7 @@ const getProducts = async (req, res, next) => {
             return p;
         }));
 
-        res.json({ products: productsWithHoldInfo, page, pages: Math.ceil(count / pageSize) });
+        res.json({ products: productsWithHoldInfo, page, pages: Math.ceil(count / pageSize), totalCount: count });
     } catch (error) {
         next(error);
     }

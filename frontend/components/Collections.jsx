@@ -25,12 +25,12 @@ export default function Collections() {
   };
 
   const preview = [
-    { name: "Banarasi", image: "/collections/banarasi.webp" },
-    { name: "Kanjivaram", image: "/collections/kanchipuram.jpg" },
-    { name: "Mysore Silk", image: "/collections/mysore.webp" },
-    { name: "Patola", image: "/collections/patola.webp" },
-    { name: "Chanderi", image: "/collections/chanderi.jpg" },
-    { name: "Bandhani", image: "/collections/bandhani.webp" },
+    { name: "Banarasi", image: "/collections/banarasi.jpg" },
+    { name: "Mysore Silk", image: "/collections/mysore.jpg" },
+    { name: "Jamdani", image: "/collections/jamdani.png" },
+    { name: "Cotton", image: "/collections/cotton.jpg" },
+    { name: "Narayapet", image: "/collections/narayapet.jpg" },
+    { name: "Georgette", image: "/collections/georgette.png" },
   ];
 
   return (

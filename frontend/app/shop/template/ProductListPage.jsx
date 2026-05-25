@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, Suspense } from "react";
+import { useEffect, useMemo, useState, Suspense, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import api from "@/utils/api";
@@ -27,10 +27,10 @@ function primaryImg(product) {
 }
 
 const SAREE_FABRICS = [
-  "Banarasi", "Kanjivaram", "Mysore Silk", "Patola", "Chanderi", 
-  "Maheshwari", "Tant", "Khadi", "Organza", "Georgette", "Net", 
-  "Ruffle", "Bandhani", "Paithani", "Leheriya", "Kasavu", 
-  "Sambalpuri", "Baluchari","silk-cotton", "cotton",
+  "Banarasi", "Kanjivaram", "Mysore Silk", "Patola", "Chanderi",
+  "Maheshwari", "Tant", "Khadi", "Organza", "Georgette", "Net",
+  "Ruffle", "Bandhani", "Paithani", "Leheriya", "Kasavu",
+  "Sambalpuri", "Baluchari", "silk-cotton", "cotton",
 ];
 
 function getVariantPricing(product, variant) {
@@ -301,7 +301,7 @@ function ListRow({ product, index }) {
         style={{ boxShadow: "0 4px 20px rgba(42,5,5,0.07), 0 1px 3px rgba(201,133,60,0.07)" }}
       >
         {/* thumbnail */}
-        <div className="relative w-[108px] h-[150px] rounded-xl overflow-hidden shrink-0 bg-[#f6efe5]">
+        <div className="relative w-27 h-37.5 rounded-xl overflow-hidden shrink-0 bg-[#f6efe5]">
           <img
             src={displayImage}
             alt={product.name}
@@ -439,7 +439,7 @@ function FilterSheet({ open, onClose, category, setCategory, fabric, setFabric, 
               <div className="mb-5">
                 <p className="text-[0.65rem] uppercase tracking-[0.22em] font-bold text-[#6b1a1a]/60 mb-3" style={{ fontFamily: "var(--font-label)" }}>Sort by</p>
                 <div className="grid grid-cols-3 gap-2">
-                  {[["new","Newest"],["price_asc","Low → High"],["price_desc","High → Low"]].map(([v, label]) => (
+                  {[["new", "Newest"], ["price_asc", "Low → High"], ["price_desc", "High → Low"]].map(([v, label]) => (
                     <button
                       key={v}
                       onClick={() => setSort(v)}
@@ -462,7 +462,7 @@ function FilterSheet({ open, onClose, category, setCategory, fabric, setFabric, 
               <div className="mb-5">
                 <p className="text-[0.65rem] uppercase tracking-[0.22em] font-bold text-[#6b1a1a]/60 mb-3" style={{ fontFamily: "var(--font-label)" }}>Category</p>
                 <div className="flex flex-wrap gap-2">
-                  {["", "Sarees", "Blouse", "Dupatta"].map((c) => (
+                  {["", "Sarees", "Blouses", "Silver Jewelry", "Crystal Bracelets", "Shawls", "Dupatta"].map((c) => (
                     <button
                       key={c || "all"}
                       onClick={() => setCategory(c)}
@@ -531,7 +531,8 @@ function FilterSheet({ open, onClose, category, setCategory, fabric, setFabric, 
 }
 
 /* ─────────────── MAIN PAGE ─────────────── */
-function ProductListContent({ title = "Shop", defaultCategory = "" }) {
+function ProductListContent({ title = "Shop", defaultCategory = "", defaultIsFeatured = false }) {
+  const sentinelRef = useRef(null);
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const isShopRoute = title === "Shop" && pathname === "/shop";
@@ -558,8 +559,9 @@ function ProductListContent({ title = "Shop", defaultCategory = "" }) {
     if (keyword.trim()) p.keyword = keyword.trim();
     if (category) p.category = category;
     if (fabric) p.fabric = fabric;
+    if (defaultIsFeatured) p.isFeatured = "true"; // ← add this
     return p;
-  }, [keyword, category, fabric]);
+  }, [keyword, category, fabric, defaultIsFeatured]);
 
   const visibleProducts = useMemo(() => {
     const items = [...products];
@@ -595,6 +597,20 @@ function ProductListContent({ title = "Shop", defaultCategory = "" }) {
       setKeyword(urlKeyword);
     }
   }, [urlKeyword]);
+
+  useEffect(() => {
+    if (!sentinelRef.current) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && page < pages && !loadingMore && !loading) {
+          fetchPage({ pageNumber: page + 1, append: true });
+        }
+      },
+      { rootMargin: "200px" }
+    );
+    observer.observe(sentinelRef.current);
+    return () => observer.disconnect();
+  }, [page, pages, loadingMore, loading]);
 
   const handleReset = () => {
     setKeyword(""); setCategory(defaultCategory); setFabric(""); setSort("new");
@@ -677,8 +693,8 @@ function ProductListContent({ title = "Shop", defaultCategory = "" }) {
       <div className="silk-bg min-h-screen">
 
         {/* ── ambient glows ── */}
-        <div className="fixed top-0 left-0 w-[340px] h-[340px] rounded-full blur-3xl pointer-events-none" style={{ background: "rgba(201,133,60,0.10)", zIndex: 0 }} />
-        <div className="fixed bottom-0 right-0 w-[300px] h-[300px] rounded-full blur-3xl pointer-events-none" style={{ background: "rgba(107,26,26,0.08)", zIndex: 0 }} />
+        <div className="fixed top-0 left-0 w-85 h-85 rounded-full blur-3xl pointer-events-none" style={{ background: "rgba(201,133,60,0.10)", zIndex: 0 }} />
+        <div className="fixed bottom-0 right-0 w-75 h-75 rounded-full blur-3xl pointer-events-none" style={{ background: "rgba(107,26,26,0.08)", zIndex: 0 }} />
 
         <div className="relative z-10 max-w-6xl mx-auto px-4 pt-24 pb-20">
 
@@ -722,7 +738,7 @@ function ProductListContent({ title = "Shop", defaultCategory = "" }) {
           </motion.div>
 
           {/* ══ STICKY SEARCH + CONTROLS BAR ══ */}
-          <div className="sticky top-[64px] z-30 mb-5">
+          <div className="sticky top-16 z-30 mb-5">
             <motion.div
               variants={fadeUp} custom={1} initial="hidden" animate="show"
               className="rounded-2xl overflow-hidden"
@@ -858,25 +874,20 @@ function ProductListContent({ title = "Shop", defaultCategory = "" }) {
               </AnimatePresence>
 
               {/* Load more */}
-              <div className="mt-12 flex justify-center">
-                {page < pages ? (
-                  <button
-                    onClick={() => fetchPage({ pageNumber: page + 1, append: true })}
-                    disabled={loadingMore}
-                    className="load-more-btn flex items-center gap-2.5 px-8 py-3.5 rounded-2xl font-bold text-xs uppercase tracking-[0.2em] text-[#ffe8b0] disabled:opacity-60"
-                    style={{
-                      fontFamily: "var(--font-label)",
-                      background: "linear-gradient(130deg,#6b1a1a,#a03030)",
-                    }}
-                  >
-                    {loadingMore ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={13} />}
-                    {loadingMore ? "Loading…" : "Load More"}
-                  </button>
-                ) : visibleProducts.length > 0 ? (
+              <div ref={sentinelRef} className="mt-12 flex justify-center h-12">
+                {loadingMore && (
+                  <div className="flex items-center gap-2 text-[#6b1a1a]/50">
+                    <Loader2 size={16} className="animate-spin text-[#c9853c]" />
+                    <span className="text-xs font-bold uppercase tracking-[0.2em]" style={{ fontFamily: "var(--font-label)" }}>
+                      Loading more…
+                    </span>
+                  </div>
+                )}
+                {!loadingMore && page >= pages && visibleProducts.length > 0 && (
                   <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#6b1a1a]/40" style={{ fontFamily: "var(--font-label)" }}>
                     — End of Collection —
                   </p>
-                ) : null}
+                )}
               </div>
             </>
           )}

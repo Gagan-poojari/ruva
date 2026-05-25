@@ -1,4 +1,4 @@
-import ProductListPage from "@/components/Shop/ProductListPage";
+import ProductListPage from "./template/ProductListPage";
 
 export const metadata = {
   title: "Shop | Ruva",
