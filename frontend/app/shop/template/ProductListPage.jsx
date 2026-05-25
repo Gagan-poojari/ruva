@@ -14,8 +14,9 @@ import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 
 /* ─── helpers ─── */
-function formatINR(v) {
-  return `₹${Number(v || 0).toLocaleString("en-IN")}`;
+function Price({ value, className = "" }) {
+  const formatted = `₹${Number(value || 0).toLocaleString("en-IN")}`;
+  return <span className={`num ${className}`}>{formatted}</span>;
 }
 function discount(price, disc) {
   const p = Number(price || 0), d = Number(disc || 0);
@@ -140,7 +141,7 @@ function GridCard({ product, index }) {
     <motion.div custom={index} variants={fadeUp} initial="hidden" animate="show">
       <Link
         href={`/products/${product._id}`}
-        className="group relative block rounded-2xl overflow-hidden bg-white"
+        className="group relative block  overflow-hidden bg-white"
         style={{ boxShadow: "0 8px 32px rgba(42,5,5,0.09), 0 1px 4px rgba(201,133,60,0.08)" }}
       >
         {/* ── image ── */}
@@ -225,12 +226,10 @@ function GridCard({ product, index }) {
           <div className="mt-2.5 flex items-center justify-between">
             <div>
               <span className="text-base font-black text-[#6b1a1a]" style={{ fontFamily: "var(--font-display)" }}>
-                {formatINR(effectivePrice)}
+                <Price value={effectivePrice} />
               </span>
               {pct && (
-                <span className="ml-2 text-[0.68rem] text-[#6b1a1a]/40 line-through">
-                  {formatINR(price)}
-                </span>
+                <Price value={price} className="text-[0.68rem] text-[#6b1a1a]/40 line-through ml-2" />
               )}
             </div>
 
@@ -264,53 +263,40 @@ function ListRow({ product, index }) {
   const handleAddToCart = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!inStock) {
-      toast.error("This item is out of stock");
-      return;
-    }
-    addToCart(
-      {
-        ...product,
-        image: displayImage,
-        price: effectivePrice,
-        selectedColor: variant?.colorName || product?.colors?.[0] || "",
-      },
-      1,
-      "Free Size"
-    );
+    if (!inStock) { toast.error("This item is out of stock"); return; }
+    addToCart({ ...product, image: displayImage, price: effectivePrice, selectedColor: variant?.colorName || product?.colors?.[0] || "" }, 1, "Free Size");
     toast.success("Added to cart");
   };
 
   const handleToggleWishlist = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    const added = toggleWishlist({
-      ...product,
-      image: displayImage,
-      price: effectivePrice,
-      selectedColor: variant?.colorName || product?.colors?.[0] || "",
-    });
+    const added = toggleWishlist({ ...product, image: displayImage, price: effectivePrice, selectedColor: variant?.colorName || product?.colors?.[0] || "" });
     toast.success(added ? "Added to wishlist" : "Removed from wishlist");
   };
 
   return (
     <motion.div custom={index} variants={listItem} initial="hidden" animate="show">
+      {/* Mobile: vertical card. sm+: horizontal row */}
       <Link
         href={`/products/${product._id}`}
-        className="group flex gap-3.5 p-3 rounded-2xl bg-white active:scale-[0.985] transition-transform"
+        className="group relative flex flex-col sm:flex-row sm:gap-3.5 sm:p-3 rounded-2xl bg-white active:scale-[0.985] transition-transform overflow-hidden"
         style={{ boxShadow: "0 4px 20px rgba(42,5,5,0.07), 0 1px 3px rgba(201,133,60,0.07)" }}
       >
-        {/* thumbnail */}
-        <div className="relative w-27 h-37.5 rounded-xl overflow-hidden shrink-0 bg-[#f6efe5]">
-          <img
-            src={displayImage}
-            alt={product.name}
-            className="w-full h-full object-cover transition-transform duration-700 group-active:scale-[1.04]"
-            loading="lazy"
-          />
+        {/* Image */}
+        <div className="relative sm:w-[108px] sm:h-[150px] sm:rounded-xl sm:overflow-hidden sm:shrink-0 bg-[#f6efe5] overflow-hidden">
+          <div className="aspect-[3/4] sm:aspect-auto sm:h-full">
+            <img
+              src={displayImage}
+              alt={product.name}
+              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
+              loading="lazy"
+            />
+          </div>
           <ColorPalette product={product} selectedVariant={selectedVariant} setSelectedVariant={setSelectedVariant} />
+
           {pct && (
-            <span className="absolute top-1.5 left-1.5 tag-pill bg-[#1e4d2b] text-[#a3f0b8] border border-[#a3f0b8]/20 px-1.5 py-0.5">
+            <span className="absolute top-2 left-2 tag-pill bg-[#1e4d2b] text-[#a3f0b8] border border-[#a3f0b8]/20 px-1.5 py-0.5">
               {pct}% off
             </span>
           )}
@@ -322,76 +308,60 @@ function ListRow({ product, index }) {
           <button
             type="button"
             onClick={handleToggleWishlist}
-            className="absolute bottom-1.5 right-1.5 w-7 h-7 rounded-full flex items-center justify-center border backdrop-blur-md"
+            className="absolute top-2 right-2 sm:bottom-1.5 sm:top-auto sm:right-1.5 w-7 h-7 rounded-full flex items-center justify-center border backdrop-blur-md"
             style={{
               background: liked ? "rgba(127,29,29,0.88)" : "rgba(255,255,255,0.8)",
               borderColor: liked ? "rgba(255,232,176,0.45)" : "rgba(61,10,10,0.2)",
               color: liked ? "#ffe8b0" : "#6b1a1a",
             }}
-            aria-label={liked ? "Remove from wishlist" : "Add to wishlist"}
           >
             <Heart size={13} fill={liked ? "currentColor" : "none"} />
           </button>
         </div>
 
-        {/* details */}
-        <div className="flex-1 min-w-0 py-0.5 flex flex-col justify-between">
+        {/* Info */}
+        <div className="flex flex-col justify-between flex-1 min-w-0 p-3 sm:py-0.5 sm:px-0">
           <div>
-            <h3 className="text-[0.92rem] font-bold text-[#2a0505] leading-snug line-clamp-2" style={{ fontFamily: "var(--font-display)" }}>
+            <h3 className="text-[0.88rem] font-bold text-[#2a0505] leading-snug line-clamp-2" style={{ fontFamily: "var(--font-display)" }}>
               {product.name}
             </h3>
-            <div className="mt-2 space-y-1 text-[0.62rem] text-[#5a2a1a]/70 uppercase tracking-[0.15em]">
-              <p>Brand: RUVA HANDLOOMS</p>
-              <p>Category: {product.category || "Sarees"}</p>
-              <p>Fabric: {product.fabric || "Fine Silk"}</p>
-              <p>Color: {variant?.colorName || product.colors?.[0] || "Classic"}</p>
-            </div>
+            <p className="mt-1 text-[0.6rem] uppercase tracking-[0.15em] text-[#5a2a1a]/55">
+              {product.category}{product.fabric ? ` · ${product.fabric}` : ""}
+            </p>
           </div>
 
-          <div className="mt-2 flex items-end justify-between gap-2">
+          <div className="mt-2 flex items-center justify-between gap-1">
             <div>
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-[1.05rem] font-black text-[#6b1a1a]" style={{ fontFamily: "var(--font-display)" }}>
-                  {formatINR(effectivePrice)}
-                </span>
-                {pct && (
-                  <span className="text-[0.65rem] text-[#6b1a1a]/40 line-through">{formatINR(price)}</span>
-                )}
-              </div>
-              {(!inStock || (inStock && stock <= 10)) && (
-                <span
-                  className="text-[0.58rem] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border mt-1 inline-block"
-                  style={{
-                    background: inStock ? "rgba(200,125,26,0.08)" : "rgba(239,68,68,0.08)",
-                    borderColor: inStock ? "rgba(200,125,26,0.22)" : "rgba(239,68,68,0.22)",
-                    color: inStock ? "#c87d1a" : "#b91c1c",
-                    fontFamily: "var(--font-label)",
-                  }}
-                >
-                  {inStock ? "Only few left" : "Sold out"}
-                </span>
+              <span className="text-[0.95rem] font-black text-[#6b1a1a]" style={{ fontFamily: "var(--font-display)" }}>
+                <Price value={effectivePrice} />
+              </span>
+              {pct && (
+                <Price value={price} className="text-[0.68rem] text-[#6b1a1a]/40 line-through ml-2" />
+              )}
+              {(!inStock || stock <= 10) && (
+                <div className="mt-1">
+                  <span className="text-[0.55rem] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-full border"
+                    style={{
+                      background: inStock ? "rgba(200,125,26,0.08)" : "rgba(239,68,68,0.08)",
+                      borderColor: inStock ? "rgba(200,125,26,0.22)" : "rgba(239,68,68,0.22)",
+                      color: inStock ? "#c87d1a" : "#b91c1c",
+                    }}>
+                    {inStock ? "Few left" : "Sold out"}
+                  </span>
+                </div>
               )}
             </div>
 
-            <div className="flex flex-col items-end gap-1.5">
-              <div className="flex items-center gap-1 bg-[#f0faf4] border border-[#a3f0b8]/40 rounded-full px-2 py-0.5">
-                <Star className="w-3 h-3 text-[#1e7d41] fill-[#1e7d41]" />
-                <span className="text-[0.6rem] font-bold text-[#1e7d41]">4.6</span>
-              </div>
-              <button
-                type="button"
-                onClick={handleAddToCart}
-                disabled={!inStock}
-                className="text-[0.58rem] font-black uppercase tracking-widest text-[#c87d1a] flex items-center gap-1 border border-[#c87d1a]/35 rounded-full px-2 py-1 disabled:opacity-50"
-                style={{ fontFamily: "var(--font-label)" }}
-              >
-                <ShoppingCart size={10} />
-                Add
-              </button>
-              <span className="text-[0.56rem] font-black uppercase tracking-widest text-[#8b5a1c] flex items-center gap-0.5" style={{ fontFamily: "var(--font-label)" }}>
-                View <ArrowRight size={9} />
-              </span>
-            </div>
+            <button
+              type="button"
+              onClick={handleAddToCart}
+              disabled={!inStock}
+              className="shrink-0 flex items-center gap-1 text-[0.58rem] font-black uppercase tracking-widest text-[#c87d1a] border border-[#c87d1a]/35 rounded-full px-2.5 py-1.5 disabled:opacity-50"
+              style={{ fontFamily: "var(--font-label)" }}
+            >
+              <ShoppingCart size={10} />
+              Add
+            </button>
           </div>
         </div>
       </Link>
@@ -631,6 +601,15 @@ function ProductListContent({ title = "Shop", defaultCategory = "", defaultIsFea
           --dark: #2a0505;
         }
 
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Lora:ital,wght@0,400;1,400&display=swap');
+
+/* Override numbers everywhere to use Inter */
+.num {
+  font-family: 'Inter', system-ui, sans-serif !important;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
         .tag-pill {
           font-family: var(--font-label);
           font-size: 0.58rem;
@@ -852,14 +831,14 @@ function ProductListContent({ title = "Shop", defaultCategory = "", defaultIsFea
               <AnimatePresence mode="wait">
                 {view === "list" ? (
                   <motion.div
-                    key="list"
-                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                    className="flex flex-col gap-3"
-                  >
-                    {visibleProducts.map((p, i) => (
-                      <ListRow key={p._id} product={p} index={i} />
-                    ))}
-                  </motion.div>
+  key="list"
+  initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+  className="grid grid-cols-2 gap-3 sm:grid-cols-1"
+>
+  {visibleProducts.map((p, i) => (
+    <ListRow key={p._id} product={p} index={i} />
+  ))}
+</motion.div>
                 ) : (
                   <motion.div
                     key="grid"

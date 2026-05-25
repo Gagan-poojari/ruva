@@ -147,7 +147,7 @@ export default function HeroSection() {
               fontSize: "0.66rem", letterSpacing: "0.3em",
               textTransform: "uppercase", color: "#edd6ff",
               fontWeight: 700, opacity: 0.72,
-            }}>The Wedding Collection 2026</span>
+            }}>The Everyday Collection {new Date().getFullYear()}</span>
             <span className="block h-px w-12" style={{ background: "linear-gradient(to left,transparent,rgba(242,218,255,0.72))" }} />
           </div>
 
