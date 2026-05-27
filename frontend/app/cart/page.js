@@ -188,6 +188,7 @@ export default function CartPage() {
           qty: item.qty || 1,
           price: Number(item.price) || 0,
           size: item.size || undefined,
+          color: item.selectedColor || undefined,
         })),
         shippingAddress,
         paymentMethod: "Razorpay",
@@ -242,7 +243,7 @@ export default function CartPage() {
               className="uppercase tracking-[0.28em] text-[0.66rem] text-[#7a4f1f]/80 mb-2"
               style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
             >
-              Curated Checkout
+              Checkout Page
             </p>
             <h1
               className="text-4xl sm:text-5xl text-[#2f0f45] font-bold"
@@ -281,18 +282,18 @@ export default function CartPage() {
 
                     return (
                   <div
-                    key={`${item.product}-${item.size}`}
+                    key={`${item.product}-${item.size}-${item.selectedColor || ""}`}
                     className="rounded-2xl border border-[#d9b06d]/35 bg-white/75 backdrop-blur-sm p-4 sm:p-5 flex gap-4"
                   >
                     <img
                       src={imageSrc}
                       alt={item.name || "Cart item"}
-                      className="w-24 h-28 rounded-xl object-cover flex-shrink-0"
+                      className="w-24 h-28 rounded-xl object-cover shrink-0"
                     />
                     <div className="flex-1">
                       <p className="text-[#2f0f45] font-semibold">{item.name || "Ruva Saree"}</p>
                       <p className="text-sm text-[#6b4a2f]/70 uppercase tracking-[0.12em] mt-1">
-                        Size: {item.size || "Free Size"}
+                        Size: {item.size || "Free Size"} {item.selectedColor ? `· Color: ${item.selectedColor}` : ""}
                       </p>
                       <p className="text-[#5c2b12] font-semibold mt-2">₹{Number(item.price) || 0}</p>
 
@@ -313,7 +314,7 @@ export default function CartPage() {
                           </button>
                         </div>
                         <button
-                          onClick={() => removeFromCart(item.product)}
+                          onClick={() => removeFromCart(item.product, item.size, item.selectedColor)}
                           className="inline-flex items-center gap-1.5 text-sm text-[#8f3d2d] hover:text-[#6b1a1a] transition"
                         >
                           <Trash2 size={14} /> Remove

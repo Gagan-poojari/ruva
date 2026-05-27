@@ -22,11 +22,103 @@ const normalizeSize = (size) => {
     return size;
 };
 
-const getEffectiveProductPrice = (product) => (
-    product.discountPrice && product.discountPrice > 0 && product.discountPrice < product.price
+const getEffectiveProductPrice = (product, color) => {
+    if (color && product.colorVariants && product.colorVariants.length > 0) {
+        const variant = product.colorVariants.find(
+            v => v.colorName.toLowerCase() === color.toLowerCase()
+        );
+        if (variant && variant.price > 0) {
+            return variant.discountPrice && variant.discountPrice > 0 && variant.discountPrice < variant.price
+                ? variant.discountPrice
+                : variant.price;
+        }
+    }
+    return product.discountPrice && product.discountPrice > 0 && product.discountPrice < product.price
         ? product.discountPrice
-        : product.price
-);
+        : product.price;
+};
+
+const getProductStockInfo = (product, color, size) => {
+    if (color && product.colorVariants && product.colorVariants.length > 0) {
+        const variant = product.colorVariants.find(
+            v => v.colorName.toLowerCase() === color.toLowerCase()
+        );
+        if (variant) {
+            const normalizedSize = normalizeSize(size);
+            if (normalizedSize && variant.sizes && variant.sizes.length > 0) {
+                const sizeObj = variant.sizes.find(s => s.label === normalizedSize);
+                return {
+                    type: 'variant-size',
+                    variantId: variant._id,
+                    sizeLabel: normalizedSize,
+                    stock: sizeObj ? sizeObj.stock : 0,
+                    price: variant.discountPrice && variant.discountPrice > 0 && variant.discountPrice < variant.price ? variant.discountPrice : variant.price
+                };
+            } else {
+                return {
+                    type: 'variant-stock',
+                    variantId: variant._id,
+                    stock: variant.stock,
+                    price: variant.discountPrice && variant.discountPrice > 0 && variant.discountPrice < variant.price ? variant.discountPrice : variant.price
+                };
+            }
+        }
+    }
+
+    const normalizedSize = normalizeSize(size);
+    if (normalizedSize && product.sizes && product.sizes.length > 0) {
+        const sizeObj = product.sizes.find(s => s.label === normalizedSize);
+        return {
+            type: 'product-size',
+            sizeLabel: normalizedSize,
+            stock: sizeObj ? sizeObj.stock : 0,
+            price: product.discountPrice && product.discountPrice > 0 && product.discountPrice < product.price ? product.discountPrice : product.price
+        };
+    }
+
+    return {
+        type: 'product-stock',
+        stock: product.stock,
+        price: product.discountPrice && product.discountPrice > 0 && product.discountPrice < product.price ? product.discountPrice : product.price
+    };
+};
+
+const adjustProductStock = (product, color, size, qtyToDeduct) => {
+    if (color && product.colorVariants && product.colorVariants.length > 0) {
+        const variantIndex = product.colorVariants.findIndex(
+            v => v.colorName.toLowerCase() === color.toLowerCase()
+        );
+        if (variantIndex !== -1) {
+            const variant = product.colorVariants[variantIndex];
+            const normalizedSize = normalizeSize(size);
+            if (normalizedSize && variant.sizes && variant.sizes.length > 0) {
+                const sizeIndex = variant.sizes.findIndex(s => s.label === normalizedSize);
+                if (sizeIndex !== -1) {
+                    variant.sizes[sizeIndex].stock -= qtyToDeduct;
+                    variant.stock = variant.sizes.reduce((acc, curr) => acc + curr.stock, 0);
+                }
+            } else {
+                variant.stock -= qtyToDeduct;
+            }
+            product.stock = product.colorVariants.reduce((acc, curr) => acc + curr.stock, 0);
+            product.markModified('colorVariants');
+            return;
+        }
+    }
+
+    const normalizedSize = normalizeSize(size);
+    if (normalizedSize && product.sizes && product.sizes.length > 0) {
+        const sizeIndex = product.sizes.findIndex(s => s.label === normalizedSize);
+        if (sizeIndex !== -1) {
+            product.sizes[sizeIndex].stock -= qtyToDeduct;
+            product.stock = product.sizes.reduce((acc, curr) => acc + curr.stock, 0);
+            product.markModified('sizes');
+            return;
+        }
+    }
+
+    product.stock -= qtyToDeduct;
+};
 
 const ensureOrderStockAvailable = async (order, { excludeOrderId } = {}) => {
     for (const item of order.items) {
@@ -46,20 +138,18 @@ const ensureOrderStockAvailable = async (order, { excludeOrderId } = {}) => {
         let reservedQty = 0;
         activeHolds.forEach((holdOrder) => {
             holdOrder.items.forEach((holdItem) => {
-                if (
-                    holdItem.product.toString() === item.product.toString()
-                    && normalizeSize(holdItem.size) === normalizedSize
-                ) {
+                const sameProduct = holdItem.product.toString() === item.product.toString();
+                const sameColor = String(holdItem.color || '').toLowerCase() === String(item.color || '').toLowerCase();
+                const sameSize = String(normalizeSize(holdItem.size) || '').toLowerCase() === String(normalizeSize(item.size) || '').toLowerCase();
+
+                if (sameProduct && sameColor && sameSize) {
                     reservedQty += holdItem.qty;
                 }
             });
         });
 
-        let physicalStock = product.stock;
-        if (normalizedSize) {
-            const sizeObj = product.sizes.find((s) => s.label === normalizedSize);
-            physicalStock = sizeObj ? sizeObj.stock : 0;
-        }
+        const stockInfo = getProductStockInfo(product, item.color, item.size);
+        const physicalStock = stockInfo.stock;
 
         if (physicalStock - reservedQty < item.qty) {
             return { ok: false, code: 400, message: `"${product.name}" is out of stock` };
@@ -102,14 +192,7 @@ const settlePaidOrder = async ({ order, razorpayPaymentId }) => {
     for (const item of order.items) {
         const product = await Product.findById(item.product);
         if (product) {
-            if (item.size) {
-                const sizeIndex = product.sizes.findIndex((s) => s.label === item.size);
-                if (sizeIndex !== -1) {
-                    product.sizes[sizeIndex].stock -= item.qty;
-                }
-            } else {
-                product.stock -= item.qty;
-            }
+            adjustProductStock(product, item.color, item.size, item.qty);
             await product.save();
         }
     }
@@ -139,14 +222,7 @@ const processRefund = async ({ order, reason, initiatedBy }) => {
     for (const item of order.items) {
         const product = await Product.findById(item.product);
         if (product) {
-            if (item.size) {
-                const sizeIndex = product.sizes.findIndex(s => s.label === item.size);
-                if (sizeIndex !== -1) {
-                    product.sizes[sizeIndex].stock += item.qty;
-                }
-            } else {
-                product.stock += item.qty;
-            }
+            adjustProductStock(product, item.color, item.size, -item.qty);
             await product.save();
         }
     }
@@ -186,7 +262,7 @@ const addOrderItems = async (req, res, next) => {
             }
 
             const normalizedSize = normalizeSize(item.size);
-            const dbPrice = getEffectiveProductPrice(product);
+            const dbPrice = getEffectiveProductPrice(product, item.color);
 
             const clientPriceInPaise = Math.round(Number(item.price) * 100);
             const dbPriceInPaise = Math.round(Number(dbPrice) * 100);
@@ -198,7 +274,7 @@ const addOrderItems = async (req, res, next) => {
 
             verifiedTotal += dbPrice * (item.qty || 1);
 
-            // Find active holds for this product and size
+            // Find active holds for this product, color, and size
             const activeHolds = await Order.find({
                 'items.product': item.product,
                 paymentStatus: 'pending',
@@ -208,21 +284,19 @@ const addOrderItems = async (req, res, next) => {
             let reservedQty = 0;
             activeHolds.forEach(holdOrder => {
                 holdOrder.items.forEach(holdItem => {
-                    if (
-                        holdItem.product.toString() === item.product.toString()
-                        && normalizeSize(holdItem.size) === normalizedSize
-                    ) {
+                    const sameProduct = holdItem.product.toString() === item.product.toString();
+                    const sameColor = String(holdItem.color || '').toLowerCase() === String(item.color || '').toLowerCase();
+                    const sameSize = String(normalizeSize(holdItem.size) || '').toLowerCase() === String(normalizeSize(item.size) || '').toLowerCase();
+
+                    if (sameProduct && sameColor && sameSize) {
                         reservedQty += holdItem.qty;
                     }
                 });
             });
 
             // Get physical stock
-            let physicalStock = product.stock;
-            if (normalizedSize) {
-                const sizeObj = product.sizes.find(s => s.label === normalizedSize);
-                physicalStock = sizeObj ? sizeObj.stock : 0;
-            }
+            const stockInfo = getProductStockInfo(product, item.color, item.size);
+            const physicalStock = stockInfo.stock;
 
             if (physicalStock - reservedQty < item.qty) {
                 res.status(400);
@@ -234,6 +308,7 @@ const addOrderItems = async (req, res, next) => {
                 qty: item.qty,
                 price: dbPrice,
                 size: normalizedSize,
+                color: item.color,
             });
         }
 
@@ -380,15 +455,11 @@ const verifyPayment = async (req, res, next) => {
             razorpayPaymentId: razorpay_payment_id,
         });
 
-        const message = `Hi ${order.user.name}! Your order #${order._id} has been confirmed. Total: Rs. ${order.totalAmount}. Thank you for shopping with RUVA!`;
-        const recipientPhone = order.user.phone;
-        const recipientEmail = order.shippingAddress?.email || order.user.email;
-        await notifyWithFallback({
-            phone: recipientPhone,
-            email: recipientEmail,
-            subject: `Order #${order._id} confirmed`,
-            message,
-        });
+        // [NOTIFICATIONS DISABLED] Order confirmed — re-enable when comms are ready
+        // const message = `Hi ${order.user.name}! Your order #${order._id} has been confirmed. Total: Rs. ${order.totalAmount}. Thank you for shopping with RUVA!`;
+        // const recipientPhone = order.user.phone;
+        // const recipientEmail = order.shippingAddress?.email || order.user.email;
+        // await notifyWithFallback({ phone: recipientPhone, email: recipientEmail, subject: `Order #${order._id} confirmed`, message });
 
         res.json({ message: 'Payment verified successfully', order: updatedOrder });
     } catch (error) {
@@ -454,15 +525,11 @@ const razorpayWebhook = async (req, res, next) => {
                 razorpayPaymentId: paymentEntity.id,
             });
 
-            const message = `Hi ${order.user.name}! Your order #${order._id} has been confirmed. Total: Rs. ${order.totalAmount}. Thank you for shopping with RUVA!`;
-            const recipientPhone = order.user.phone;
-            const recipientEmail = order.shippingAddress?.email || order.user.email;
-            await notifyWithFallback({
-                phone: recipientPhone,
-                email: recipientEmail,
-                subject: `Order #${order._id} confirmed`,
-                message,
-            });
+            // [NOTIFICATIONS DISABLED] Webhook order confirmed
+            // const message = `Hi ${order.user.name}! Your order #${order._id} has been confirmed. Total: Rs. ${order.totalAmount}. Thank you for shopping with RUVA!`;
+            // const recipientPhone = order.user.phone;
+            // const recipientEmail = order.shippingAddress?.email || order.user.email;
+            // await notifyWithFallback({ phone: recipientPhone, email: recipientEmail, subject: `Order #${order._id} confirmed`, message });
         }
 
         return res.status(200).json({ ok: true });
@@ -581,14 +648,7 @@ const updateOrderStatus = async (req, res, next) => {
                     for (const item of order.items) {
                         const product = await Product.findById(item.product);
                         if (product) {
-                            if (item.size) {
-                                const sizeIndex = product.sizes.findIndex(s => s.label === item.size);
-                                if (sizeIndex !== -1) {
-                                    product.sizes[sizeIndex].stock += item.qty;
-                                }
-                            } else {
-                                product.stock += item.qty;
-                            }
+                            adjustProductStock(product, item.color, item.size, -item.qty);
                             await product.save();
                         }
                     }
@@ -619,17 +679,18 @@ const updateOrderStatus = async (req, res, next) => {
                         let reservedQty = 0;
                         activeHolds.forEach(holdOrder => {
                             holdOrder.items.forEach(holdItem => {
-                                if (holdItem.product.toString() === item.product.toString() && holdItem.size === item.size) {
+                                const sameProduct = holdItem.product.toString() === item.product.toString();
+                                const sameColor = String(holdItem.color || '').toLowerCase() === String(item.color || '').toLowerCase();
+                                const sameSize = String(normalizeSize(holdItem.size) || '').toLowerCase() === String(normalizeSize(item.size) || '').toLowerCase();
+
+                                if (sameProduct && sameColor && sameSize) {
                                     reservedQty += holdItem.qty;
                                 }
                             });
                         });
 
-                        let physicalStock = product.stock;
-                        if (item.size) {
-                            const sizeObj = product.sizes.find(s => s.label === item.size);
-                            physicalStock = sizeObj ? sizeObj.stock : 0;
-                        }
+                        const stockInfo = getProductStockInfo(product, item.color, item.size);
+                        const physicalStock = stockInfo.stock;
 
                         if (physicalStock - reservedQty < item.qty) {
                             res.status(400);
@@ -641,14 +702,7 @@ const updateOrderStatus = async (req, res, next) => {
                     for (const item of order.items) {
                         const product = await Product.findById(item.product);
                         if (product) {
-                            if (item.size) {
-                                const sizeIndex = product.sizes.findIndex(s => s.label === item.size);
-                                if (sizeIndex !== -1) {
-                                    product.sizes[sizeIndex].stock -= item.qty;
-                                }
-                            } else {
-                                product.stock -= item.qty;
-                            }
+                            adjustProductStock(product, item.color, item.size, item.qty);
                             await product.save();
                         }
                     }
@@ -658,24 +712,15 @@ const updateOrderStatus = async (req, res, next) => {
             order.status = status;
             const updatedOrder = await order.save();
 
-            // Send WhatsApp message based on status change
-            let message = '';
-            if (status === 'shipped') {
-                message = `Great news ${order.user.name}! Your order #${order._id} has been shipped and is on the way.`;
-            } else if (status === 'delivered') {
-                message = `Hello ${order.user.name}! Your order #${order._id} has been delivered. We hope you love your new saree!`;
-            }
-
-            if (message) {
-                 const recipientPhone = order.user.phone;
-                 const recipientEmail = order.shippingAddress?.email || order.user.email;
-                 await notifyWithFallback({
-                     phone: recipientPhone,
-                     email: recipientEmail,
-                     subject: `Order #${order._id} status update`,
-                     message,
-                 });
-            }
+            // [NOTIFICATIONS DISABLED] Status update (shipped / delivered)
+            // let message = '';
+            // if (status === 'shipped') message = `Great news ${order.user.name}! Your order #${order._id} has been shipped and is on the way.`;
+            // else if (status === 'delivered') message = `Hello ${order.user.name}! Your order #${order._id} has been delivered. We hope you love your new saree!`;
+            // if (message) {
+            //     const recipientPhone = order.user.phone;
+            //     const recipientEmail = order.shippingAddress?.email || order.user.email;
+            //     await notifyWithFallback({ phone: recipientPhone, email: recipientEmail, subject: `Order #${order._id} status update`, message });
+            // }
 
             res.json(updatedOrder);
         } else {
@@ -724,15 +769,11 @@ const requestRefund = async (req, res, next) => {
             initiatedBy: 'user',
         });
 
-        const message = `Hi ${order.user.name}, your refund for order #${order._id} is initiated. Refund reference: ${refund.id}.`;
-        const recipientPhone = order.user.phone;
-        const recipientEmail = order.shippingAddress?.email || order.user.email;
-        await notifyWithFallback({
-            phone: recipientPhone,
-            email: recipientEmail,
-            subject: `Refund initiated for order #${order._id}`,
-            message,
-        });
+        // [NOTIFICATIONS DISABLED] User refund request
+        // const message = `Hi ${order.user.name}, your refund for order #${order._id} is initiated. Refund reference: ${refund.id}.`;
+        // const recipientPhone = order.user.phone;
+        // const recipientEmail = order.shippingAddress?.email || order.user.email;
+        // await notifyWithFallback({ phone: recipientPhone, email: recipientEmail, subject: `Refund initiated for order #${order._id}`, message });
 
         res.json({
             message: 'Refund initiated successfully',
@@ -785,15 +826,11 @@ const cancelMyOrder = async (req, res, next) => {
                 reason,
                 initiatedBy: 'user',
             });
-            const message = `Hi ${order.user.name}, your order #${order._id} has been cancelled and refund initiated. Refund ref: ${refund.id}.`;
-            const recipientPhone = order.user.phone;
-            const recipientEmail = order.shippingAddress?.email || order.user.email;
-            await notifyWithFallback({
-                phone: recipientPhone,
-                email: recipientEmail,
-                subject: `Order #${order._id} cancelled`,
-                message,
-            });
+            // [NOTIFICATIONS DISABLED] Cancel paid order + refund
+            // const message = `Hi ${order.user.name}, your order #${order._id} has been cancelled and refund initiated. Refund ref: ${refund.id}.`;
+            // const recipientPhone = order.user.phone;
+            // const recipientEmail = order.shippingAddress?.email || order.user.email;
+            // await notifyWithFallback({ phone: recipientPhone, email: recipientEmail, subject: `Order #${order._id} cancelled`, message });
 
             return res.json({ message: 'Order cancelled and refund initiated', order: updatedOrder });
         } else {
@@ -804,15 +841,11 @@ const cancelMyOrder = async (req, res, next) => {
             order.holdExpiresAt = undefined;
             const updatedOrder = await order.save();
 
-            const message = `Hi ${order.user.name}, your order #${order._id} has been cancelled successfully.`;
-            const recipientPhone = order.user.phone;
-            const recipientEmail = order.shippingAddress?.email || order.user.email;
-            await notifyWithFallback({
-                phone: recipientPhone,
-                email: recipientEmail,
-                subject: `Order #${order._id} cancelled`,
-                message,
-            });
+            // [NOTIFICATIONS DISABLED] Cancel unpaid order
+            // const message = `Hi ${order.user.name}, your order #${order._id} has been cancelled successfully.`;
+            // const recipientPhone = order.user.phone;
+            // const recipientEmail = order.shippingAddress?.email || order.user.email;
+            // await notifyWithFallback({ phone: recipientPhone, email: recipientEmail, subject: `Order #${order._id} cancelled`, message });
 
             return res.json({ message: 'Order cancelled successfully', order: updatedOrder });
         }
@@ -952,15 +985,11 @@ const processAdminRefund = async (req, res, next) => {
 
         const { updatedOrder, refund } = refundResult;
 
-        const message = `Hi ${order.user.name}, your refund for order #${order._id} was initiated by support. Refund reference: ${refund.id}.`;
-        const recipientPhone = order.user.phone;
-        const recipientEmail = order.shippingAddress?.email || order.user.email;
-        await notifyWithFallback({
-            phone: recipientPhone,
-            email: recipientEmail,
-            subject: `Support refund initiated for order #${order._id}`,
-            message,
-        });
+        // [NOTIFICATIONS DISABLED] Admin refund
+        // const message = `Hi ${order.user.name}, your refund for order #${order._id} was initiated by support. Refund reference: ${refund.id}.`;
+        // const recipientPhone = order.user.phone;
+        // const recipientEmail = order.shippingAddress?.email || order.user.email;
+        // await notifyWithFallback({ phone: recipientPhone, email: recipientEmail, subject: `Support refund initiated for order #${order._id}`, message });
 
         res.json({
             message: 'Admin refund initiated successfully',

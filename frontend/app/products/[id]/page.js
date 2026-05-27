@@ -43,12 +43,12 @@ export default function ProductDetailsPage() {
 
   const [product, setProduct] = useState(null);
 
-const [related, setRelated] = useState([]);
-const [relatedPage, setRelatedPage] = useState(1);
-const [relatedPages, setRelatedPages] = useState(1);
-const [relatedLoading, setRelatedLoading] = useState(false);
-const [relatedLoadingMore, setRelatedLoadingMore] = useState(false);
-const relatedSentinelRef = useRef(null);
+  const [related, setRelated] = useState([]);
+  const [relatedPage, setRelatedPage] = useState(1);
+  const [relatedPages, setRelatedPages] = useState(1);
+  const [relatedLoading, setRelatedLoading] = useState(false);
+  const [relatedLoadingMore, setRelatedLoadingMore] = useState(false);
+  const relatedSentinelRef = useRef(null);
 
   const [loading, setLoading] = useState(true);
   const [qty, setQty] = useState(1);
@@ -61,11 +61,29 @@ const relatedSentinelRef = useRef(null);
     [product, selectedVariant]
   );
 
+  const availableSizes = useMemo(() => {
+    if (!product) return [];
+    if (currentVariant && Array.isArray(currentVariant.sizes) && currentVariant.sizes.length > 0) {
+      return currentVariant.sizes;
+    }
+    if (Array.isArray(product.sizes) && product.sizes.length > 0) {
+      return product.sizes;
+    }
+    return [];
+  }, [product, currentVariant]);
+
   const currentStock = useMemo(() => {
+    if (!product) return 0;
+    if (selectedSize) {
+      const sizeObj = availableSizes.find((s) => s.label === selectedSize);
+      if (sizeObj) {
+        return Number(sizeObj.stock || 0);
+      }
+    }
     const variantStock = Number(currentVariant?.stock || 0);
     const productStock = Number(product?.stock || 0);
     return variantStock > 0 ? variantStock : productStock;
-  }, [product, currentVariant]);
+  }, [product, currentVariant, selectedSize, availableSizes]);
 
   const inStock = useMemo(() => currentStock > 0, [currentStock]);
 
@@ -86,15 +104,24 @@ const relatedSentinelRef = useRef(null);
   }, [product, currentVariant]);
 
   useEffect(() => {
+    if (availableSizes.length > 0) {
+      const firstInStock = availableSizes.find((s) => Number(s.stock || 0) > 0);
+      const defaultSize = firstInStock?.label || availableSizes[0]?.label || "";
+      if (!selectedSize || !availableSizes.some((s) => s.label === selectedSize)) {
+        setSelectedSize(defaultSize);
+      }
+    } else {
+      setSelectedSize("");
+    }
+  }, [availableSizes, selectedSize]);
+
+  useEffect(() => {
     const run = async () => {
       if (!id) return;
       try {
         setLoading(true);
         const { data } = await api.get(`/products/${id}`);
         setProduct(data);
-        const firstSize =
-          Array.isArray(data?.sizes) && data.sizes.length > 0 ? data.sizes[0]?.label : "";
-        setSelectedSize(firstSize || "");
       } catch (e) {
         toast.error("Failed to load product");
         router.push("/shop");
@@ -106,57 +133,57 @@ const relatedSentinelRef = useRef(null);
   }, [id, router]);
 
   useEffect(() => {
-  if (!product?._id || !product?.category) return;
-  const load = async (pageNum, append) => {
-    try {
-      append ? setRelatedLoadingMore(true) : setRelatedLoading(true);
-      const { data } = await api.get("/products", {
-        params: { category: product.category, pageSize: 8, pageNumber: pageNum },
-      });
-      const items = (data?.products || []).filter((item) => item._id !== product._id);
-      setRelated((prev) => append ? [...prev, ...items] : items);
-      setRelatedPage(data?.page || pageNum);
-      setRelatedPages(data?.pages || 1);
-    } catch {
-      // silently fail
-    } finally {
-      append ? setRelatedLoadingMore(false) : setRelatedLoading(false);
-    }
-  };
-  load(1, false);
-}, [product?._id, product?.category]);
-
-// Infinite scroll for related
-useEffect(() => {
-  if (!relatedSentinelRef.current) return;
-  const observer = new IntersectionObserver(
-    (entries) => {
-      if (entries[0].isIntersecting && relatedPage < relatedPages && !relatedLoadingMore && !relatedLoading) {
-        const load = async () => {
-          try {
-            setRelatedLoadingMore(true);
-            const nextPage = relatedPage + 1;
-            const { data } = await api.get("/products", {
-              params: { category: product.category, pageSize: 8, pageNumber: nextPage },
-            });
-            const items = (data?.products || []).filter((item) => item._id !== product._id);
-            setRelated((prev) => [...prev, ...items]);
-            setRelatedPage(data?.page || nextPage);
-            setRelatedPages(data?.pages || 1);
-          } catch {
-            // silently fail
-          } finally {
-            setRelatedLoadingMore(false);
-          }
-        };
-        load();
+    if (!product?._id || !product?.category) return;
+    const load = async (pageNum, append) => {
+      try {
+        append ? setRelatedLoadingMore(true) : setRelatedLoading(true);
+        const { data } = await api.get("/products", {
+          params: { category: product.category, pageSize: 8, pageNumber: pageNum },
+        });
+        const items = (data?.products || []).filter((item) => item._id !== product._id);
+        setRelated((prev) => append ? [...prev, ...items] : items);
+        setRelatedPage(data?.page || pageNum);
+        setRelatedPages(data?.pages || 1);
+      } catch {
+        // silently fail
+      } finally {
+        append ? setRelatedLoadingMore(false) : setRelatedLoading(false);
       }
-    },
-    { rootMargin: "300px" }
-  );
-  observer.observe(relatedSentinelRef.current);
-  return () => observer.disconnect();
-}, [relatedPage, relatedPages, relatedLoadingMore, relatedLoading, product?.category, product?._id]);
+    };
+    load(1, false);
+  }, [product?._id, product?.category]);
+
+  // Infinite scroll for related
+  useEffect(() => {
+    if (!relatedSentinelRef.current) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && relatedPage < relatedPages && !relatedLoadingMore && !relatedLoading) {
+          const load = async () => {
+            try {
+              setRelatedLoadingMore(true);
+              const nextPage = relatedPage + 1;
+              const { data } = await api.get("/products", {
+                params: { category: product.category, pageSize: 8, pageNumber: nextPage },
+              });
+              const items = (data?.products || []).filter((item) => item._id !== product._id);
+              setRelated((prev) => [...prev, ...items]);
+              setRelatedPage(data?.page || nextPage);
+              setRelatedPages(data?.pages || 1);
+            } catch {
+              // silently fail
+            } finally {
+              setRelatedLoadingMore(false);
+            }
+          };
+          load();
+        }
+      },
+      { rootMargin: "300px" }
+    );
+    observer.observe(relatedSentinelRef.current);
+    return () => observer.disconnect();
+  }, [relatedPage, relatedPages, relatedLoadingMore, relatedLoading, product?.category, product?._id]);
 
   const displayImages = useMemo(() => {
     const variantImgs = Array.isArray(currentVariant?.images) ? currentVariant.images : [];
@@ -202,143 +229,26 @@ useEffect(() => {
     toast.success(added ? "Added to wishlist" : "Removed from wishlist");
   };
 
-  // ─── Buy Now ──────────────────────────────────────────────────────────────
+ 
   const handleBuyNow = useCallback(async () => {
     if (!product) return;
     if (!inStock) {
       toast.error("This product is out of stock");
       return;
     }
-
-    setBuyingNow(true);
-
-    try {
-      // 1. Load Razorpay SDK
-      const sdkLoaded = await loadRazorpayScript();
-      if (!sdkLoaded) {
-        toast.error("Payment gateway failed to load. Please try again.");
-        setBuyingNow(false);
-        return;
-      }
-
-      // 2. Fetch the Razorpay key from your backend
-      const { data: keyData } = await api.get("/orders/razorpay-key");
-      const razorpayKey = keyData?.key;
-      if (!razorpayKey) throw new Error("Could not retrieve payment key");
-
-      // 3. Build order payload — mirrors what addOrderItems expects
-      const sizeToUse = selectedSize || "Free Size";
-      const orderPayload = {
-        orderItems: [
-          {
-            product: product._id,
-            name: product.name,
-            qty,
-            image: primaryImg,
-            price: effectivePrice,
-            size: sizeToUse,
-            selectedColor: currentVariant?.colorName || product?.colors?.[0] || "",
-          },
-        ],
-        // Shipping / payment fields your backend expects.
-        // Adjust these defaults to match your schema — most stores
-        // collect shipping separately; here we pass safe placeholders
-        // so the order is created and Razorpay order_id is returned.
-        shippingAddress: {
-          address: "",
-          city: "",
-          postalCode: "",
-          country: "India",
-        },
-        paymentMethod: "Razorpay",
-        itemsPrice: effectivePrice * qty,
-        shippingPrice: 0,
-        taxPrice: 0,
-        totalPrice: effectivePrice * qty,
-      };
-
-      // 4. Create order on your backend → returns { order, razorpayOrder }
-      const { data: orderData } = await api.post("/orders", orderPayload);
-
-      const razorpayOrderId = orderData?.razorpayOrder?.id;
-      const dbOrderId = orderData?.order?._id;
-
-      if (!razorpayOrderId) throw new Error("Payment order creation failed");
-
-      // 5. Open Razorpay checkout
-      const options = {
-        key: razorpayKey,
-        amount: orderData.razorpayOrder.amount,   // already in paise
-        currency: orderData.razorpayOrder.currency || "INR",
-        name: "Ruva",
-        description: product.name,
+    const sizeToUse = selectedSize || "Free Size";
+    addToCart(
+      {
+        ...product,
+        price: effectivePrice,
         image: primaryImg,
-        order_id: razorpayOrderId,
-
-        handler: async (response) => {
-          // 6. Verify payment on your backend
-          try {
-            const { data: verifyData } = await api.post("/orders/verify", {
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature,
-              orderId: dbOrderId,
-            });
-
-            if (verifyData?.success || verifyData?.order) {
-              toast.success("Payment successful! Order placed.");
-              router.push(`/orders/${dbOrderId}`);
-            } else {
-              toast.error("Payment verification failed. Contact support.");
-            }
-          } catch (verifyErr) {
-            console.error("Payment verification error:", verifyErr);
-            toast.error(
-              verifyErr?.response?.data?.message ||
-              "Payment verification failed. Please contact support."
-            );
-          } finally {
-            setBuyingNow(false);
-          }
-        },
-
-        modal: {
-          ondismiss: () => {
-            toast("Payment cancelled", { icon: "ℹ️" });
-            setBuyingNow(false);
-          },
-        },
-
-        prefill: {
-          // Razorpay can prefill if you have user details in context;
-          // leave blank and Razorpay will ask the customer directly.
-          name: "",
-          email: "",
-          contact: "",
-        },
-
-        theme: {
-          color: "#c87d1a",
-        },
-      };
-
-      const rzp = new window.Razorpay(options);
-
-      rzp.on("payment.failed", (response) => {
-        console.error("Payment failed:", response.error);
-        toast.error(response.error?.description || "Payment failed. Please try again.");
-        setBuyingNow(false);
-      });
-
-      rzp.open();
-    } catch (err) {
-      console.error("Buy Now error:", err);
-      toast.error(
-        err?.response?.data?.message || "Something went wrong. Please try again."
-      );
-      setBuyingNow(false);
-    }
-  }, [product, inStock, qty, selectedSize, effectivePrice, currentVariant, primaryImg, router]);
+        selectedColor: currentVariant?.colorName || product?.colors?.[0] || "",
+      },
+      qty,
+      sizeToUse
+    );
+    router.push("/cart");
+  })
 
   // ─── Render ───────────────────────────────────────────────────────────────
   if (loading) {
@@ -461,13 +371,13 @@ useEffect(() => {
             </div>
 
             {/* Sizes */}
-            {Array.isArray(product.sizes) && product.sizes.length > 0 && (
+            {Array.isArray(availableSizes) && availableSizes.length > 0 && (
               <div className="mt-6">
                 <div className="text-[10px] font-bold uppercase tracking-widest text-[#6b1a1a]/60 mb-2">
                   Size
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {product.sizes.map((s) => {
+                  {availableSizes.map((s) => {
                     const disabled = (s.stock ?? 0) <= 0;
                     const active = selectedSize === s.label;
                     return (
@@ -528,7 +438,7 @@ useEffect(() => {
                   type="button"
                   onClick={handleAddToCart}
                   disabled={!inStock}
-                  className="inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 bg-gradient-to-r from-[#c87d1a] to-[#d4a017] text-white font-extrabold uppercase tracking-widest text-xs disabled:opacity-60"
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 bg-linear-to-r from-[#c87d1a] to-[#d4a017] text-white font-extrabold uppercase tracking-widest text-xs disabled:opacity-60"
                   style={{ boxShadow: "0 14px 34px rgba(200,125,26,0.25)" }}
                 >
                   <ShoppingBag className="w-4 h-4" />
@@ -582,103 +492,103 @@ useEffect(() => {
 
         {/* ── Related sarees ── */}
         {/* ── Related / You May Also Like ── */}
-<div className="mt-16">
-  <div className="mb-6 flex items-center gap-3">
-    <span className="h-px flex-1 bg-[#c87d1a]/15" />
-    <h2 className="text-[11px] font-extrabold uppercase tracking-[0.28em] text-[#6b1a1a]/60"
-      style={{ fontFamily: "'Cormorant Garamond', serif" }}>
-      You May Also Like
-    </h2>
-    <span className="h-px flex-1 bg-[#c87d1a]/15" />
-  </div>
-
-  {relatedLoading ? (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-      {Array.from({ length: 8 }).map((_, i) => (
-        <div key={i} className="rounded-2xl overflow-hidden animate-pulse">
-          <div className="aspect-[3/4] bg-[#f0e8da]" />
-          <div className="p-3 space-y-2">
-            <div className="h-3 bg-[#f0e8da] rounded w-3/4" />
-            <div className="h-3 bg-[#f0e8da] rounded w-1/2" />
+        <div className="mt-16">
+          <div className="mb-6 flex items-center gap-3">
+            <span className="h-px flex-1 bg-[#c87d1a]/15" />
+            <h2 className="text-[11px] font-extrabold uppercase tracking-[0.28em] text-[#6b1a1a]/60"
+              style={{ fontFamily: "'Cormorant Garamond', serif" }}>
+              You May Also Like
+            </h2>
+            <span className="h-px flex-1 bg-[#c87d1a]/15" />
           </div>
-        </div>
-      ))}
-    </div>
-  ) : related.length > 0 ? (
-    <>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {related.map((item) => {
-          const image = item?.colorVariants?.[0]?.images?.[0]?.url || item?.images?.[0]?.url || "https://via.placeholder.com/400x533?text=Ruva";
-          const itemPrice = item?.discountPrice > 0 && item?.discountPrice < item?.price ? item.discountPrice : item.price;
-          const pct = item?.discountPrice > 0 && item?.price > 0
-            ? Math.round(((item.price - item.discountPrice) / item.price) * 100)
-            : null;
-          return (
-            <Link
-              key={item._id}
-              href={`/products/${item._id}`}
-              className="group rounded-2xl overflow-hidden border border-[#c87d1a]/15 bg-white hover:shadow-lg transition-shadow"
-            >
-              <div className="relative aspect-[3/4] bg-[#f6efe5] overflow-hidden">
-                <img
-                  src={image}
-                  alt={item.name}
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.05]"
-                  loading="lazy"
-                />
-                {pct && (
-                  <span className="absolute top-2 left-2 text-[9px] font-extrabold uppercase tracking-widest px-1.5 py-0.5 rounded-full bg-[#1e4d2b] text-[#a3f0b8]">
-                    {pct}% off
-                  </span>
+
+          {relatedLoading ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="rounded-2xl overflow-hidden animate-pulse">
+                  <div className="aspect-3/4 bg-[#f0e8da]" />
+                  <div className="p-3 space-y-2">
+                    <div className="h-3 bg-[#f0e8da] rounded w-3/4" />
+                    <div className="h-3 bg-[#f0e8da] rounded w-1/2" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : related.length > 0 ? (
+            <>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {related.map((item) => {
+                  const image = item?.colorVariants?.[0]?.images?.[0]?.url || item?.images?.[0]?.url || "https://via.placeholder.com/400x533?text=Ruva";
+                  const itemPrice = item?.discountPrice > 0 && item?.discountPrice < item?.price ? item.discountPrice : item.price;
+                  const pct = item?.discountPrice > 0 && item?.price > 0
+                    ? Math.round(((item.price - item.discountPrice) / item.price) * 100)
+                    : null;
+                  return (
+                    <Link
+                      key={item._id}
+                      href={`/products/${item._id}`}
+                      className="group rounded-2xl overflow-hidden border border-[#c87d1a]/15 bg-white hover:shadow-lg transition-shadow"
+                    >
+                      <div className="relative aspect-3/4 bg-[#f6efe5] overflow-hidden">
+                        <img
+                          src={image}
+                          alt={item.name}
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.05]"
+                          loading="lazy"
+                        />
+                        {pct && (
+                          <span className="absolute top-2 left-2 text-[9px] font-extrabold uppercase tracking-widest px-1.5 py-0.5 rounded-full bg-[#1e4d2b] text-[#a3f0b8]">
+                            {pct}% off
+                          </span>
+                        )}
+                      </div>
+                      <div className="p-3">
+                        <div className="text-[9px] uppercase tracking-widest text-[#6b1a1a]/50 mb-0.5">
+                          {item.category}{item.fabric ? ` · ${item.fabric}` : ""}
+                        </div>
+                        <div className="text-[0.82rem] font-bold text-[#2a0505] line-clamp-2 leading-snug"
+                          style={{ fontFamily: "'Cormorant Garamond', serif" }}>
+                          {item.name}
+                        </div>
+                        <div className="mt-2 flex items-baseline gap-1.5">
+                          <span className="text-[0.88rem] font-extrabold text-[#6b1a1a]"
+                            style={{ fontFamily: "'Inter', sans-serif" }}>
+                            ₹{Number(itemPrice).toLocaleString("en-IN")}
+                          </span>
+                          {pct && (
+                            <span className="text-[0.65rem] text-[#6b1a1a]/40 line-through"
+                              style={{ fontFamily: "'Inter', sans-serif" }}>
+                              ₹{Number(item.price).toLocaleString("en-IN")}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+
+              {/* Infinite scroll sentinel */}
+              <div ref={relatedSentinelRef} className="mt-8 flex justify-center h-10">
+                {relatedLoadingMore && (
+                  <div className="flex items-center gap-2 text-[#6b1a1a]/40">
+                    <Loader2 size={16} className="animate-spin text-[#c9853c]" />
+                    <span className="text-[10px] font-bold uppercase tracking-widest"
+                      style={{ fontFamily: "'Cormorant Garamond', serif" }}>
+                      Loading more…
+                    </span>
+                  </div>
+                )}
+                {!relatedLoadingMore && relatedPage >= relatedPages && related.length > 0 && (
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-[#6b1a1a]/30"
+                    style={{ fontFamily: "'Cormorant Garamond', serif" }}>
+                    — End of Collection —
+                  </p>
                 )}
               </div>
-              <div className="p-3">
-                <div className="text-[9px] uppercase tracking-widest text-[#6b1a1a]/50 mb-0.5">
-                  {item.category}{item.fabric ? ` · ${item.fabric}` : ""}
-                </div>
-                <div className="text-[0.82rem] font-bold text-[#2a0505] line-clamp-2 leading-snug"
-                  style={{ fontFamily: "'Cormorant Garamond', serif" }}>
-                  {item.name}
-                </div>
-                <div className="mt-2 flex items-baseline gap-1.5">
-                  <span className="text-[0.88rem] font-extrabold text-[#6b1a1a]"
-                    style={{ fontFamily: "'Inter', sans-serif" }}>
-                    ₹{Number(itemPrice).toLocaleString("en-IN")}
-                  </span>
-                  {pct && (
-                    <span className="text-[0.65rem] text-[#6b1a1a]/40 line-through"
-                      style={{ fontFamily: "'Inter', sans-serif" }}>
-                      ₹{Number(item.price).toLocaleString("en-IN")}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </Link>
-          );
-        })}
-      </div>
-
-      {/* Infinite scroll sentinel */}
-      <div ref={relatedSentinelRef} className="mt-8 flex justify-center h-10">
-        {relatedLoadingMore && (
-          <div className="flex items-center gap-2 text-[#6b1a1a]/40">
-            <Loader2 size={16} className="animate-spin text-[#c9853c]" />
-            <span className="text-[10px] font-bold uppercase tracking-widest"
-              style={{ fontFamily: "'Cormorant Garamond', serif" }}>
-              Loading more…
-            </span>
-          </div>
-        )}
-        {!relatedLoadingMore && relatedPage >= relatedPages && related.length > 0 && (
-          <p className="text-[10px] font-bold uppercase tracking-widest text-[#6b1a1a]/30"
-            style={{ fontFamily: "'Cormorant Garamond', serif" }}>
-            — End of Collection —
-          </p>
-        )}
-      </div>
-    </>
-  ) : null}
-</div>
+            </>
+          ) : null}
+        </div>
       </div>
     </div>
   );

@@ -5,9 +5,9 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { X, ChevronDown, Menu } from "lucide-react";
-import { FaRegUser } from "react-icons/fa";
+import { FaRegUser, FaUser } from "react-icons/fa";
 import { VscSearchSparkle } from "react-icons/vsc";
-import { BsBagHeartFill } from "react-icons/bs";
+import { BsBagHeartFill, BsBagHeart } from "react-icons/bs";
 import { FaHeart, FaRegHeart } from "react-icons/fa";
 import { HiOutlineHome, HiHome } from "react-icons/hi2";
 import { RiShoppingBag3Line, RiShoppingBag3Fill } from "react-icons/ri";
@@ -47,8 +47,13 @@ export default function Navbar() {
 
   const overHero      = pathname === "/" && !scrolled;
   const navColor      = overHero ? "#f4e6ff" : "#3d0a0a";
-  const onWishlist    = pathname === "/wishlist";           // ← single source of truth
-  const WishlistIcon  = onWishlist ? FaHeart : FaRegHeart; // ← used in both desktop & mobile
+  const onWishlist   = pathname === "/wishlist";
+  const onCart       = pathname === "/cart";
+  const onProfile    = pathname === "/profile";
+
+  const WishlistIcon = onWishlist ? FaHeart       : FaRegHeart;
+  const CartIcon     = onCart     ? BsBagHeartFill : BsBagHeart;
+  const UserIcon     = onProfile  ? FaUser         : FaRegUser;
 
   useEffect(() => { setHydrated(true); }, []);
 
@@ -374,11 +379,11 @@ export default function Navbar() {
                 )}
               </Link>
 
-              <Link href="/profile" className="transition-transform hover:scale-110" aria-label="Account" style={{ color: navColor }}>
-                <FaRegUser />
+              <Link href="/profile" className="transition-transform hover:scale-110" aria-label="Account" style={{ color: onProfile ? "#6b1a1a" : navColor }}>
+                <UserIcon />
               </Link>
-              <Link href="/cart" className="relative transition-transform hover:scale-110" aria-label="Cart" style={{ color: navColor }}>
-                <BsBagHeartFill size={20} />
+              <Link href="/cart" className="relative transition-transform hover:scale-110" aria-label="Cart" style={{ color: onCart ? "#6b1a1a" : navColor }}>
+                <CartIcon size={20} />
                 {hydrated && cartCount > 0 && (
                   <span
                     key={cartCount}
@@ -493,7 +498,7 @@ export default function Navbar() {
         >
           <div className="btab-active-pip" />
           <div className="btab-cart-wrap">
-            <BsBagHeartFill size={20} />
+            <CartIcon size={20} />
             {hydrated && cartCount > 0 && (
               <span key={cartCount} className="badge-pop btab-badge">
                 {cartCount > 9 ? "9+" : cartCount}

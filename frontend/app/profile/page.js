@@ -344,7 +344,7 @@ export default function ProfilePage(){
                 <p style={{...CG,fontSize:"1.6rem",fontWeight:700,color:"#fff5dd",margin:0}}>Account Settings</p>
                 <div style={{borderRadius:20,border:"1px solid rgba(201,133,60,.2)",background:"rgba(255,245,220,.04)",padding:"28px 24px",display:"flex",flexDirection:"column",gap:16}}>
                   <Inp label="Full Name" value={nm} onChange={e=>setNm(e.target.value)}/>
-                  <Inp label="Phone / WhatsApp" value={ph} onChange={e=>setPh(e.target.value)} type="tel"/>
+                  <Inp label="Phone Number" value={ph} onChange={e=>setPh(e.target.value)} type="tel"/>
                   {!user.googleId && <>
                     <p style={{...LB,color:"rgba(240,201,122,.6)",margin:"4px 0 0"}}>Change Password</p>
                     <Inp label="Current Password" value={cp} onChange={e=>setCp(e.target.value)} type="password"/>

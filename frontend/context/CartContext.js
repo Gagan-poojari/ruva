@@ -27,8 +27,10 @@ export const CartProvider = ({ children }) => {
         const productId = getProductId(product);
         if (!productId) return;
 
+        const color = product.selectedColor || "";
+
         const existItem = cartItems.find(
-            (x) => x.product === productId && x.size === size
+            (x) => x.product === productId && x.size === size && (x.selectedColor || "") === color
         );
 
         const payload = {
@@ -36,12 +38,13 @@ export const CartProvider = ({ children }) => {
             product: productId,
             qty: Math.max(1, Number(qty) || 1),
             size,
+            selectedColor: color,
         };
 
         if (existItem) {
             setCartItems(
                 cartItems.map((x) =>
-                    x.product === productId && x.size === size ? payload : x
+                    x.product === productId && x.size === size && (x.selectedColor || "") === color ? payload : x
                 )
             );
         } else {
@@ -49,8 +52,10 @@ export const CartProvider = ({ children }) => {
         }
     };
 
-    const removeFromCart = (id) => {
-        setCartItems(cartItems.filter(x => x.product !== id));
+    const removeFromCart = (id, size, color) => {
+        setCartItems(cartItems.filter(x => 
+            !(x.product === id && (!size || x.size === size) && (!color || (x.selectedColor || "") === color))
+        ));
     };
 
     const clearCart = () => {

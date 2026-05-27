@@ -100,7 +100,7 @@ export default function RegisterForm({ onToggleLogin, googleEnabled = true }) {
         </div>
 
         <div className="relative">
-          <label className="text-xs font-bold text-[#6b1a1a] uppercase tracking-widest mb-1.5 block">WhatsApp Number</label>
+          <label className="text-xs font-bold text-[#6b1a1a] uppercase tracking-widest mb-1.5 block">Phone Number</label>
           <div className="relative">
             <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#c87d1a]/60" />
             <input

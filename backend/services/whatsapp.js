@@ -1,6 +1,9 @@
+// WhatsApp (Twilio) integration — temporarily disabled
+// To re-enable: uncomment the block below and ensure TWILIO_* env vars are set
+
+/*
 const twilio = require('twilio');
 require('dotenv').config();
-
 const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
 
 async function sendWhatsApp(toPhone, message) {
@@ -16,6 +19,13 @@ async function sendWhatsApp(toPhone, message) {
         console.error('Error sending WhatsApp message:', error);
         return false;
     }
+}
+*/
+
+// Stub — always resolves silently
+async function sendWhatsApp(toPhone, message) {
+    console.log(`[WhatsApp DISABLED] Would have sent to +91${toPhone}: ${message}`);
+    return false;
 }
 
 module.exports = { sendWhatsApp };
