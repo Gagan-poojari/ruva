@@ -5,9 +5,24 @@ export const metadata = {
   description: "Browse Ruva's curated product catalog.",
 };
 
-export default function ShopPage({ searchParams }) {
-  const category = typeof searchParams?.category === "string" ? searchParams.category : "";
-  const keyword = typeof searchParams?.q === "string" ? searchParams.q : "";
-  return <ProductListPage title="Shop" defaultCategory={category} defaultKeyword={keyword} />;
-}
+export default async function ShopPage({ searchParams }) {
+  const params = await searchParams;
 
+  const category =
+    typeof params?.category === "string"
+      ? params.category
+      : "";
+
+  const keyword =
+    typeof params?.q === "string"
+      ? params.q
+      : "";
+
+  return (
+    <ProductListPage
+      title="Shop"
+      defaultCategory={category}
+      defaultKeyword={keyword}
+    />
+  );
+}

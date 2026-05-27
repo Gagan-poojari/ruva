@@ -45,12 +45,12 @@ export default function Navbar() {
   const { wishlistCount } = useWishlist();
   const cartCount = cartItems?.reduce((sum, item) => sum + (item.qty || 0), 0) ?? 0;
 
-  const overHero  = pathname === "/" && !scrolled;
-  const navColor  = overHero ? "#f4e6ff" : "#3d0a0a";
+  const overHero      = pathname === "/" && !scrolled;
+  const navColor      = overHero ? "#f4e6ff" : "#3d0a0a";
+  const onWishlist    = pathname === "/wishlist";           // ← single source of truth
+  const WishlistIcon  = onWishlist ? FaHeart : FaRegHeart; // ← used in both desktop & mobile
 
-  useEffect(() => {
-    setHydrated(true);
-  }, []);
+  useEffect(() => { setHydrated(true); }, []);
 
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 28);
@@ -114,7 +114,6 @@ export default function Navbar() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,600&display=swap');
 
-        /* ── Desktop nav link ── */
         .nav-link {
           position: relative;
           padding-bottom: 2px;
@@ -135,7 +134,6 @@ export default function Navbar() {
         }
         .nav-link:hover::after { width: 100%; left: 0; }
 
-        /* ── Dropdown ── */
         .drop-panel {
           transform-origin: top center;
           transition: opacity .2s ease, transform .22s cubic-bezier(.22,1,.36,1);
@@ -143,17 +141,15 @@ export default function Navbar() {
         .drop-panel.hide { opacity:0; transform:scaleY(.93) translateY(-5px); pointer-events:none; }
         .drop-panel.show { opacity:1; transform:scaleY(1) translateY(0); pointer-events:all; }
 
-        /* ── Desktop search slide ── */
         .search-field {
           max-width: 0; opacity: 0; overflow: hidden;
           transition: max-width .35s cubic-bezier(.22,1,.36,1), opacity .25s;
         }
         .search-field.open { max-width: 200px; opacity: 1; }
 
-        /* ── Mobile search — slides LEFT from the icon ── */
         .m-search-wrap {
           position: absolute;
-          right: 44px; /* sits just left of the icon */
+          right: 44px;
           top: 50%;
           transform: translateY(-50%);
           overflow: hidden;
@@ -176,7 +172,6 @@ export default function Navbar() {
           padding: 6px 12px;
           border-radius: 999px;
           white-space: nowrap;
-          /* glass pill */
           background: rgba(255,255,255,0.14);
           backdrop-filter: blur(18px) saturate(1.5);
           -webkit-backdrop-filter: blur(18px) saturate(1.5);
@@ -194,11 +189,9 @@ export default function Navbar() {
         }
         .m-search-inner input::placeholder { opacity: 0.55; }
 
-        /* ── Badge pop ── */
         @keyframes badgePop { 0%{transform:scale(1)} 50%{transform:scale(1.4)} 100%{transform:scale(1)} }
         .badge-pop { animation: badgePop .28s ease; }
 
-        /* ── Mobile drawer ── */
         @keyframes drawerIn  { from{opacity:0;transform:translateX(100%)} to{opacity:1;transform:translateX(0)} }
         .drawer { animation: drawerIn .36s cubic-bezier(.22,1,.36,1) both; }
         @keyframes mlinkIn { from{opacity:0;transform:translateX(20px)} to{opacity:1;transform:translateX(0)} }
@@ -209,13 +202,11 @@ export default function Navbar() {
         .mlink:nth-child(4){animation-delay:.27s}
         .mlink:nth-child(5){animation-delay:.34s}
 
-        /* ── Bottom tab bar ── */
         .btab-bar {
           position: fixed;
           bottom: 0; left: 0; right: 0;
           z-index: 49;
           height: 64px;
-          /* clean white frosted base */
           background: rgba(255, 255, 255, 0.96);
           backdrop-filter: blur(24px) saturate(1.6);
           -webkit-backdrop-filter: blur(24px) saturate(1.6);
@@ -242,7 +233,6 @@ export default function Navbar() {
           font-weight: 600;
           line-height: 1;
         }
-        /* Active gold pip above the tab */
         .btab-active-pip {
           position: absolute;
           top: 0; left: 50%;
@@ -255,7 +245,6 @@ export default function Navbar() {
         }
         .btab.active .btab-active-pip { opacity: 1; }
 
-        /* Cart tab special badge */
         .btab-cart-wrap { position: relative; display: flex; align-items: center; justify-content: center; }
         .btab-badge {
           position: absolute;
@@ -268,7 +257,6 @@ export default function Navbar() {
           color: #fdf3e3;
           box-shadow: 0 2px 8px rgba(61,10,10,0.45);
         }
-
       `}</style>
 
       {/* ══ NAVBAR ══════════════════════════════════════════════ */}
@@ -295,7 +283,6 @@ export default function Navbar() {
                 <Image
                   src={overHero ? "/ruva_logo_tw.png" : "/ruva_logo_t.png"}
                   alt="Ruva"
-                  // width={85}
                   width={55}
                   height={30}
                   className="object-contain"
@@ -323,13 +310,15 @@ export default function Navbar() {
             <div className="hidden md:flex items-center gap-10">
               <div className="flex items-center gap-2 relative">
                 <div className={`search-field ${searchOpen ? "open" : ""}`}>
-                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border"
+                  <div
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-full border"
                     style={{
                       background: overHero ? "rgba(236,204,255,0.12)" : "rgba(253,243,227,0.9)",
                       backdropFilter: "blur(12px)",
                       borderColor: overHero ? "rgba(242,218,255,0.34)" : "rgba(200,125,26,0.3)",
                       boxShadow: searchOpen ? "0 4px 20px rgba(0,0,0,0.08)" : "none",
-                    }}>
+                    }}
+                  >
                     <VscSearchSparkle size={16} style={{ color: navColor, opacity: 0.7 }} />
                     <input
                       ref={searchRef}
@@ -346,35 +335,56 @@ export default function Navbar() {
                     />
                   </div>
                 </div>
-                <button onClick={() => {
-                  if (searchOpen && searchVal.trim()) {
-                    handleSearch();
-                  } else {
-                    setSearchOpen(s => !s);
-                    if (searchOpen) setSearchVal("");
+                <button
+                  onClick={() => {
+                    if (searchOpen && searchVal.trim()) {
+                      handleSearch();
+                    } else {
+                      setSearchOpen(s => !s);
+                      if (searchOpen) setSearchVal("");
+                    }
+                  }}
+                  className="transition-transform hover:scale-110"
+                  aria-label="Search"
+                  style={{ color: navColor }}
+                >
+                  {searchOpen
+                    ? (searchVal.trim() ? <VscSearchSparkle size={19} /> : <X size={19} />)
+                    : <VscSearchSparkle size={19} />
                   }
-                }}
-                  className="transition-transform hover:scale-110" aria-label="Search" style={{ color: navColor }}>
-                  {searchOpen ? (searchVal.trim() ? <VscSearchSparkle size={19} /> : <X size={19} />) : <VscSearchSparkle size={19} />}
                 </button>
               </div>
-              <Link href="/wishlist" className="relative transition-transform hover:scale-110" aria-label="Wishlist" style={{ color: navColor }}>
-                <FaRegHeart size={18} />
+
+              {/* ── Desktop wishlist icon ── */}
+              <Link
+                href="/wishlist"
+                className="relative transition-transform hover:scale-110"
+                aria-label="Wishlist"
+                style={{ color: onWishlist ? "#6b1a1a" : navColor }}
+              >
+                <WishlistIcon size={18} />
                 {hydrated && wishlistCount > 0 && (
-                  <span key={wishlistCount} className="badge-pop absolute -top-2 -right-2 flex items-center justify-center rounded-full text-[10px] font-bold"
-                    style={{ width: 18, height: 18, background: "linear-gradient(135deg,#6b1a1a,#a02828)", color: "#fdf3e3", boxShadow: "0 2px 8px rgba(61,10,10,0.35)" }}>
+                  <span
+                    key={wishlistCount}
+                    className="badge-pop absolute -top-2 -right-2 flex items-center justify-center rounded-full text-[10px] font-bold"
+                    style={{ width: 18, height: 18, background: "linear-gradient(135deg,#6b1a1a,#a02828)", color: "#fdf3e3", boxShadow: "0 2px 8px rgba(61,10,10,0.35)" }}
+                  >
                     {wishlistCount > 9 ? "9+" : wishlistCount}
                   </span>
                 )}
               </Link>
+
               <Link href="/profile" className="transition-transform hover:scale-110" aria-label="Account" style={{ color: navColor }}>
                 <FaRegUser />
               </Link>
               <Link href="/cart" className="relative transition-transform hover:scale-110" aria-label="Cart" style={{ color: navColor }}>
                 <BsBagHeartFill size={20} />
                 {hydrated && cartCount > 0 && (
-                  <span key={cartCount} className="badge-pop absolute -top-2 -right-2 flex items-center justify-center rounded-full text-[10px] font-bold"
-                    style={{ width: 18, height: 18, background: "linear-gradient(135deg,#6b1a1a,#a02828)", color: "#fdf3e3", boxShadow: "0 2px 8px rgba(61,10,10,0.35)" }}>
+                  <span
+                    key={cartCount}
+                    className="badge-pop absolute -top-2 -right-2 flex items-center justify-center rounded-full text-[10px] font-bold"
+                    style={{ width: 18, height: 18, background: "linear-gradient(135deg,#6b1a1a,#a02828)", color: "#fdf3e3", boxShadow: "0 2px 8px rgba(61,10,10,0.35)" }}
+                  >
                     {cartCount > 9 ? "9+" : cartCount}
                   </span>
                 )}
@@ -384,9 +394,11 @@ export default function Navbar() {
             {/* ══ MOBILE TOP BAR — right side ══ */}
             <div className="md:hidden flex items-center gap-1" style={{ position: "relative", height: 68 }}>
 
-              {/* Search input pill — slides LEFT from icon */}
-              <div className={`m-search-wrap ${searchOpen ? "open" : ""}`}
-                style={{ color: overHero ? "#fdf3e3" : "#3d0a0a" }}>
+              {/* Search input pill */}
+              <div
+                className={`m-search-wrap ${searchOpen ? "open" : ""}`}
+                style={{ color: overHero ? "#fdf3e3" : "#3d0a0a" }}
+              >
                 <div className="m-search-inner">
                   <VscSearchSparkle size={14} style={{ opacity: 0.6, flexShrink: 0 }} />
                   <input
@@ -404,7 +416,7 @@ export default function Navbar() {
                 </div>
               </div>
 
-              {/* Search icon button — always visible, top-right */}
+              {/* Search icon */}
               <button
                 onClick={() => {
                   if (searchOpen && searchVal.trim()) {
@@ -427,18 +439,23 @@ export default function Navbar() {
                   : <VscSearchSparkle size={20} />
                 }
               </button>
+
+              {/* ── Mobile wishlist icon ── */}
               <Link
                 href="/wishlist"
                 aria-label="Wishlist"
                 style={{
-                  color: overHero ? "#fdf3e3" : "#3d0a0a",
+                  color: onWishlist ? "#6b1a1a" : (overHero ? "#fdf3e3" : "#3d0a0a"),
                   display: "flex", alignItems: "center", justifyContent: "center",
                   width: 40, height: 40, position: "relative",
                 }}
               >
-                <FaHeart size={17} />
+                <WishlistIcon size={17} />
                 {hydrated && wishlistCount > 0 && (
-                  <span className="badge-pop btab-badge" style={{ top: 4, right: 2, width: 14, height: 14, fontSize: 8 }}>
+                  <span
+                    className="badge-pop btab-badge"
+                    style={{ top: 4, right: 2, width: 14, height: 14, fontSize: 8 }}
+                  >
                     {wishlistCount > 9 ? "9+" : wishlistCount}
                   </span>
                 )}
@@ -451,13 +468,16 @@ export default function Navbar() {
 
       {/* ══ MOBILE BOTTOM TAB BAR ══════════════════════════════ */}
       <div className="btab-bar sm:hidden md:hidden lg:hidden flex items-stretch">
-
         {BOTTOM_TABS.map(({ label, href, Icon, ActiveIcon }) => {
           const isActive = pathname === href || (href !== "/" && pathname.startsWith(href));
           const Ico = isActive ? ActiveIcon : Icon;
           return (
-            <Link key={label} href={href} className={`btab ${isActive ? "active" : ""}`}
-              style={{ color: isActive ? "#c9853c" : "rgba(90,42,26,0.52)" }}>
+            <Link
+              key={label}
+              href={href}
+              className={`btab ${isActive ? "active" : ""}`}
+              style={{ color: isActive ? "#c9853c" : "rgba(90,42,26,0.52)" }}
+            >
               <div className="btab-active-pip" />
               <Ico size={22} />
               <span className="btab-label">{label}</span>
@@ -465,9 +485,12 @@ export default function Navbar() {
           );
         })}
 
-        {/* Cart tab — separate so badge works */}
-        <Link href="/cart" className={`btab ${pathname === "/cart" ? "active" : ""}`}
-          style={{ color: pathname === "/cart" ? "#c9853c" : "rgba(90,42,26,0.52)" }}>
+        {/* Cart tab */}
+        <Link
+          href="/cart"
+          className={`btab ${pathname === "/cart" ? "active" : ""}`}
+          style={{ color: pathname === "/cart" ? "#c9853c" : "rgba(90,42,26,0.52)" }}
+        >
           <div className="btab-active-pip" />
           <div className="btab-cart-wrap">
             <BsBagHeartFill size={20} />
@@ -479,14 +502,14 @@ export default function Navbar() {
           </div>
           <span className="btab-label">Cart</span>
         </Link>
-
       </div>
 
-      {/* ══ MOBILE DRAWER (triggered from Collections or a dedicated menu) ══ */}
+      {/* ══ MOBILE DRAWER ══ */}
       {mobileOpen && (
-        <div className="drawer fixed inset-0 z-40 md:hidden flex flex-col overflow-hidden"
-          style={{ background: "linear-gradient(155deg,#fdf3e3 0%,#fef0cc 45%,#f5d88a 100%)" }}>
-          {/* Brocade */}
+        <div
+          className="drawer fixed inset-0 z-40 md:hidden flex flex-col overflow-hidden"
+          style={{ background: "linear-gradient(155deg,#fdf3e3 0%,#fef0cc 45%,#f5d88a 100%)" }}
+        >
           <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ opacity: .07 }}>
             <defs>
               <pattern id="dm" x="0" y="0" width="64" height="64" patternUnits="userSpaceOnUse">
@@ -535,12 +558,18 @@ export default function Navbar() {
                     setMobileOpen(false);
                   }}
                   className="flex items-center justify-between py-4 border-b group"
-                  style={{ borderColor: "rgba(200,125,26,0.15)" }}>
-                  <span className="group-hover:text-[#7a1f1f] transition-colors" style={{
-                    fontFamily: "'Cormorant Garamond',Georgia,serif",
-                    fontSize: "clamp(2rem,6vw,2.6rem)", fontWeight: 700,
-                    color: "#3d0a0a", letterSpacing: "-0.01em",
-                  }}>{item.label}</span>
+                  style={{ borderColor: "rgba(200,125,26,0.15)" }}
+                >
+                  <span
+                    className="group-hover:text-[#7a1f1f] transition-colors"
+                    style={{
+                      fontFamily: "'Cormorant Garamond',Georgia,serif",
+                      fontSize: "clamp(2rem,6vw,2.6rem)", fontWeight: 700,
+                      color: "#3d0a0a", letterSpacing: "-0.01em",
+                    }}
+                  >
+                    {item.label}
+                  </span>
                   <span className="group-hover:translate-x-1 transition-transform" style={{ color: "#d4891e", opacity: .65 }}>→</span>
                 </Link>
               </div>
@@ -550,11 +579,14 @@ export default function Navbar() {
             <div style={{ height: 1, background: "rgba(200,125,26,0.2)", marginBottom: "1rem" }} />
             <p style={{ fontFamily: "'Cormorant Garamond',Georgia,serif", fontSize: "0.7rem", letterSpacing: "0.22em", textTransform: "uppercase", color: "rgba(61,10,10,0.42)" }}>Weaving stories since 1947</p>
           </div>
-          <div className="absolute bottom-0 right-0 pointer-events-none select-none" style={{
-            fontFamily: "'Cormorant Garamond',Georgia,serif",
-            fontSize: "20rem", fontWeight: 700, lineHeight: 1,
-            color: "rgba(200,125,26,0.06)", letterSpacing: "-0.05em",
-          }}>R</div>
+          <div
+            className="absolute bottom-0 right-0 pointer-events-none select-none"
+            style={{
+              fontFamily: "'Cormorant Garamond',Georgia,serif",
+              fontSize: "20rem", fontWeight: 700, lineHeight: 1,
+              color: "rgba(200,125,26,0.06)", letterSpacing: "-0.05em",
+            }}
+          >R</div>
         </div>
       )}
     </>

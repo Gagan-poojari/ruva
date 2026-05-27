@@ -101,6 +101,7 @@ export default function EditProduct({ params }) {
   };
 
   useEffect(() => {
+    if (id === 'new') { router.push('/admin/products/new'); return; }
     const fetchProduct = async () => {
       try {
         const { data } = await api.get(`/products/${id}`);

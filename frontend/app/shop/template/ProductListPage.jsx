@@ -284,8 +284,8 @@ function ListRow({ product, index }) {
         style={{ boxShadow: "0 4px 20px rgba(42,5,5,0.07), 0 1px 3px rgba(201,133,60,0.07)" }}
       >
         {/* Image */}
-        <div className="relative sm:w-[108px] sm:h-[150px] sm:rounded-xl sm:overflow-hidden sm:shrink-0 bg-[#f6efe5] overflow-hidden">
-          <div className="aspect-[3/4] sm:aspect-auto sm:h-full">
+        <div className="relative sm:w-27 sm:h-37.5 sm:rounded-xl sm:overflow-hidden sm:shrink-0 bg-[#f6efe5] overflow-hidden">
+          <div className="aspect-3/4 sm:aspect-auto sm:h-full">
             <img
               src={displayImage}
               alt={product.name}
