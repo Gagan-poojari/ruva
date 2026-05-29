@@ -619,7 +619,7 @@ export default function HeroSection() {
               <button
                 onClick={() => {
                   document
-                    .getElementById("collections")
+                    .getElementById("shoppreview")
                     ?.scrollIntoView({ behavior: "smooth" });
                 }}
                 style={{
@@ -695,7 +695,7 @@ export default function HeroSection() {
             <button
               onClick={() => {
                 document
-                  .getElementById("collections")
+                  .getElementById("shoppreview")
                   ?.scrollIntoView({ behavior: "smooth" });
               }}
               style={{
