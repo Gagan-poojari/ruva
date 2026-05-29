@@ -166,7 +166,7 @@ function LargeCard({ cat, index }) {
               animate={{ scale: hovered ? 1.05 : 1 }}
               transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
             />
-            {/* Single clean gradient — no double overlays */}
+            {/* Single clean gradient - no double overlays */}
             <div
               className="absolute inset-0"
               style={{ background: "linear-gradient(100deg, rgba(8,1,1,0.85) 0%, rgba(8,1,1,0.32) 55%, rgba(8,1,1,0.08) 100%)" }}
@@ -319,7 +319,7 @@ export default function Categories() {
           100% { background-position: -200% center; }
         }
 
-        /* Gold border — single, clean */
+        /* Gold border - single, clean */
         .gold-card { position: relative; isolation: isolate; }
         .gold-card::before {
           content: "";
@@ -396,7 +396,7 @@ export default function Categories() {
 
         {/* Layout */}
         <div className="relative z-10 px-3 sm:px-5 pb-14 max-w-6xl mx-auto space-y-2.5 sm:space-y-4">
-          {/* Sarees — full width */}
+          {/* Sarees - full width */}
           <LargeCard cat={largeFirst} index={0} />
 
           {/* 4 small cards */}
@@ -406,7 +406,7 @@ export default function Categories() {
             ))}
           </div>
 
-          {/* Limited Offers — full width */}
+          {/* Limited Offers - full width */}
           <LargeCard cat={largeLast} index={5} />
         </div>
       </section>

@@ -61,7 +61,7 @@ export default function ProductsPage() {
     }
   };
 
-  const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+  const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
 
   const startItem = totalCount === 0 ? 0 : (page - 1) * limit + 1;
   const endItem = Math.min(page * limit, totalCount);
@@ -122,7 +122,7 @@ export default function ProductsPage() {
                           <Layers size={10} />{product.category || 'Uncategorized'}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-sm font-bold text-gray-900">₹{product.price.toLocaleString()}</td>
+                      <td className="px-6 py-4 text-sm font-bold text-gray-900 sp2-num">₹{product.price.toLocaleString()}</td>
                       <td className="px-6 py-4">
                         <div className="flex flex-col gap-1">
                           <div className="flex items-center gap-2">

@@ -355,10 +355,10 @@ export default function ProductDetailsPage() {
 
             {/* Price */}
             <div className="mt-5 flex items-end gap-3">
-              <div className="text-2xl font-black text-[#6b1a1a]">{formatINR(effectivePrice)}</div>
+              <div className="text-2xl font-black text-[#6b1a1a] sp2-num">{formatINR(effectivePrice)}</div>
               {discountPercent ? (
                 <>
-                  <div className="text-sm font-bold text-[#6b1a1a]/45 line-through">
+                  <div className="text-sm font-semibold text-[#6b1a1a]/60 line-through sp2-num">
                     {formatINR(currentVariant?.price > 0 ? currentVariant.price : product.price)}
                   </div>
                   <div className="text-sm font-extrabold text-emerald-700">{discountPercent}% off</div>
@@ -462,7 +462,7 @@ export default function ProductDetailsPage() {
                 </div>
               </div>
 
-              {/* Row 2: Buy Now — full width */}
+              {/* Row 2: Buy Now - full width */}
               <button
                 type="button"
                 onClick={handleBuyNow}
@@ -551,13 +551,11 @@ export default function ProductDetailsPage() {
                           {item.name}
                         </div>
                         <div className="mt-2 flex items-baseline gap-1.5">
-                          <span className="text-[0.88rem] font-extrabold text-[#6b1a1a]"
-                            style={{ fontFamily: "'Inter', sans-serif" }}>
+                          <span className="text-[0.88rem] font-extrabold text-[#6b1a1a] sp2-num">
                             ₹{Number(itemPrice).toLocaleString("en-IN")}
                           </span>
                           {pct && (
-                            <span className="text-[0.65rem] text-[#6b1a1a]/40 line-through"
-                              style={{ fontFamily: "'Inter', sans-serif" }}>
+                            <span className="text-[0.72rem] text-[#6b1a1a]/60 line-through sp2-num">
                               ₹{Number(item.price).toLocaleString("en-IN")}
                             </span>
                           )}
@@ -582,7 +580,7 @@ export default function ProductDetailsPage() {
                 {!relatedLoadingMore && relatedPage >= relatedPages && related.length > 0 && (
                   <p className="text-[10px] font-bold uppercase tracking-widest text-[#6b1a1a]/30"
                     style={{ fontFamily: "'Cormorant Garamond', serif" }}>
-                    — End of Collection —
+                    - End of Collection -
                   </p>
                 )}
               </div>

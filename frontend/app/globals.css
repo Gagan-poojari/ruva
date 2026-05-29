@@ -1,6 +1,23 @@
 @import "tailwindcss";
 
+@theme {
+  --font-sans: var(--font-outfit), 'Outfit', system-ui, sans-serif;
+  --font-serif: var(--font-bodoni), 'Bodoni Moda', Georgia, serif;
+}
+
+:root {
+  --font-display: var(--font-bodoni), 'Bodoni Moda', Georgia, serif;
+  --font-body: var(--font-outfit), 'Outfit', system-ui, sans-serif;
+  --font-label: var(--font-outfit), 'Outfit', system-ui, sans-serif;
+}
+
 /* Custom utilities */
+.sp2-num, .sp2-num {
+    font-family: var(--font-bodoni), 'Bodoni Moda', Georgia, serif;
+    font-variant-numeric: lining-nums tabular-nums;
+    font-feature-settings: "tnum" on, "lnum" on;
+}
+
 .glass {
     background: rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(10px);
@@ -16,7 +33,7 @@
 }
 
 .heading-fancy {
-    font-family: var(--font-serif);
+    font-family: var(--font-bodoni), 'Bodoni Moda', Georgia, serif;
 }
 
 .text-gradient {

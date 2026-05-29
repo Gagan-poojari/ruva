@@ -12,7 +12,7 @@ const SAREE_FABRICS = [
   "Banarasi", "Kanjivaram", "Mysore Silk", "Patola", "Chanderi", 
   "Maheshwari", "Tant", "Khadi", "Organza", "Georgette", "Net", 
   "Ruffle", "Bandhani", "Paithani", "Leheriya", "Kasavu", 
-  "Sambalpuri", "Baluchari", "silk-cotton", "cotton",
+  "Sambalpuri", "Baluchari", "silk-cotton", "cotton","velvet", "satine",
 ];
 
 const CATEGORIES = [
@@ -105,7 +105,9 @@ export default function EditProduct({ params }) {
           isLimitedEdition: tags.includes('limited'),
           tags: tags.filter(t => t !== 'new' && t !== 'limited'),
           sizes: data.sizes || [],
-          blouseSizes: data.category === 'Blouses' ? (data.sizes || []).map(s => s.label) : [],
+          blouseSizes: data.category === 'Blouses'
+            ? (data.sizes || []).map(s => ({ label: s.label, stock: s.stock || 0 }))
+            : [],
           colors: data.colors ? data.colors.join(', ') : '',
           colorVariants: (data.colorVariants?.length ? data.colorVariants : [createEmptyVariant()]).map((variant) => ({
             colorName: variant.colorName || '',
@@ -165,11 +167,23 @@ export default function EditProduct({ params }) {
 
   /* ─── Blouse sizes toggle ─── */
   const toggleBlouseSize = (label) => {
+    setProductData(prev => {
+      const exists = prev.blouseSizes.find(s => s.label === label);
+      return {
+        ...prev,
+        blouseSizes: exists
+          ? prev.blouseSizes.filter(s => s.label !== label)
+          : [...prev.blouseSizes, { label, stock: 0 }],
+      };
+    });
+  };
+
+  const handleBlouseSizeStockChange = (label, stockValue) => {
     setProductData(prev => ({
       ...prev,
-      blouseSizes: prev.blouseSizes.includes(label)
-        ? prev.blouseSizes.filter(s => s !== label)
-        : [...prev.blouseSizes, label],
+      blouseSizes: prev.blouseSizes.map(s =>
+        s.label === label ? { ...s, stock: Number(stockValue) || 0 } : s
+      ),
     }));
   };
 
@@ -272,8 +286,8 @@ export default function EditProduct({ params }) {
       let finalSizes = [{ label: "One Size", stock: Number(productData.stock || 0) }];
       if (isBlouse && productData.blouseSizes.length > 0) {
         finalSizes = productData.blouseSizes.map(size => ({
-          label: size,
-          stock: Number(productData.stock || 0)
+          label: size.label,
+          stock: Number(size.stock || 0),
         }));
       }
 
@@ -423,23 +437,35 @@ export default function EditProduct({ params }) {
                   </label>
                   <div className="flex gap-3">
                     {BLOUSE_SIZES.map(({ label, sub }) => {
-                      const active = productData.blouseSizes.includes(label);
+                      const activeItem = productData.blouseSizes.find(s => s.label === label);
+                      const active = !!activeItem;
                       return (
-                        <button
-                          key={label}
-                          type="button"
-                          onClick={() => toggleBlouseSize(label)}
-                          className={`flex-1 py-3 rounded-2xl border-2 transition-all font-bold text-sm flex flex-col items-center gap-0.5
-                            ${active 
-                              ? 'border-primary-500 bg-primary-50 text-primary-700' 
-                              : 'border-gray-100 bg-gray-50 text-gray-400 hover:border-gray-200'
-                            }`}
-                        >
-                          <span className="text-base font-black">{label}</span>
-                          <span className={`text-[10px] font-bold uppercase tracking-wider ${active ? 'text-primary-500' : 'text-gray-300'}`}>
-                            {sub}
-                          </span>
-                        </button>
+                        <div key={label} className="flex-1 flex flex-col gap-2">
+                          <button
+                            type="button"
+                            onClick={() => toggleBlouseSize(label)}
+                            className={`w-full py-3 rounded-2xl border-2 transition-all font-bold text-sm flex flex-col items-center gap-0.5
+                              ${active
+                                ? 'border-primary-500 bg-primary-50 text-primary-700'
+                                : 'border-gray-100 bg-gray-50 text-gray-400 hover:border-gray-200'
+                              }`}
+                          >
+                            <span className="text-base font-black">{label}</span>
+                            <span className={`text-[10px] font-bold uppercase tracking-wider ${active ? 'text-primary-500' : 'text-gray-300'}`}>
+                              {sub}
+                            </span>
+                          </button>
+                          {active && (
+                            <input
+                              type="number"
+                              min="0"
+                              placeholder="Stock qty"
+                              value={activeItem.stock === 0 ? '' : activeItem.stock}
+                              onChange={(e) => handleBlouseSizeStockChange(label, e.target.value)}
+                              className="w-full bg-white border border-primary-200 text-gray-900 rounded-xl py-2 px-3 outline-none focus:border-primary-500 text-center text-xs font-medium shadow-sm transition-all placeholder:text-gray-300"
+                            />
+                          )}
+                        </div>
                       );
                     })}
                   </div>
@@ -464,7 +490,7 @@ export default function EditProduct({ params }) {
               )}
             </div>
 
-            {/* Image grid — drag to reorder existing images, always-visible remove buttons */}
+            {/* Image grid - drag to reorder existing images, always-visible remove buttons */}
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
               {existingImages.map((img, i) => (
                 <div

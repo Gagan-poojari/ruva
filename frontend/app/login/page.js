@@ -27,7 +27,7 @@ export default function LoginPage() {
 
   return (
     <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-[#fdf8ef]">
-      {/* Texture + pattern background — matching Categories section */}
+      {/* Texture + pattern background - matching Categories section */}
       <div className="absolute inset-0 z-0 pointer-events-none">
         <div className="absolute inset-0 bg-[linear-gradient(175deg,#fdf8ef_0%,#f8eddc_54%,#fdf5e8_100%)]" />
         <div
@@ -95,7 +95,7 @@ export default function LoginPage() {
 
         {/* Footer info */}
         <p className="mt-8 text-[#6b1a1a]/40 text-[10px] tracking-[0.3em] uppercase font-bold">
-          Ruva Boutique — Est. 2024
+          Ruva Boutique - Est. 2024
         </p>
       </div>
     </div>

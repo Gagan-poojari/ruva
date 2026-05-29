@@ -68,7 +68,7 @@ export default function WishlistPage() {
                 </Link>
                 <div className="p-4">
                   <p className="text-[#2f0f45] font-semibold line-clamp-2">{item.name || "Ruva Saree"}</p>
-                  <p className="text-[#5c2b12] font-semibold mt-1">₹{Number(item.price || 0).toLocaleString("en-IN")}</p>
+                  <p className="text-[#5c2b12] font-semibold mt-1 sp2-num">₹{Number(item.price || 0).toLocaleString("en-IN")}</p>
                   <div className="mt-4 flex items-center gap-2">
                     <button
                       type="button"

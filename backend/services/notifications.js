@@ -1,11 +1,11 @@
 // const twilio = require('twilio'); // Twilio disabled
-const { sendWhatsApp } = require('./whatsapp'); // stub — returns false silently
+const { sendWhatsApp } = require('./whatsapp'); // stub - returns false silently
 const { alert, ALERT_SEVERITY } = require('./monitoring');
 
-// ─── SMS (Twilio) — disabled ──────────────────────────────────────────────────
+// ─── SMS (Twilio) - disabled ──────────────────────────────────────────────────
 // To re-enable SMS, restore the Twilio client and uncomment sendSms body below.
 const sendSms = async (_toPhone, _message) => {
-    // Disabled — Twilio SMS integration commented out
+    // Disabled - Twilio SMS integration commented out
     /*
     const smsFrom = process.env.TWILIO_SMS_FROM;
     const client = getTwilioClient();

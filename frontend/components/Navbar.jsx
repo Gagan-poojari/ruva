@@ -21,13 +21,13 @@ const NAV_LINKS = [
   { label: "Home", href: "/" },
   { label: "Categories", sectionId: "categories" },
   { label: "Shop", href: "/shop" },
-  { label: "Collections", href: "/collections" },
+  { label: "Collections", sectionId: "shoppreview" },
 ];
 
 const BOTTOM_TABS = [
   { label: "Home",        href: "/",           Icon: HiOutlineHome,      ActiveIcon: HiHome },
   { label: "Shop",        href: "/shop",        Icon: RiShoppingBag3Line, ActiveIcon: RiShoppingBag3Fill },
-  { label: "Collections", href: "/collections", Icon: MdOutlineCollections, ActiveIcon: MdCollections },
+  // { label: "Collections", href: "/collections", Icon: MdOutlineCollections, ActiveIcon: MdCollections },
   { label: "Account",     href: "/profile",     Icon: CgProfile,          ActiveIcon: CgProfile },
 ];
 
@@ -396,7 +396,7 @@ export default function Navbar() {
               </Link>
             </div>
 
-            {/* ══ MOBILE TOP BAR — right side ══ */}
+            {/* ══ MOBILE TOP BAR - right side ══ */}
             <div className="md:hidden flex items-center gap-1" style={{ position: "relative", height: 68 }}>
 
               {/* Search input pill */}

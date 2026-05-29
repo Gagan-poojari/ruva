@@ -1,4 +1,4 @@
-// WhatsApp (Twilio) integration — temporarily disabled
+// WhatsApp (Twilio) integration - temporarily disabled
 // To re-enable: uncomment the block below and ensure TWILIO_* env vars are set
 
 /*
@@ -22,7 +22,7 @@ async function sendWhatsApp(toPhone, message) {
 }
 */
 
-// Stub — always resolves silently
+// Stub - always resolves silently
 async function sendWhatsApp(toPhone, message) {
     console.log(`[WhatsApp DISABLED] Would have sent to +91${toPhone}: ${message}`);
     return false;

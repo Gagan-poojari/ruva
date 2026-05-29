@@ -198,7 +198,7 @@ export default function OrdersPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="text-sm font-bold text-gray-900">₹{order.totalAmount.toLocaleString()}</span>
+                      <span className="text-sm font-bold text-gray-900 sp2-num">₹{order.totalAmount.toLocaleString()}</span>
                       <p className="text-[10px] text-gray-400 mt-1 uppercase font-bold">{order.paymentMethod}</p>
                     </td>
                     <td className="px-6 py-4">
@@ -411,7 +411,7 @@ export default function OrdersPage() {
                               <span className="text-xs font-medium text-gray-600">x{item.qty}</span>
                             </td>
                             <td className="px-4 py-3 text-right">
-                              <span className="text-xs font-bold text-gray-900">₹{(item.price * item.qty).toLocaleString()}</span>
+                              <span className="text-xs font-bold text-gray-900 sp2-num">₹{(item.price * item.qty).toLocaleString()}</span>
                             </td>
                           </tr>
                         ))}
@@ -429,7 +429,7 @@ export default function OrdersPage() {
                   </div>
                   <div className="text-right">
                     <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Total Amount</p>
-                    <p className="text-2xl font-black text-primary-600">₹{selectedOrder.totalAmount.toLocaleString()}</p>
+                    <p className="text-2xl font-black text-primary-600 sp2-num">₹{selectedOrder.totalAmount.toLocaleString()}</p>
                   </div>
                 </div>
               </div>
@@ -550,23 +550,23 @@ export default function OrdersPage() {
                       {item.size && <p className="text-xs text-gray-600 mt-1">Size: {item.size}</p>}
                     </td>
                     <td className="border border-gray-300 p-2 text-center">{item.qty}</td>
-                    <td className="border border-gray-300 p-2 text-right">₹{item.price.toLocaleString()}</td>
-                    <td className="border border-gray-300 p-2 text-right font-bold">₹{(item.price * item.qty).toLocaleString()}</td>
+                    <td className="border border-gray-300 p-2 text-right sp2-num">₹{item.price.toLocaleString()}</td>
+                    <td className="border border-gray-300 p-2 text-right font-bold sp2-num">₹{(item.price * item.qty).toLocaleString()}</td>
                   </tr>
                 ))}
               </tbody>
               <tfoot>
                 <tr>
                   <td colSpan="4" className="border border-gray-300 p-2 text-right font-bold uppercase text-xs">Subtotal</td>
-                  <td className="border border-gray-300 p-2 text-right font-bold">₹{orderToPrint.totalAmount.toLocaleString()}</td>
+                  <td className="border border-gray-300 p-2 text-right font-bold sp2-num">₹{orderToPrint.totalAmount.toLocaleString()}</td>
                 </tr>
                 <tr>
                   <td colSpan="4" className="border border-gray-300 p-2 text-right font-bold uppercase text-xs">Shipping</td>
-                  <td className="border border-gray-300 p-2 text-right">₹0</td>
+                  <td className="border border-gray-300 p-2 text-right sp2-num">₹0</td>
                 </tr>
                 <tr>
                   <td colSpan="4" className="border border-gray-300 p-2 text-right font-black uppercase text-base">Grand Total</td>
-                  <td className="border border-gray-300 p-2 text-right font-black text-base">₹{orderToPrint.totalAmount.toLocaleString()}</td>
+                  <td className="border border-gray-300 p-2 text-right font-black text-base sp2-num">₹{orderToPrint.totalAmount.toLocaleString()}</td>
                 </tr>
               </tfoot>
             </table>

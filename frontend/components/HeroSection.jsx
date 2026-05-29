@@ -388,7 +388,7 @@ function DesktopGallery({ onOpenImage }) {
         );
       })}
 
-      {/* Amoeba lives here — rendered fixed so it's always on top */}
+      {/* Amoeba lives here - rendered fixed so it's always on top */}
       {/* <AmoebaCursor hovering={hovering} /> */}
     </div>
   );
@@ -611,7 +611,7 @@ export default function HeroSection() {
             </h1>
 
             <p className="h3" style={{ fontFamily: "'Lora',Georgia,serif", fontSize: "0.93rem", color: "rgba(230,210,255,0.62)", lineHeight: 1.75, maxWidth: "340px", marginBottom: "2.2rem" }}>
-              Each weave carries centuries of craft — from the artisan's hand to yours. Pure silk. Living colour. Stories in thread.
+              Each weave carries centuries of craft - from the artisan's hand to yours. Pure silk. Living colour. Stories in thread.
             </p>
 
             <div className="h4 flex items-center gap-4">
@@ -681,7 +681,7 @@ export default function HeroSection() {
           </div>
 
           <p className="h3" style={{ fontFamily: "'Lora',Georgia,serif", fontSize: "0.87rem", color: "rgba(220,195,255,0.55)", lineHeight: 1.72, maxWidth: "300px", marginBottom: "1.8rem" }}>
-            From artisan loom to your wardrobe — pure silk, living colour, stories in thread.
+            From artisan loom to your wardrobe - pure silk, living colour, stories in thread.
           </p>
 
           <div className="h4 flex flex-wrap items-center justify-center gap-2 mb-6">

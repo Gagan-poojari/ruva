@@ -107,7 +107,7 @@ export default function Collections() {
             </div>
 
             <p className="mt-4 text-sm text-[#5a2a1a]/60 max-w-2xl" style={{ fontFamily: "var(--font-body)" }}>
-              A quick preview of our most-loved weaves — tap a collection to filter the shop instantly.
+              A quick preview of our most-loved weaves - tap a collection to filter the shop instantly.
             </p>
           </motion.div>
 

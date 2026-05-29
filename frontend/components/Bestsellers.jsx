@@ -68,7 +68,7 @@ const formatPrice = (p) => {
     return `₹${Number(p).toLocaleString("en-IN")}`;
 };
 
-/* ── Single product card — equal height via flex column ── */
+/* ── Single product card - equal height via flex column ── */
 function ProductCard({ p, index, onAdd }) {
     const [hovered, setHovered] = useState(false);
     const tag = getTag(p);
@@ -94,7 +94,7 @@ function ProductCard({ p, index, onAdd }) {
                 className="rounded-xl overflow-hidden flex flex-col flex-1"
                 style={{ background: "#fff" }}
             >
-                {/* Image — fixed aspect ratio so all images are the same size */}
+                {/* Image - fixed aspect ratio so all images are the same size */}
                 <Link href={href} className="block shrink-0">
                     <div className="relative overflow-hidden" style={{ aspectRatio: "3/4" }}>
                         <motion.img
@@ -128,7 +128,7 @@ function ProductCard({ p, index, onAdd }) {
                     </div>
                 </Link>
 
-                {/* Info — flex-1 so all info blocks align to same bottom */}
+                {/* Info - flex-1 so all info blocks align to same bottom */}
                 <div className="flex flex-col flex-1 px-3 py-3 sm:px-4 sm:py-3.5 text-center">
                     <h3 className="font-bold text-[#3d0a0a] leading-snug flex-1"
                         style={{ ...styles.display, fontSize: "clamp(0.85rem, 2vw, 1.05rem)" }}>
@@ -139,9 +139,9 @@ function ProductCard({ p, index, onAdd }) {
                         {p.category || p.sub}
                     </p>
 
-                    {/* Price + Add — always at bottom */}
+                    {/* Price + Add - always at bottom */}
                     <div className="flex items-center justify-between mt-auto">
-                        <span className="font-bold" style={{ ...styles.display, color: "#6b1a1a", fontSize: "clamp(0.9rem, 2.2vw, 1.1rem)" }}>
+                        <span className="font-bold sp2-num" style={{ color: "#6b1a1a", fontSize: "clamp(0.9rem, 2.2vw, 1.1rem)" }}>
                             {formatPrice(p.discountPrice || p.price)}
                         </span>
                         <motion.button
@@ -220,7 +220,7 @@ export default function Bestsellers() {
     return (
         <>
             <style>{`
-        /* Gold border — clean single border, no extra drop shadows */
+        /* Gold border - clean single border, no extra drop shadows */
         .bs-gold-card { position: relative; isolation: isolate; }
         .bs-gold-card::before {
           content: "";

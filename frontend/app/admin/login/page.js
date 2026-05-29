@@ -68,9 +68,9 @@ export default function AdminLogin() {
       <div className="absolute inset-0">
         
         {/* soft glow */}
-        <div className="absolute top-[-10%] left-[10%] h-[420px] w-[420px] rounded-full bg-white/[0.03] blur-[120px]" />
+        <div className="absolute top-[-10%] left-[10%] h-105 w-105 rounded-full bg-white/3 blur-[120px]" />
 
-        <div className="absolute bottom-[-15%] right-[5%] h-[420px] w-[420px] rounded-full bg-white/[0.025] blur-[140px]" />
+        <div className="absolute bottom-[-15%] right-[5%] h-105 w-105 rounded-full bg-white/2.5 blur-[140px]" />
 
         {/* subtle grid */}
         <div
@@ -90,10 +90,10 @@ export default function AdminLogin() {
 
       {/* CARD */}
       <div className="relative z-10 w-full max-w-md">
-        <div className="rounded-[2rem] border border-white/[0.06] bg-[#111111]/90 backdrop-blur-xl shadow-[0_20px_80px_rgba(0,0,0,0.65)] overflow-hidden">
+        <div className="rounded-4xl border border-white/6 bg-[#111111]/90 backdrop-blur-xl shadow-[0_20px_80px_rgba(0,0,0,0.65)] overflow-hidden">
           
           {/* top accent line */}
-          <div className="h-[1px] w-full bg-linear-to-r from-transparent via-white/20 to-transparent" />
+          <div className="h-px w-full bg-linear-to-r from-transparent via-white/20 to-transparent" />
 
           <div className="px-8 py-10 md:px-10">
             
@@ -101,7 +101,7 @@ export default function AdminLogin() {
             <div className="flex flex-col items-center text-center">
               
               {/* logo */}
-              <div className="mb-2 flex items-center justify-center rounded-xl border border-white/[0.08]">
+              <div className="mb-2 flex items-center justify-center rounded-xl border border-white/8">
                 <Image
                   src="/ruva_logo.png"
                   alt="Ruva"
@@ -146,7 +146,7 @@ export default function AdminLogin() {
                     onChange={(e) => setEmail(e.target.value)}
                     autoComplete="email"
                     required
-                    className="h-14 w-full rounded-2xl border border-white/[0.07] bg-white/[0.025] pl-12 pr-4 text-sm text-white outline-none transition-all duration-300 placeholder:text-white/15 focus:border-white/15 focus:bg-white/[0.04]"
+                    className="h-14 w-full rounded-2xl border border-white/[0.07] bg-white/2.5 pl-12 pr-4 text-sm text-white outline-none transition-all duration-300 placeholder:text-white/15 focus:border-white/15 focus:bg-white/4"
                   />
                 </div>
               </div>
@@ -170,7 +170,7 @@ export default function AdminLogin() {
                     onChange={(e) => setPassword(e.target.value)}
                     autoComplete="current-password"
                     required
-                    className="h-14 w-full rounded-2xl border border-white/[0.07] bg-white/[0.025] pl-12 pr-12 text-sm text-white outline-none transition-all duration-300 placeholder:text-white/15 focus:border-white/15 focus:bg-white/[0.04]"
+                    className="h-14 w-full rounded-2xl border border-white/[0.07] bg-white/2.5 pl-12 pr-12 text-sm text-white outline-none transition-all duration-300 placeholder:text-white/15 focus:border-white/15 focus:bg-white/4"
                   />
 
                   <button
@@ -203,7 +203,7 @@ export default function AdminLogin() {
                       className="peer sr-only"
                     />
 
-                    <div className="h-4 w-4 rounded border border-white/15 bg-white/[0.03] transition-all duration-300 peer-checked:bg-white" />
+                    <div className="h-4 w-4 rounded border border-white/15 bg-white/3 transition-all duration-300 peer-checked:bg-white" />
 
                     <div className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-black opacity-0 transition peer-checked:opacity-100">
                       ✓
@@ -244,7 +244,7 @@ export default function AdminLogin() {
             </form>
 
             {/* FOOTER */}
-            <div className="mt-8 border-t border-white/[0.05] pt-6 text-center">
+            <div className="mt-8 border-t border-white/5 pt-6 text-center">
               <p className="text-[10px] uppercase tracking-[0.24em] text-white/20">
                 Ruva Enterprise Control
               </p>

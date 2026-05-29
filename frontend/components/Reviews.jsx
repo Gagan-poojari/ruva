@@ -422,7 +422,7 @@ function UploadModal({ onClose, onSuccess }) {
       setError(
         isTimeout
           ? "Upload is taking too long. Please retry with a smaller file or faster network."
-          : (e.response?.data?.message || "Upload failed — please try again.")
+          : (e.response?.data?.message || "Upload failed - please try again.")
       );
     } finally { setLoading(false); }
   };
@@ -906,7 +906,7 @@ export default function Reviews() {
 
               <p style={{ margin:0, fontFamily:F.body, fontSize:"0.88rem",
                 color:"rgba(61,10,10,0.58)", lineHeight:1.7, maxWidth:480 }}>
-                Real photos and reviews from women who wear RUVA — unfiltered, uncurated.
+                Real photos and reviews from women who wear RUVA - unfiltered, uncurated.
               </p>
             </div>
 

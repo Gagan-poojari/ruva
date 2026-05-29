@@ -75,7 +75,7 @@ export default function About() {
             marginTop: "2rem"
           }}>
             Born from a deep reverence for India’s master weavers, we bridge
-            centuries-old loom traditions with contemporary sensibilities — so
+            centuries-old loom traditions with contemporary sensibilities - so
             that every saree you wear carries a living story.
           </p>
         </div>
@@ -92,9 +92,9 @@ export default function About() {
           }}
         >
           {[
-            { num: "01", title: "Handpicked at Source", body: "We travel directly to Kanchipuram, Varanasi, and Dharmavaram to select only Grade-A silk — no middlemen, no compromises on craft." },
+            { num: "01", title: "Handpicked at Source", body: "We travel directly to Kanchipuram, Varanasi, and Dharmavaram to select only Grade-A silk - no middlemen, no compromises on craft." },
             { num: "02", title: "Living Craft Traditions", body: "Every saree is woven by artisans who've inherited their craft over generations. Your purchase sustains their families and their art." },
-            { num: "03", title: "Yours for a Lifetime", body: "A saree is not a garment — it's an investment in memory. Each piece comes with a heritage certificate and personal care guide." },
+            { num: "03", title: "Yours for a Lifetime", body: "A saree is not a garment - it's an investment in memory. Each piece comes with a heritage certificate and personal care guide." },
           ].map(({ num, title, body }) => (
             <div 
               key={num} 

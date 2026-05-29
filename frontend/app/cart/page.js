@@ -112,7 +112,7 @@ export default function CartPage() {
               icon: "⚠️",
               duration: 5000,
             });
-            // Don't clear cart — user might want to retry
+            // Don't clear cart - user might want to retry
           },
         },
       };
@@ -295,7 +295,7 @@ export default function CartPage() {
                       <p className="text-sm text-[#6b4a2f]/70 uppercase tracking-[0.12em] mt-1">
                         Size: {item.size || "Free Size"} {item.selectedColor ? `· Color: ${item.selectedColor}` : ""}
                       </p>
-                      <p className="text-[#5c2b12] font-semibold mt-2">₹{Number(item.price) || 0}</p>
+                      <p className="text-[#5c2b12] font-semibold mt-2 sp2-num">₹{Number(item.price) || 0}</p>
 
                       <div className="mt-3 flex items-center justify-between">
                         <div className="inline-flex items-center gap-2 rounded-full border border-[#d9b06d]/35 bg-white px-2 py-1">
@@ -336,11 +336,11 @@ export default function CartPage() {
                 <div className="space-y-3 text-[#5d3a22]">
                   <div className="flex justify-between">
                     <span>Subtotal</span>
-                    <span>₹{subtotal.toLocaleString("en-IN")}</span>
+                    <span className="sp2-num">₹{subtotal.toLocaleString("en-IN")}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Delivery Fee</span>
-                    <span>₹{DELIVERY_FEE.toLocaleString("en-IN")}</span>
+                    <span className="sp2-num">₹{DELIVERY_FEE.toLocaleString("en-IN")}</span>
                   </div>
                   {/* <div className="flex justify-between">
                     <span>Tax (2%)</span>
@@ -349,7 +349,7 @@ export default function CartPage() {
                   <div className="h-px bg-[#d9b06d]/35 my-2" />
                   <div className="flex justify-between text-[#2f0f45] font-semibold text-lg">
                     <span>Total</span>
-                    <span>₹{grandTotal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    <span className="sp2-num">₹{grandTotal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </div>
                 </div>
 
@@ -421,7 +421,7 @@ export default function CartPage() {
                   ) : (
                     <>
                       <ShieldCheck size={16} />
-                      Pay ₹{grandTotal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      Pay <span className="sp2-num">₹{grandTotal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                     </>
                   )}
                 </button>

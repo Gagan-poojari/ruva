@@ -16,7 +16,7 @@ import { useWishlist } from "@/context/WishlistContext";
 /* ─── helpers ─── */
 function Price({ value, className = "" }) {
   const formatted = `₹${Number(value || 0).toLocaleString("en-IN")}`;
-  return <span className={`num ${className}`}>{formatted}</span>;
+  return <span className={`sp2-num ${className}`}>{formatted}</span>;
 }
 function discount(price, disc) {
   const p = Number(price || 0), d = Number(disc || 0);
@@ -31,7 +31,7 @@ const SAREE_FABRICS = [
   "Banarasi", "Kanjivaram", "Mysore Silk", "Patola", "Chanderi",
   "Maheshwari", "Tant", "Khadi", "Organza", "Georgette", "Net",
   "Ruffle", "Bandhani", "Paithani", "Leheriya", "Kasavu",
-  "Sambalpuri", "Baluchari", "silk-cotton", "cotton",
+  "Sambalpuri", "Baluchari", "silk-cotton", "cotton", "velvet", "satine",
 ];
 
 function getVariantPricing(product, variant) {
@@ -225,7 +225,7 @@ function GridCard({ product, index }) {
 
           <div className="mt-2.5 flex items-center justify-between">
             <div>
-              <span className="text-base font-black text-[#6b1a1a]" style={{ fontFamily: "var(--font-display)" }}>
+              <span className="text-base font-black text-[#6b1a1a] sp2-num">
                 <Price value={effectivePrice} />
               </span>
               {pct && (
@@ -332,7 +332,7 @@ function ListRow({ product, index }) {
 
           <div className="mt-2 flex items-center justify-between gap-1">
             <div>
-              <span className="text-[0.95rem] font-black text-[#6b1a1a]" style={{ fontFamily: "var(--font-display)" }}>
+              <span className="text-[0.95rem] font-black text-[#6b1a1a] sp2-num">
                 <Price value={effectivePrice} />
               </span>
               {pct && (
@@ -864,7 +864,7 @@ function ProductListContent({ title = "Shop", defaultCategory = "", defaultIsFea
                 )}
                 {!loadingMore && page >= pages && visibleProducts.length > 0 && (
                   <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#6b1a1a]/40" style={{ fontFamily: "var(--font-label)" }}>
-                    — End of Collection —
+                    - End of Collection -
                   </p>
                 )}
               </div>

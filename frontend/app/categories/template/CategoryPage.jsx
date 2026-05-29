@@ -186,7 +186,7 @@ function ProductCard({ product, index, onAdd }) {
             </p>
           )}
           <div className="flex items-center justify-between mt-auto pt-2">
-            <span className="font-bold" style={{ ...D.display, color: "#6b1a1a", fontSize: "clamp(0.88rem, 2vw, 1.05rem)" }}>
+            <span className="font-bold sp2-num" style={{ color: "#6b1a1a", fontSize: "clamp(0.88rem, 2vw, 1.05rem)" }}>
               {price}
             </span>
             <motion.button type="button" onClick={() => onAdd(product)} whileTap={{ scale: 0.88 }}
@@ -465,7 +465,7 @@ export default function CategoryPage({ config }) {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   CATEGORY CONFIGS — only UI/hero metadata, no product data
+   CATEGORY CONFIGS - only UI/hero metadata, no product data
 ══════════════════════════════════════════════════════════ */
 
 export const SAREES_CONFIG = {

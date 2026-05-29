@@ -333,11 +333,13 @@ const updateProduct = async (req, res, next) => {
             if (slug) product.slug = slug;
             product.description = description || product.description;
             product.category = category || product.category;
-            product.fabric = fabric || product.fabric;
-            product.occasion = occasion || product.occasion;
-            product.price = price || product.price;
-            product.discountPrice = discountPrice || product.discountPrice;
-            product.stock = stock || product.stock;
+            product.fabric = fabric !== undefined ? fabric : product.fabric;
+            product.occasion = occasion !== undefined ? occasion : product.occasion;
+            // Use explicit check so that 0 / empty string are respected (clearing discountPrice etc.)
+            if (price !== undefined && price !== '') product.price = Number(price);
+            if (discountPrice !== undefined && discountPrice !== '') product.discountPrice = Number(discountPrice);
+            else if (discountPrice === '') product.discountPrice = 0;
+            if (stock !== undefined && stock !== '') product.stock = Number(stock);
             product.isFeatured = isFeatured !== undefined ? isFeatured === 'true' : product.isFeatured;
             product.isBestseller = isBestseller !== undefined ? isBestseller === 'true' : product.isBestseller;
             product.isTrending = isTrending !== undefined ? isTrending === 'true' : product.isTrending;
@@ -349,6 +351,14 @@ const updateProduct = async (req, res, next) => {
                 product.colorVariants = await buildColorVariants(parseJsonArray(req.body.colorVariants), req.files || []);
             }
 
+            // Handle image reordering / deletion
+            if (req.body.existingImages !== undefined) {
+                const existingImages = parseJsonArray(req.body.existingImages);
+                // Only keep images that are still in the existingImages list (respects deletions & reorder)
+                product.images = existingImages;
+            }
+
+            // Append newly uploaded images
             if (req.files && req.files.length > 0) {
                 const baseFiles = req.files.filter((file) => file.fieldname === 'images');
                 const newImages = await uploadImagesToCloudinary(baseFiles);

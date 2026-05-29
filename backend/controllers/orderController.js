@@ -455,7 +455,7 @@ const verifyPayment = async (req, res, next) => {
             razorpayPaymentId: razorpay_payment_id,
         });
 
-        // [NOTIFICATIONS DISABLED] Order confirmed — re-enable when comms are ready
+        // [NOTIFICATIONS DISABLED] Order confirmed - re-enable when comms are ready
         // const message = `Hi ${order.user.name}! Your order #${order._id} has been confirmed. Total: Rs. ${order.totalAmount}. Thank you for shopping with RUVA!`;
         // const recipientPhone = order.user.phone;
         // const recipientEmail = order.shippingAddress?.email || order.user.email;

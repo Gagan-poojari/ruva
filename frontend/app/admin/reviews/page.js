@@ -157,7 +157,7 @@ export default function AdminReviewsPage() {
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:28, flexWrap:'wrap', gap:12 }}>
         <div>
           <h1 style={{ margin:0, fontSize:'1.5rem', fontWeight:800, color:'#111' }}>Reviews</h1>
-          <p style={{ margin:'4px 0 0', color:'#6b7280', fontSize:'0.875rem' }}>Manage the homepage review wall — add, edit, or remove reviews.</p>
+          <p style={{ margin:'4px 0 0', color:'#6b7280', fontSize:'0.875rem' }}>Manage the homepage review wall - add, edit, or remove reviews.</p>
         </div>
         <button onClick={() => setModal('new')}
           style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 20px', borderRadius:10, background:'#1d4ed8', color:'#fff', fontWeight:700, border:'none', cursor:'pointer', fontSize:'0.875rem' }}>

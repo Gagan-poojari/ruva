@@ -110,7 +110,7 @@ export default function Dashboard() {
             </div>
             <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">{card.title} Revenue</p>
             <div className="mt-1 flex items-baseline gap-2">
-              <h3 className="text-2xl font-bold text-gray-900">₹{card.amount.toLocaleString()}</h3>
+              <h3 className="text-2xl font-bold text-gray-900 sp2-num">₹{card.amount.toLocaleString()}</h3>
               <span className="text-xs text-gray-400 font-medium">{card.count} Orders</span>
             </div>
           </div>
@@ -137,7 +137,7 @@ export default function Dashboard() {
               return (
                 <div key={day.date} className="flex-1 flex flex-col items-center gap-3 group relative">
                   {/* Tooltip on Hover */}
-                  <div className="absolute -top-10 opacity-0 group-hover:opacity-100 transition-all bg-gray-900 text-white text-[10px] py-1 px-2 rounded-md whitespace-nowrap z-10 font-bold">
+                  <div className="absolute -top-10 opacity-0 group-hover:opacity-100 transition-all bg-gray-900 text-white text-[10px] py-1 px-2 rounded-md whitespace-nowrap z-10 font-bold sp2-num">
                     ₹{day.totalSales.toLocaleString()}
                   </div>
 
@@ -212,7 +212,7 @@ export default function Dashboard() {
               {stats?.recentOrders?.map((order) => (
                 <div key={order._id} className="flex items-center gap-3 border-l-2 border-primary-500/20 pl-3">
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-bold text-gray-900 truncate">₹{order.totalAmount.toLocaleString()}</p>
+                    <p className="text-xs font-bold text-gray-900 truncate sp2-num">₹{order.totalAmount.toLocaleString()}</p>
                     <p className="text-[10px] text-gray-500 truncate">{order.user?.name || 'Guest'}</p>
                   </div>
                   <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-tighter ${order.status === 'delivered' ? 'bg-emerald-50 text-emerald-600' :
