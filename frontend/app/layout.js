@@ -1,6 +1,7 @@
 import { Outfit, Bodoni_Moda } from "next/font/google";
 import "./globals.css";
 import ClientLayout from "@/components/ClientLayout";
+import { GoogleAnalytics } from "@next/third-parties/google";
 
 const outfit = Outfit({
   variable: "--font-outfit",
@@ -19,7 +20,7 @@ export const metadata = {
   description: "Exclusive Kanchipuram, Banarasi & designer sarees, handcrafted for your most precious moments.",
   icons: {
     icon: "/favicon.png",
-  }
+  },
 };
 
 export default function RootLayout({ children }) {
@@ -31,6 +32,7 @@ export default function RootLayout({ children }) {
       <body className="min-h-full flex flex-col transition-colors duration-300">
         <ClientLayout>{children}</ClientLayout>
       </body>
+      <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID} />  {/* ← add */}
     </html>
   );
 }
