@@ -31,8 +31,11 @@ export default function RootLayout({ children }) {
     >
       <body className="min-h-full flex flex-col transition-colors duration-300">
         <ClientLayout>{children}</ClientLayout>
+
+        <GoogleAnalytics
+          gaId={process.env.NEXT_PUBLIC_GA_ID}
+        />
       </body>
-      <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID} />  {/* ← add */}
     </html>
   );
 }
