@@ -18,10 +18,14 @@ import {
   Copy,
   MapPin,
   Phone,
-  Printer
+  Printer,
+  ZoomIn,
 } from 'lucide-react';
 import api from '@/utils/api';
 import toast from 'react-hot-toast';
+
+const getItemImageSrc = (item) =>
+  item?.product?.images?.[0]?.url || item?.product?.images?.[0] || null;
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState([]);
@@ -31,6 +35,7 @@ export default function OrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [orderToPrint, setOrderToPrint] = useState(null);
+  const [previewImage, setPreviewImage] = useState(null);
 
   const fetchOrders = async () => {
     try {
@@ -86,6 +91,20 @@ export default function OrdersPage() {
     window.addEventListener('afterprint', afterPrint);
     return () => window.removeEventListener('afterprint', afterPrint);
   }, []);
+
+  useEffect(() => {
+    if (!previewImage) return;
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') setPreviewImage(null);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [previewImage]);
+
+  const closeOrderModal = () => {
+    setIsModalOpen(false);
+    setPreviewImage(null);
+  };
 
   const filteredOrders = orders.filter(order => {
     const matchesFilter = filter === 'all' || order.status === filter;
@@ -317,7 +336,7 @@ export default function OrdersPage() {
                   )}
                 </div>
                 <button
-                  onClick={() => setIsModalOpen(false)}
+                  onClick={closeOrderModal}
                   className="p-2 hover:bg-white rounded-xl transition-colors text-gray-400 hover:text-gray-600 border border-transparent hover:border-gray-200 self-start"
                 >
                   <X size={20} />
@@ -388,22 +407,46 @@ export default function OrdersPage() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100">
-                        {selectedOrder.items.map((item, idx) => (
+                        {selectedOrder.items.map((item, idx) => {
+                          const imageSrc = getItemImageSrc(item);
+                          const productName = item.product?.name || 'Deleted Product';
+                          return (
                           <tr key={idx}>
                             <td className="px-4 py-3">
                               <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
-                                  {item.product?.images?.[0] ? (
-                                    <img src={item.product.images[0] || null} alt="" className="w-full h-full object-cover" />
-                                  ) : (
-                                    <div className="w-full h-full flex items-center justify-center">
-                                      <ShoppingBag size={16} className="text-gray-300" />
-                                    </div>
-                                  )}
-                                </div>
+                                {imageSrc ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => setPreviewImage({ src: imageSrc, alt: productName })}
+                                    className="relative w-10 h-10 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 group ring-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+                                    title="View larger image"
+                                  >
+                                    <img
+                                      src={imageSrc}
+                                      alt={productName}
+                                      className="w-full h-full object-cover"
+                                    />
+                                    <span className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                                      <ZoomIn size={14} className="text-white" />
+                                    </span>
+                                  </button>
+                                ) : (
+                                  <div className="w-10 h-10 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center">
+                                    <ShoppingBag size={16} className="text-gray-300" />
+                                  </div>
+                                )}
                                 <div>
-                                  <p className="text-xs font-bold text-gray-900 line-clamp-1">{item.product?.name || 'Deleted Product'}</p>
+                                  <p className="text-xs font-bold text-gray-900 line-clamp-1">{productName}</p>
                                   {item.size && <p className="text-[10px] text-gray-500 font-medium">Size: {item.size}</p>}
+                                  {imageSrc && (
+                                    <button
+                                      type="button"
+                                      onClick={() => setPreviewImage({ src: imageSrc, alt: productName })}
+                                      className="text-[10px] text-primary-600 font-semibold hover:underline mt-0.5"
+                                    >
+                                      View image
+                                    </button>
+                                  )}
                                 </div>
                               </div>
                             </td>
@@ -414,7 +457,8 @@ export default function OrdersPage() {
                               <span className="text-xs font-bold text-gray-900 sp2-num">₹{(item.price * item.qty).toLocaleString()}</span>
                             </td>
                           </tr>
-                        ))}
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -437,7 +481,7 @@ export default function OrdersPage() {
               {/* Modal Footer */}
               <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/50 flex justify-end gap-3">
                 <button
-                  onClick={() => setIsModalOpen(false)}
+                  onClick={closeOrderModal}
                   className="px-6 py-2 text-sm font-bold text-gray-500 hover:text-gray-700 transition-colors"
                 >
                   Close
@@ -446,7 +490,7 @@ export default function OrdersPage() {
                   <button
                     onClick={() => {
                       handleStatusUpdate(selectedOrder._id, 'confirmed');
-                      setIsModalOpen(false);
+                      closeOrderModal();
                     }}
                     className="px-6 py-2 bg-primary-600 text-white rounded-xl text-sm font-bold hover:bg-primary-700 transition-all shadow-sm"
                   >
@@ -454,6 +498,36 @@ export default function OrdersPage() {
                   </button>
                 )}
               </div>
+            </div>
+          </div>
+        )}
+
+        {previewImage && (
+          <div
+            className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+            onClick={() => setPreviewImage(null)}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Product image preview"
+          >
+            <button
+              type="button"
+              onClick={() => setPreviewImage(null)}
+              className="absolute top-4 right-4 p-2 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
+              aria-label="Close preview"
+            >
+              <X size={22} />
+            </button>
+            <div
+              className="relative max-w-4xl max-h-[85vh] w-full flex flex-col items-center"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <img
+                src={previewImage.src}
+                alt={previewImage.alt}
+                className="max-w-full max-h-[75vh] w-auto h-auto object-contain rounded-xl shadow-2xl"
+              />
+              <p className="mt-3 text-sm font-medium text-white/90 text-center">{previewImage.alt}</p>
             </div>
           </div>
         )}

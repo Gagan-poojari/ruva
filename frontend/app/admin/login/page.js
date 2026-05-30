@@ -11,6 +11,10 @@ import {
 import Image from 'next/image';
 import api from '@/utils/api';
 import toast from 'react-hot-toast';
+import {
+  isAdminSessionValid,
+  setAdminSession,
+} from '@/utils/adminAuth';
 
 export default function AdminLogin() {
   const [email, setEmail] = useState('');
@@ -22,10 +26,8 @@ export default function AdminLogin() {
   const router = useRouter();
 
   useEffect(() => {
-    const token = localStorage.getItem('adminToken');
-
-    if (token) {
-      router.push('/admin/dashboard');
+    if (isAdminSessionValid()) {
+      router.replace('/admin/dashboard');
     }
   }, [router]);
 
@@ -40,17 +42,11 @@ export default function AdminLogin() {
         password,
       });
 
-      if (rememberMe) {
-        localStorage.setItem('adminToken', data.token);
-        localStorage.setItem('adminUser', JSON.stringify(data));
-      } else {
-        sessionStorage.setItem('adminToken', data.token);
-        sessionStorage.setItem('adminUser', JSON.stringify(data));
-      }
+      setAdminSession(data, rememberMe);
 
       toast.success('Welcome back');
 
-      router.push('/admin/dashboard');
+      router.replace('/admin/dashboard');
     } catch (error) {
       toast.error(
         error.response?.data?.message ||

@@ -18,6 +18,11 @@ import {
   Star,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import {
+  getAdminUser,
+  clearAdminSession,
+  isAdminSessionValid,
+} from "@/utils/adminAuth";
 
 export default function AdminLayout({ children }) {
   const [isSidebarOpen, setSidebarOpen] = useState(true);
@@ -26,41 +31,31 @@ export default function AdminLayout({ children }) {
 
   const router = useRouter();
   const pathname = usePathname();
+  const isLoginPage = pathname === "/admin/login";
 
-  // Load user ONLY on client
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("adminUser") || "null");
+    const user = getAdminUser();
     setAdminData(user);
     setLoading(false);
-  }, []);
 
-  // Auth Guard (after loading)
-  useEffect(() => {
-    if (!loading) {
-      const token = localStorage.getItem("adminToken");
+    if (isLoginPage) return;
 
-      if (!token || adminData?.role !== "admin") {
-        if (pathname !== "/admin/login") {
-          router.push("/admin/login");
-        }
-      }
+    if (!isAdminSessionValid()) {
+      router.replace("/admin/login");
     }
-  }, [loading, adminData, pathname, router]);
+  }, [pathname, router, isLoginPage]);
 
   const handleLogout = () => {
-    localStorage.removeItem("adminToken");
-    localStorage.removeItem("adminUser");
+    clearAdminSession();
     toast.success("Logged out successfully");
-    router.push("/admin/login");
+    router.replace("/admin/login");
   };
 
-  // Don't wrap login page
-  if (pathname === "/admin/login") return children;
+  if (isLoginPage) return children;
 
-  // Prevent hydration mismatch
   if (loading) return null;
 
-  if (!adminData || adminData.role !== "admin") return null;
+  if (!isAdminSessionValid()) return null;
 
   const navItems = [
     { name: "Dashboard", icon: LayoutDashboard, href: "/admin/dashboard" },

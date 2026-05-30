@@ -78,4 +78,4 @@ const notifyWithFallback = async ({ phone, email, subject = 'RUVA Order Update',
     return { channel: 'none', delivered: false };
 };
 
-module.exports = { notifyWithFallback };
+module.exports = { notifyWithFallback, sendEmail };

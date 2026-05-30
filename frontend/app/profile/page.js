@@ -93,6 +93,13 @@ export default function ProfilePage(){
   const [orderFilter,setOrderFilter] = useState("all");
 
   useEffect(()=>{if(!loading&&!user)router.replace("/login");},[user,loading,router]);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const requestedTab = new URLSearchParams(window.location.search).get("tab");
+    if (requestedTab === "orders" || requestedTab === "settings" || requestedTab === "overview") {
+      setTab(requestedTab);
+    }
+  }, []);
   useEffect(()=>{
     if(!user) return;
     const timer = setTimeout(() => {

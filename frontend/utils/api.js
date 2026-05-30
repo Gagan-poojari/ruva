@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getAdminToken } from '@/utils/adminAuth';
 
 const isDev = process.env.NODE_ENV !== 'production';
 const resolvedBaseUrl = isDev
@@ -12,7 +13,7 @@ const api = axios.create({
 // Add a request interceptor to include the auth token
 api.interceptors.request.use((config) => {
   if (typeof window !== 'undefined') {
-    const adminToken = localStorage.getItem('adminToken');
+    const adminToken = getAdminToken();
     const userInfo = localStorage.getItem('userInfo');
     const userToken = userInfo ? JSON.parse(userInfo)?.token : null;
     const token = adminToken || userToken;

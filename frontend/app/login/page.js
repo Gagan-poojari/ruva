@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import LoginForm from "@/components/Auth/LoginForm";
 import RegisterForm from "@/components/Auth/RegisterForm";
 import { motion, AnimatePresence } from "framer-motion";
@@ -10,16 +10,30 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 
-export default function LoginPage() {
+function LoginPageContent() {
   const [isLogin, setIsLogin] = useState(true);
   const { user, loading } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const prefilledEmail = searchParams.get("email") || "";
+  const redirectTo = searchParams.get("redirect") || "/";
+  const fromGuest = searchParams.get("from") === "guest";
+
+  useEffect(() => {
+    if (searchParams.get("register") === "1") {
+      setIsLogin(false);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (!loading && user) {
-      router.push("/");
+      if (user.role === "admin") {
+        router.replace("/admin/dashboard");
+        return;
+      }
+      router.replace(redirectTo === "/orders" ? "/orders" : redirectTo || "/");
     }
-  }, [user, loading, router]);
+  }, [user, loading, router, redirectTo]);
 
   if (loading) return null;
 
@@ -69,6 +83,8 @@ export default function LoginPage() {
                   <RegisterForm
                     key="register"
                     googleEnabled
+                    defaultEmail={prefilledEmail}
+                    redirectTo={fromGuest ? "/orders" : redirectTo}
                     onToggleLogin={() => setIsLogin(true)}
                   />
                 )}
@@ -86,6 +102,8 @@ export default function LoginPage() {
                 <RegisterForm
                   key="register"
                   googleEnabled={false}
+                  defaultEmail={prefilledEmail}
+                  redirectTo={fromGuest ? "/orders" : redirectTo}
                   onToggleLogin={() => setIsLogin(true)}
                 />
               )}
@@ -99,5 +117,13 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginPageContent />
+    </Suspense>
   );
 }

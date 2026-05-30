@@ -1,7 +1,10 @@
+const mongoose = require('mongoose');
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const { OAuth2Client } = require('google-auth-library');
+const { claimGuestOrdersForUser } = require('../services/guestOrderClaimService');
+const { normalizeEmail } = require('../utils/guestOrderSanitize');
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -24,23 +27,43 @@ const registerUser = async (req, res, next) => {
             throw new Error('Please add all fields');
         }
 
-        // Check if user exists
-        const userExists = await User.findOne({ email });
+        const normalizedEmail = normalizeEmail(email);
+        if (!normalizedEmail) {
+            res.status(400);
+            throw new Error('A valid email is required');
+        }
+
+        const userExists = await User.findOne({ email: normalizedEmail });
 
         if (userExists) {
             res.status(400);
             throw new Error('User already exists');
         }
 
-        // Create user (password hash handled by pre-save hook)
-        const user = await User.create({
-            name,
-            email,
-            passwordHash: password,
-            phone,
-        });
+        const session = await mongoose.startSession();
+        session.startTransaction();
 
-        if (user) {
+        try {
+            const [user] = await User.create(
+                [
+                    {
+                        name,
+                        email: normalizedEmail,
+                        passwordHash: password,
+                        phone,
+                    },
+                ],
+                { session }
+            );
+
+            await claimGuestOrdersForUser({
+                userId: user._id,
+                email: normalizedEmail,
+                session,
+            });
+
+            await session.commitTransaction();
+
             res.status(201).json({
                 _id: user.id,
                 name: user.name,
@@ -49,9 +72,11 @@ const registerUser = async (req, res, next) => {
                 role: user.role,
                 token: generateToken(user._id),
             });
-        } else {
-            res.status(400);
-            throw new Error('Invalid user data');
+        } catch (transactionError) {
+            await session.abortTransaction();
+            throw transactionError;
+        } finally {
+            session.endSession();
         }
     } catch (error) {
         next(error);

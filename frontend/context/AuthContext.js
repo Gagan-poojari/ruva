@@ -2,6 +2,7 @@
 
 import { createContext, useState, useEffect, useContext } from 'react';
 import api from '@/utils/api';
+import { setAdminSession } from '@/utils/adminAuth';
 
 const AuthContext = createContext();
 
@@ -36,12 +37,22 @@ export const AuthProvider = ({ children }) => {
         bootstrapAuth();
     }, []);
 
+    const persistUserSession = (data) => {
+        if (data.role === 'admin') {
+            setAdminSession(data, true);
+            localStorage.removeItem('userInfo');
+            setUser(data);
+            return;
+        }
+        setUser(data);
+        localStorage.setItem('userInfo', JSON.stringify(data));
+    };
+
     const login = async (email, password) => {
         try {
             const { data } = await api.post('/auth/login', { email, password });
             
-            setUser(data);
-            localStorage.setItem('userInfo', JSON.stringify(data));
+            persistUserSession(data);
             return { success: true };
         } catch (error) {
             return { 
@@ -57,8 +68,7 @@ export const AuthProvider = ({ children }) => {
         try {
             const { data } = await api.post('/auth/register', { name, email, password, phone });
             
-            setUser(data);
-            localStorage.setItem('userInfo', JSON.stringify(data));
+            persistUserSession(data);
             return { success: true };
         } catch (error) {
             return { 
@@ -74,8 +84,7 @@ export const AuthProvider = ({ children }) => {
         try {
             const { data } = await api.post('/auth/google', { credential });
             
-            setUser(data);
-            localStorage.setItem('userInfo', JSON.stringify(data));
+            persistUserSession(data);
             return { success: true };
         } catch (error) {
             return { 

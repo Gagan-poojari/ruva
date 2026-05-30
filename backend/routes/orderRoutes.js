@@ -16,6 +16,9 @@ const {
     razorpayWebhook,
 } = require('../controllers/orderController');
 const { protect, admin } = require('../middleware/authMiddleware');
+const guestOrderRoutes = require('./guestOrderRoutes');
+
+router.use(guestOrderRoutes);
 
 router.route('/')
     .post(protect, addOrderItems)

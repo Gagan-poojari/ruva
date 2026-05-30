@@ -2,22 +2,36 @@
 
 import { useForm } from "react-hook-form";
 import { useAuth } from "@/context/AuthContext";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Mail, Lock, User, Phone, Loader2, ArrowRight } from "lucide-react";
 import { GoogleLogin } from "@react-oauth/google";
 import toast from "react-hot-toast";
 
-export default function RegisterForm({ onToggleLogin, googleEnabled = true }) {
+export default function RegisterForm({
+  onToggleLogin,
+  googleEnabled = true,
+  defaultEmail = "",
+  redirectTo = "/",
+}) {
   const { register: registerAction, googleLogin } = useAuth();
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
-  } = useForm();
+  } = useForm({
+    defaultValues: { email: defaultEmail },
+  });
+
+  useEffect(() => {
+    if (defaultEmail) setValue("email", defaultEmail);
+  }, [defaultEmail, setValue]);
 
   const onSubmit = async (data) => {
     setLoading(true);
@@ -30,6 +44,7 @@ export default function RegisterForm({ onToggleLogin, googleEnabled = true }) {
           border: "1px solid rgba(236,198,255,0.2)",
         },
       });
+      router.push(redirectTo || "/");
     } else {
       toast.error(result.error || "Registration failed");
     }
