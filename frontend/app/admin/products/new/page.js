@@ -413,7 +413,7 @@ export default function NewProduct() {
                   style={{ cursor: 'grab' }}
                 >
                   <div
-                    className="aspect-[3/4] rounded-2xl overflow-hidden border border-primary-100 select-none"
+                    className="aspect-3/4 rounded-2xl overflow-hidden border border-primary-100 select-none"
                     style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}
                   >
                     <img src={url} alt="" className="w-full h-full object-cover pointer-events-none" draggable={false} />
@@ -442,7 +442,7 @@ export default function NewProduct() {
               ))}
 
               {/* Upload tile */}
-              <label className="aspect-[3/4] rounded-2xl border-2 border-dashed border-gray-100 hover:border-primary-400 hover:bg-primary-50 transition-all cursor-pointer flex flex-col items-center justify-center gap-2 group">
+              <label className="aspect-3/4 rounded-2xl border-2 border-dashed border-gray-100 hover:border-primary-400 hover:bg-primary-50 transition-all cursor-pointer flex flex-col items-center justify-center gap-2 group">
                 <Upload className="text-gray-300 group-hover:text-primary-500 transition-colors" size={22} />
                 <span className="text-[10px] font-bold text-gray-400 group-hover:text-primary-500 uppercase tracking-wider transition-colors">Add Photos</span>
                 <input type="file" multiple className="hidden" onChange={handleImageChange} accept="image/*" />
@@ -518,7 +518,7 @@ export default function NewProduct() {
                     <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Variant Images</p>
                     <div className="grid grid-cols-4 gap-2.5">
                       {(variantPreviewUrls[vi] || []).map((url, ii) => (
-                        <div key={url + ii} className="relative aspect-[3/4] rounded-xl overflow-hidden border border-gray-100">
+                        <div key={url + ii} className="relative aspect-3/4 rounded-xl overflow-hidden border border-gray-100">
                           <img src={url} alt="" className="w-full h-full object-cover" />
                           {/* Always-visible remove */}
                           <button
@@ -530,7 +530,7 @@ export default function NewProduct() {
                           </button>
                         </div>
                       ))}
-                      <label className="aspect-[3/4] rounded-xl border-2 border-dashed border-gray-200 hover:border-primary-400 hover:bg-primary-50 flex items-center justify-center cursor-pointer transition-all">
+                      <label className="aspect-3/4 rounded-xl border-2 border-dashed border-gray-200 hover:border-primary-400 hover:bg-primary-50 flex items-center justify-center cursor-pointer transition-all">
                         <Upload size={16} className="text-gray-300" />
                         <input type="file" multiple className="hidden" accept="image/*" onChange={(e) => handleVariantImageChange(vi, e.target.files)} />
                       </label>
@@ -607,7 +607,7 @@ export default function NewProduct() {
             </button>
             <button 
               type="submit" disabled={saving}
-              className="flex-[2] bg-black text-white font-bold py-4 rounded-2xl shadow-lg hover:bg-gray-900 transition-all flex items-center justify-center gap-2"
+              className="flex-2 bg-black text-white font-bold py-4 rounded-2xl shadow-lg hover:bg-gray-900 transition-all flex items-center justify-center gap-2"
             >
               {saving ? <Loader2 className="animate-spin" size={20} /> : <Plus size={20} />}
               Publish Product

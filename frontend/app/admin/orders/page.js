@@ -208,7 +208,7 @@ export default function OrdersPage() {
                     <td className="px-6 py-4">
                       <div className="flex flex-col gap-0.5">
                         <span className="text-sm font-bold text-gray-900">{order.user?.name || 'Guest User'}</span>
-                        <p className="text-[10px] text-gray-500 leading-tight max-w-[200px]">
+                        <p className="text-[10px] text-gray-500 leading-tight max-w-50">
                           {order.shippingAddress?.street}, {order.shippingAddress?.city}, {order.shippingAddress?.state} - {order.shippingAddress?.pincode}
                         </p>
                         {order.shippingAddress?.email && (
@@ -418,7 +418,7 @@ export default function OrdersPage() {
                                   <button
                                     type="button"
                                     onClick={() => setPreviewImage({ src: imageSrc, alt: productName })}
-                                    className="relative w-10 h-10 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 group ring-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+                                    className="relative w-10 h-10 bg-gray-100 rounded-lg overflow-hidden shrink-0 group ring-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
                                     title="View larger image"
                                   >
                                     <img
@@ -431,7 +431,7 @@ export default function OrdersPage() {
                                     </span>
                                   </button>
                                 ) : (
-                                  <div className="w-10 h-10 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center">
+                                  <div className="w-10 h-10 bg-gray-100 rounded-lg overflow-hidden shrink-0 flex items-center justify-center">
                                     <ShoppingBag size={16} className="text-gray-300" />
                                   </div>
                                 )}
@@ -504,7 +504,7 @@ export default function OrdersPage() {
 
         {previewImage && (
           <div
-            className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+            className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
             onClick={() => setPreviewImage(null)}
             role="dialog"
             aria-modal="true"
