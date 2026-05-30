@@ -11,6 +11,7 @@ const {
     getRefundOrderDetails,
     processAdminRefund,
     cancelMyOrder,
+    deleteOrder,
     getRazorpayKey,
     retryPaymentForOrder,
     razorpayWebhook,
@@ -32,6 +33,7 @@ router.route('/:id/retry-payment').post(protect, retryPaymentForOrder);
 router.route('/:id/refund').post(protect, requestRefund);
 router.route('/:id/cancel').post(protect, cancelMyOrder);
 router.route('/:id/status').put(protect, admin, updateOrderStatus);
+router.route('/:id').delete(protect, admin, deleteOrder);
 router.route('/admin-refund/authorize').post(protect, admin, authorizeAdminRefundPanel);
 router.route('/admin-refund/:id').get(protect, admin, getRefundOrderDetails);
 router.route('/admin-refund/:id/process').post(protect, admin, processAdminRefund);

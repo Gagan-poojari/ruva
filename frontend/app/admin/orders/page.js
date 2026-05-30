@@ -20,12 +20,19 @@ import {
   Phone,
   Printer,
   ZoomIn,
+  RefreshCw,
+  Loader2,
 } from 'lucide-react';
 import api from '@/utils/api';
 import toast from 'react-hot-toast';
 
 const getItemImageSrc = (item) =>
   item?.product?.images?.[0]?.url || item?.product?.images?.[0] || null;
+
+const formatItemSize = (size) => {
+  if (!size || size === 'Free Size') return 'Free Size';
+  return size;
+};
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState([]);
@@ -36,6 +43,8 @@ export default function OrdersPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [orderToPrint, setOrderToPrint] = useState(null);
   const [previewImage, setPreviewImage] = useState(null);
+  const [deleteConfirmationOpen, setDeleteConfirmationOpen] = useState(false);
+  const [orderToDelete, setOrderToDelete] = useState(null);
 
   const fetchOrders = async () => {
     try {
@@ -63,6 +72,21 @@ export default function OrdersPage() {
       fetchOrders(); // Refresh list
     } catch (error) {
       toast.error('Failed to update status');
+    }
+  };
+
+  const handleDeleteOrder = async () => {
+    if (!orderToDelete) return;
+
+    try {
+      await api.delete(`/orders/${orderToDelete._id}`);
+      toast.success('Order cancelled successfully');
+      setDeleteConfirmationOpen(false);
+      setOrderToDelete(null);
+      closeOrderModal();
+      fetchOrders(); // Refresh list
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to cancel order');
     }
   };
 
@@ -179,6 +203,17 @@ export default function OrdersPage() {
               <option value="delivered">Delivered</option>
               <option value="cancelled">Cancelled</option>
             </select>
+
+            <button
+              type="button"
+              onClick={fetchOrders}
+              disabled={loading}
+              className="flex items-center gap-2 bg-white border border-gray-200 text-sm font-bold rounded-xl px-4 py-2 text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Refresh orders"
+            >
+              <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
+              Refresh
+            </button>
           </div>
         </div>
 
@@ -189,13 +224,24 @@ export default function OrdersPage() {
                 <tr className="bg-gray-50/50 border-b border-gray-100">
                   <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Order Info</th>
                   <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Customer</th>
+                  <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Products</th>
                   <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Amount</th>
                   <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
                   <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {filteredOrders.map((order) => (
+                {loading
+                  ? Array.from({ length: 6 }).map((_, i) => (
+                      <tr key={i} className="animate-pulse">
+                        {Array.from({ length: 6 }).map((_, j) => (
+                          <td key={j} className="px-6 py-4">
+                            <div className="h-4 bg-gray-100 rounded w-3/4" />
+                          </td>
+                        ))}
+                      </tr>
+                    ))
+                  : filteredOrders.map((order) => (
                   <tr key={order._id} className="hover:bg-gray-50/50 transition-colors group">
                     <td className="px-6 py-4">
                       <div className="flex flex-col">
@@ -215,6 +261,18 @@ export default function OrdersPage() {
                           <span className="text-[10px] text-primary-600 font-medium">Email: {order.shippingAddress.email}</span>
                         )}
                       </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <ul className="space-y-1.5 max-w-[280px]">
+                        {order.items?.map((item, idx) => (
+                          <li key={idx} className="text-[11px] text-gray-700 leading-snug">
+                            <span className="font-bold text-gray-900">{item.product?.name || 'Product'}</span>
+                            <span className="text-gray-500"> · Size: {formatItemSize(item.size)}</span>
+                            {item.color && <span className="text-gray-500"> · {item.color}</span>}
+                            <span className="text-gray-400"> ×{item.qty}</span>
+                          </li>
+                        ))}
+                      </ul>
                     </td>
                     <td className="px-6 py-4">
                       <span className="text-sm font-bold text-gray-900 sp2-num">₹{order.totalAmount.toLocaleString()}</span>
@@ -304,7 +362,14 @@ export default function OrdersPage() {
             </table>
           </div>
 
-          {filteredOrders.length === 0 && (
+          {loading && (
+            <div className="flex items-center justify-center gap-2 py-6 text-sm text-gray-500 border-t border-gray-100">
+              <Loader2 size={18} className="animate-spin text-primary-500" />
+              Loading orders…
+            </div>
+          )}
+
+          {!loading && filteredOrders.length === 0 && (
             <div className="text-center py-20">
               <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
                 <ShoppingBag className="text-gray-300" size={32} />
@@ -402,6 +467,7 @@ export default function OrdersPage() {
                       <thead className="bg-gray-50/50">
                         <tr>
                           <th className="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase">Product</th>
+                          <th className="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase text-center">Size</th>
                           <th className="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase text-center">Qty</th>
                           <th className="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase text-right">Price</th>
                         </tr>
@@ -437,7 +503,9 @@ export default function OrdersPage() {
                                 )}
                                 <div>
                                   <p className="text-xs font-bold text-gray-900 line-clamp-1">{productName}</p>
-                                  {item.size && <p className="text-[10px] text-gray-500 font-medium">Size: {item.size}</p>}
+                                  {item.color && (
+                                    <p className="text-[10px] text-gray-500 font-medium">Color: {item.color}</p>
+                                  )}
                                   {imageSrc && (
                                     <button
                                       type="button"
@@ -449,6 +517,9 @@ export default function OrdersPage() {
                                   )}
                                 </div>
                               </div>
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              <span className="text-xs font-medium text-gray-700">{formatItemSize(item.size)}</span>
                             </td>
                             <td className="px-4 py-3 text-center">
                               <span className="text-xs font-medium text-gray-600">x{item.qty}</span>
@@ -479,24 +550,40 @@ export default function OrdersPage() {
               </div>
 
               {/* Modal Footer */}
-              <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/50 flex justify-end gap-3">
-                <button
-                  onClick={closeOrderModal}
-                  className="px-6 py-2 text-sm font-bold text-gray-500 hover:text-gray-700 transition-colors"
-                >
-                  Close
-                </button>
-                {selectedOrder.status === 'pending' && (
+              <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/50 flex justify-between">
+                <div>
+                  {selectedOrder.status !== 'cancelled' && selectedOrder.status !== 'delivered' && (
+                    <button
+                      onClick={() => {
+                        setOrderToDelete(selectedOrder);
+                        setDeleteConfirmationOpen(true);
+                      }}
+                      className="px-6 py-2 bg-red-600 text-white rounded-xl text-sm font-bold hover:bg-red-700 transition-all shadow-sm"
+                      title="Cancel this order"
+                    >
+                      Cancel Order
+                    </button>
+                  )}
+                </div>
+                <div className="flex gap-3">
                   <button
-                    onClick={() => {
-                      handleStatusUpdate(selectedOrder._id, 'confirmed');
-                      closeOrderModal();
-                    }}
-                    className="px-6 py-2 bg-primary-600 text-white rounded-xl text-sm font-bold hover:bg-primary-700 transition-all shadow-sm"
+                    onClick={closeOrderModal}
+                    className="px-6 py-2 text-sm font-bold text-gray-500 hover:text-gray-700 transition-colors"
                   >
-                    Confirm Order
+                    Close
                   </button>
-                )}
+                  {selectedOrder.status === 'pending' && (
+                    <button
+                      onClick={() => {
+                        handleStatusUpdate(selectedOrder._id, 'confirmed');
+                        closeOrderModal();
+                      }}
+                      className="px-6 py-2 bg-primary-600 text-white rounded-xl text-sm font-bold hover:bg-primary-700 transition-all shadow-sm"
+                    >
+                      Confirm Order
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -621,7 +708,10 @@ export default function OrdersPage() {
                     <td className="border border-gray-300 p-2 text-center">{idx + 1}</td>
                     <td className="border border-gray-300 p-2">
                       <p className="font-bold">{item.product?.name || 'Deleted Product'}</p>
-                      {item.size && <p className="text-xs text-gray-600 mt-1">Size: {item.size}</p>}
+                      <p className="text-xs text-gray-600 mt-1">Size: {formatItemSize(item.size)}</p>
+                      {item.color && (
+                        <p className="text-xs text-gray-600">Color: {item.color}</p>
+                      )}
                     </td>
                     <td className="border border-gray-300 p-2 text-center">{item.qty}</td>
                     <td className="border border-gray-300 p-2 text-right sp2-num">₹{item.price.toLocaleString()}</td>
@@ -658,6 +748,48 @@ export default function OrdersPage() {
                   <span className="text-gray-300 italic font-serif">Ruva Auth</span>
                 </div>
                 <p className="border-t border-black pt-2 font-bold uppercase text-xs">Authorized Signatory</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Confirmation Dialog */}
+        {deleteConfirmationOpen && orderToDelete && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl p-8 space-y-6">
+              <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full">
+                <X size={24} className="text-red-600" />
+              </div>
+              <div className="text-center space-y-2">
+                <h2 className="text-2xl font-bold text-gray-900">Cancel Order?</h2>
+                <p className="text-sm text-gray-600">
+                  This will mark the order as cancelled and add it to your cancelled history. This action cannot be undone.
+                </p>
+                <p className="text-xs text-gray-500 mt-3">
+                  <strong>Order ID:</strong> #{orderToDelete._id.slice(-8)}
+                </p>
+              </div>
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                <p className="text-xs text-amber-800">
+                  <strong>Note:</strong> If this order has a paid status, any refund will need to be processed separately.
+                </p>
+              </div>
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={() => {
+                    setDeleteConfirmationOpen(false);
+                    setOrderToDelete(null);
+                  }}
+                  className="flex-1 px-4 py-2 text-sm font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-all"
+                >
+                  Don't Cancel
+                </button>
+                <button
+                  onClick={handleDeleteOrder}
+                  className="flex-1 px-4 py-2 text-sm font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-all shadow-sm"
+                >
+                  Yes, Cancel Order
+                </button>
               </div>
             </div>
           </div>

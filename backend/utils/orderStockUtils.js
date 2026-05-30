@@ -11,6 +11,12 @@ const normalizeSize = (size) => {
     return size;
 };
 
+/** Size persisted on the order document (always stored for admin/display). */
+const getStoredSize = (size) => {
+    if (!size || size === 'Free Size') return 'Free Size';
+    return String(size).trim();
+};
+
 const getEffectiveProductPrice = (product, color) => {
     if (color && product.colorVariants && product.colorVariants.length > 0) {
         const variant = product.colorVariants.find(
@@ -113,7 +119,7 @@ const buildVerifiedOrderItems = async (orderItems) => {
             product: item.product,
             qty: item.qty,
             price: dbPrice,
-            size: normalizedSize,
+            size: getStoredSize(item.size),
             color: item.color,
         });
     }
@@ -123,5 +129,6 @@ const buildVerifiedOrderItems = async (orderItems) => {
 
 module.exports = {
     normalizeSize,
+    getStoredSize,
     buildVerifiedOrderItems,
 };

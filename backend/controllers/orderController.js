@@ -22,6 +22,11 @@ const normalizeSize = (size) => {
     return size;
 };
 
+const getStoredSize = (size) => {
+    if (!size || size === 'Free Size') return 'Free Size';
+    return String(size).trim();
+};
+
 const getEffectiveProductPrice = (product, color) => {
     if (color && product.colorVariants && product.colorVariants.length > 0) {
         const variant = product.colorVariants.find(
@@ -307,7 +312,7 @@ const addOrderItems = async (req, res, next) => {
                 product: item.product,
                 qty: item.qty,
                 price: dbPrice,
-                size: normalizedSize,
+                size: getStoredSize(item.size),
                 color: item.color,
             });
         }
@@ -625,7 +630,19 @@ const getOrders = async (req, res, next) => {
             .populate('user', 'id name phone email')
             .populate('items.product', 'name images')
             .sort({ createdAt: -1 });
-        res.json(orders);
+        
+        // Ensure all items include their size and color fields
+        const ordersWithDetails = orders.map(order => {
+            const orderObj = order.toObject();
+            orderObj.items = orderObj.items.map(item => ({
+                ...item,
+                size: item.size || 'Free Size',
+                color: item.color || undefined,
+            }));
+            return orderObj;
+        });
+        
+        res.json(ordersWithDetails);
     } catch (error) {
         next(error);
     }
@@ -854,6 +871,56 @@ const cancelMyOrder = async (req, res, next) => {
     }
 };
 
+// @desc    Admin delete order (marks as cancelled instead of deleting)
+// @route   DELETE /api/orders/:id
+// @access  Private/Admin
+const deleteOrder = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+
+        if (!isValidObjectId(id)) {
+            res.status(400);
+            throw new Error('Invalid order id');
+        }
+
+        const order = await Order.findById(id).populate('user', 'name email phone');
+
+        if (!order) {
+            res.status(404);
+            throw new Error('Order not found');
+        }
+
+        // Prevent cancelling already cancelled orders
+        if (order.status === 'cancelled') {
+            res.status(400);
+            throw new Error('Order is already cancelled');
+        }
+
+        // If moving TO cancelled, restore stock if it was previously taken (paid orders)
+        if (order.paymentStatus === 'paid') {
+            for (const item of order.items) {
+                const product = await Product.findById(item.product);
+                if (product) {
+                    adjustProductStock(product, item.color, item.size, -item.qty);
+                    await product.save();
+                }
+            }
+        } else {
+            // If it was pending/unpaid, just clear the hold
+            order.holdExpiresAt = undefined;
+        }
+
+        order.status = 'cancelled';
+        order.refundReason = 'Deleted by admin';
+        order.refundInitiatedBy = 'admin';
+        const updatedOrder = await order.save();
+
+        res.json({ message: 'Order cancelled successfully', order: updatedOrder });
+    } catch (error) {
+        next(error);
+    }
+};
+
 // @desc    Authorize admin for refund panel second step
 // @route   POST /api/orders/admin-refund/authorize
 // @access  Private/Admin
@@ -1012,6 +1079,7 @@ module.exports = {
     getRefundOrderDetails,
     processAdminRefund,
     cancelMyOrder,
+    deleteOrder,
     getRazorpayKey,
     retryPaymentForOrder,
     razorpayWebhook,

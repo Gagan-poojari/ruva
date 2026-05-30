@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { ShieldCheck, Loader2 } from "lucide-react";
+import ShippingAddressFields from "@/components/checkout/ShippingAddressFields";
 
 /**
  * Logged-in checkout sidebar — extracted unchanged from cart/page.js.
@@ -37,58 +38,12 @@ export default function AuthenticatedCheckoutAside({
         </div>
       </div>
 
-      <div className="mt-5 space-y-2">
-        <input
-          id="shipping-street"
-          value={shippingAddress.street}
-          onChange={(e) => setShippingAddress((s) => ({ ...s, street: e.target.value }))}
-          placeholder="Street Address *"
-          className="w-full rounded-xl border border-[#d9b06d]/35 bg-white px-3 py-2 text-sm outline-none"
+      <div className="mt-5">
+        <ShippingAddressFields
+          shippingAddress={shippingAddress}
+          setShippingAddress={setShippingAddress}
+          includeContactFields
         />
-        <div className="grid grid-cols-2 gap-2">
-          <input
-            id="shipping-city"
-            value={shippingAddress.city}
-            onChange={(e) => setShippingAddress((s) => ({ ...s, city: e.target.value }))}
-            placeholder="City *"
-            className="w-full rounded-xl border border-[#d9b06d]/35 bg-white px-3 py-2 text-sm outline-none"
-          />
-          <input
-            id="shipping-state"
-            value={shippingAddress.state}
-            onChange={(e) => setShippingAddress((s) => ({ ...s, state: e.target.value }))}
-            placeholder="State *"
-            className="w-full rounded-xl border border-[#d9b06d]/35 bg-white px-3 py-2 text-sm outline-none"
-          />
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          <input
-            id="shipping-pincode"
-            value={shippingAddress.pincode}
-            onChange={(e) => setShippingAddress((s) => ({ ...s, pincode: e.target.value }))}
-            placeholder="Pincode *"
-            className="w-full rounded-xl border border-[#d9b06d]/35 bg-white px-3 py-2 text-sm outline-none"
-          />
-          <input
-            type="email"
-            id="shipping-email"
-            value={shippingAddress.email}
-            onChange={(e) => setShippingAddress((s) => ({ ...s, email: e.target.value }))}
-            placeholder="Email Address *"
-            className="w-full rounded-xl border border-[#d9b06d]/35 bg-white px-3 py-2 text-sm outline-none"
-          />
-        </div>
-        <div className="grid grid-cols-1 gap-2">
-          <input
-            type="tel"
-            id="shipping-phone"
-            value={shippingAddress.phone}
-            onChange={(e) => setShippingAddress((s) => ({ ...s, phone: e.target.value }))}
-            placeholder="Phone Number *"
-            maxLength={10}
-            className="w-full rounded-xl border border-[#d9b06d]/35 bg-white px-3 py-2 text-sm outline-none"
-          />
-        </div>
       </div>
 
       <button

@@ -13,6 +13,7 @@ import AuthenticatedCheckoutAside from "@/components/checkout/AuthenticatedCheck
 import GuestCheckoutAside from "@/components/guest/GuestCheckoutAside";
 import GuestPostOrderPrompt from "@/components/guest/GuestPostOrderPrompt";
 import { saveGuestOrderTracking } from "@/utils/guestOrderStorage";
+import { emptyShippingForm, formatShippingForOrder, isShippingAddressReady, isShippingLocationComplete } from "@/utils/shippingAddress";
 
 const RAZORPAY_KEY = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
 
@@ -29,14 +30,7 @@ export default function CartPage() {
   const [placing, setPlacing] = useState(false);
   const [razorpayLoaded, setRazorpayLoaded] = useState(false);
   const [rzKey, setRzKey] = useState(RAZORPAY_KEY || "");
-  const [shippingAddress, setShippingAddress] = useState({
-    street: "",
-    city: "",
-    state: "",
-    pincode: "",
-    email: "",
-    phone: "",
-  });
+  const [shippingAddress, setShippingAddress] = useState(emptyShippingForm);
 
   // --- Guest checkout state (PIECE A / C) — not used when logged in ---
   const [checkoutMode, setCheckoutMode] = useState(null);
@@ -71,13 +65,16 @@ export default function CartPage() {
   }, [user, rzKey]);
 
   const validateShippingFields = () => {
-    if (
-      !shippingAddress.street ||
-      !shippingAddress.city ||
-      !shippingAddress.state ||
-      !shippingAddress.pincode
-    ) {
-      toast.error("Please fill all required shipping fields.");
+    if (!isShippingLocationComplete(shippingAddress)) {
+      toast.error("Enter pincode or use current location to fill your area.");
+      return false;
+    }
+    if (!shippingAddress.locationConfirmed) {
+      toast.error("Please confirm your delivery area is correct.");
+      return false;
+    }
+    if (!shippingAddress.houseLandmark?.trim()) {
+      toast.error("Please enter house number and landmark.");
       return false;
     }
     return true;
@@ -268,10 +265,10 @@ export default function CartPage() {
           product: item.product,
           qty: item.qty || 1,
           price: Number(item.price) || 0,
-          size: item.size || undefined,
+          size: item.size || 'Free Size',
           color: item.selectedColor || undefined,
         })),
-        shippingAddress,
+        shippingAddress: formatShippingForOrder(shippingAddress),
         paymentMethod: "Razorpay",
         itemsPrice: subtotal,
         taxPrice: taxAmount,
@@ -327,7 +324,7 @@ export default function CartPage() {
 
     const normalizedGuestEmail = guestEmail.trim().toLowerCase();
     const shippingPayload = {
-      ...shippingAddress,
+      ...formatShippingForOrder(shippingAddress),
       email: normalizedGuestEmail,
       phone: guestPhone.trim(),
     };
@@ -339,7 +336,7 @@ export default function CartPage() {
           product: item.product,
           qty: item.qty || 1,
           price: Number(item.price) || 0,
-          size: item.size || undefined,
+          size: item.size || 'Free Size',
           color: item.selectedColor || undefined,
         })),
         shippingAddress: shippingPayload,

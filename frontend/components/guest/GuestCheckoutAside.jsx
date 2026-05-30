@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ShieldCheck, Loader2 } from "lucide-react";
 import GuestCheckoutGate from "./GuestCheckoutGate";
+import ShippingAddressFields from "@/components/checkout/ShippingAddressFields";
 
 /**
  * PIECE A — Logged-out checkout sidebar (guest flow only).
@@ -56,34 +57,11 @@ export default function GuestCheckoutAside({
         onGuestPhoneChange={onGuestPhoneChange}
       />
 
-      <div className="space-y-2">
-        <input
-          value={shippingAddress.street}
-          onChange={(e) => setShippingAddress((s) => ({ ...s, street: e.target.value }))}
-          placeholder="Street Address *"
-          className="w-full rounded-xl border border-[#d9b06d]/35 bg-white px-3 py-2 text-sm outline-none"
-        />
-        <div className="grid grid-cols-2 gap-2">
-          <input
-            value={shippingAddress.city}
-            onChange={(e) => setShippingAddress((s) => ({ ...s, city: e.target.value }))}
-            placeholder="City *"
-            className="w-full rounded-xl border border-[#d9b06d]/35 bg-white px-3 py-2 text-sm outline-none"
-          />
-          <input
-            value={shippingAddress.state}
-            onChange={(e) => setShippingAddress((s) => ({ ...s, state: e.target.value }))}
-            placeholder="State *"
-            className="w-full rounded-xl border border-[#d9b06d]/35 bg-white px-3 py-2 text-sm outline-none"
-          />
-        </div>
-        <input
-          value={shippingAddress.pincode}
-          onChange={(e) => setShippingAddress((s) => ({ ...s, pincode: e.target.value }))}
-          placeholder="Pincode *"
-          className="w-full rounded-xl border border-[#d9b06d]/35 bg-white px-3 py-2 text-sm outline-none"
-        />
-      </div>
+      <ShippingAddressFields
+        shippingAddress={shippingAddress}
+        setShippingAddress={setShippingAddress}
+        includeContactFields={false}
+      />
 
       <button
         type="button"
