@@ -12,7 +12,8 @@ const SAREE_FABRICS = [
   "Banarasi", "Kanjivaram", "Mysore Silk", "Patola", "Chanderi", 
   "Maheshwari", "Tant", "Khadi", "Organza", "Georgette", "Net", 
   "Ruffle", "Bandhani", "Paithani", "Leheriya", "Kasavu", 
-  "Sambalpuri", "Baluchari", "silk-cotton", "cotton", "velvet", "satine",
+  "Sambalpuri", "Baluchari", "Silk-cotton", "Cotton","Velvet", 
+  "Satine", "silk", "Chiffon"
 ];
 
 const CATEGORIES = [
