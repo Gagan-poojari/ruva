@@ -2,7 +2,7 @@
 
 import { useState, useEffect, use, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { 
+import {
   ArrowLeft, Save, Upload, X, Loader2, Info, Plus, Sparkles, GripVertical
 } from 'lucide-react';
 import api from '@/utils/api';
@@ -17,7 +17,7 @@ const SAREE_FABRICS = [
 ];
 
 const CATEGORIES = [
-  "Sarees", "Blouses", "Silver Jewelry", 
+  "Sarees", "Blouses", "Silver Jewelry",
   "Crystal Bracelets", "Shawls", "Dupatta"
 ];
 
@@ -40,7 +40,7 @@ export default function EditProduct({ params }) {
   const resolvedParams = use(params);
   const id = resolvedParams.id;
   const router = useRouter();
-  
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [productData, setProductData] = useState({
@@ -67,7 +67,7 @@ export default function EditProduct({ params }) {
 
   // Images already uploaded to DB
   const [existingImages, setExistingImages] = useState([]);
-  
+
   // New images added by user during this edit
   const [newImages, setNewImages] = useState([]);
   const [previewUrls, setPreviewUrls] = useState([]);
@@ -88,7 +88,7 @@ export default function EditProduct({ params }) {
       try {
         const { data } = await api.get(`/products/${id}`);
         const tags = data.tags || [];
-        
+
         setProductData({
           name: data.name || '',
           slug: data.slug || '',
@@ -121,7 +121,7 @@ export default function EditProduct({ params }) {
         });
 
         setExistingImages(data.images || []);
-        
+
         const variantExistingImages = (data.colorVariants?.length ? data.colorVariants : [createEmptyVariant()]).map((variant) => variant.images || []);
         setVariantImages(variantExistingImages.map(() => []));
         setVariantPreviewUrls(variantExistingImages.map((variantImgs) => variantImgs.map((img) => img.url)));
@@ -151,8 +151,8 @@ export default function EditProduct({ params }) {
       setProductData(prev => ({ ...prev, description: data.description }));
       toast.success('Description generated!', { id: toastId });
     } catch (error) {
-      const message = error.response?.status === 429 
-        ? 'AI limit reached. Please write your own description.' 
+      const message = error.response?.status === 429
+        ? 'AI limit reached. Please write your own description.'
         : 'Failed to generate description. Please try again.';
       toast.error(message, { id: toastId });
     } finally {
@@ -208,9 +208,9 @@ export default function EditProduct({ params }) {
   /* ─── Drag-to-reorder existing images ─── */
   const onDragStart = (index) => { dragIndex.current = index; };
   const onDragEnter = (index) => { dragOverIndex.current = index; };
-  const onDragEnd   = () => {
+  const onDragEnd = () => {
     const from = dragIndex.current;
-    const to   = dragOverIndex.current;
+    const to = dragOverIndex.current;
     if (from === null || to === null || from === to) return;
     setExistingImages(prev => {
       const next = [...prev];
@@ -270,7 +270,7 @@ export default function EditProduct({ params }) {
       toast.error('Please upload at least one image');
       return;
     }
-    
+
     const isBlouse = productData.category === 'Blouses';
     if (isBlouse && productData.blouseSizes.length === 0) {
       toast.error('Please select at least one blouse size');
@@ -332,7 +332,7 @@ export default function EditProduct({ params }) {
       await api.put(`/products/${id}`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      
+
       toast.success('Product updated successfully');
       router.push('/admin/products');
     } catch (error) {
@@ -376,7 +376,7 @@ export default function EditProduct({ params }) {
             <div className="space-y-4">
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Product Name</label>
-                <input 
+                <input
                   type="text" name="name" value={productData.name} onChange={handleInputChange}
                   placeholder="e.g. Royal Banarasi Silk Saree"
                   className="w-full bg-gray-50 border border-gray-100 text-gray-900 rounded-2xl py-3.5 px-5 outline-none focus:border-primary-500 transition-all font-medium"
@@ -395,7 +395,7 @@ export default function EditProduct({ params }) {
                     Regenerate with AI
                   </button>
                 </div>
-                <textarea 
+                <textarea
                   name="description" value={productData.description} onChange={handleInputChange}
                   rows={6} placeholder="Describe the fabric, weave, and detailing..."
                   className="w-full bg-gray-50 border border-gray-100 text-gray-900 rounded-2xl py-3.5 px-5 outline-none focus:border-primary-500 transition-all font-medium resize-none"
@@ -413,16 +413,23 @@ export default function EditProduct({ params }) {
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Fabric</label>
-                  <select name="fabric" value={productData.fabric} onChange={handleInputChange}
-                    className="w-full bg-gray-50 border border-gray-100 text-gray-900 rounded-2xl py-3.5 px-5 outline-none focus:border-primary-500 transition-all font-medium appearance-none">
-                    <option value="">Select Fabric</option>
-                    {SAREE_FABRICS.map(fab => <option key={fab} value={fab}>{fab}</option>)}
-                    <option value="Other">Other</option>
-                  </select>
+                  <input
+                    type="text"
+                    name="fabric"
+                    value={productData.fabric}
+                    onChange={handleInputChange}
+                    placeholder="e.g. Kanjivaram, Organza..."
+                    list="fabric-suggestions"
+                    className="w-full bg-gray-50 border border-gray-100 text-gray-900 rounded-2xl py-3.5 px-5 outline-none focus:border-primary-500 transition-all font-medium"
+                    autoComplete="off"
+                  />
+                  <datalist id="fabric-suggestions">
+                    {SAREE_FABRICS.map(fab => <option key={fab} value={fab} />)}
+                  </datalist>
                 </div>
                 <div className="space-y-1.5 col-span-2">
                   <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Colors (Comma separated)</label>
-                  <input 
+                  <input
                     type="text" name="colors" value={productData.colors} onChange={handleInputChange}
                     placeholder="e.g. Ruby Red, Antique Gold"
                     className="w-full bg-gray-50 border border-gray-100 text-gray-900 rounded-2xl py-3.5 px-5 outline-none focus:border-primary-500 transition-all font-medium"
@@ -675,11 +682,11 @@ export default function EditProduct({ params }) {
           <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm space-y-4">
             <h3 className="text-lg font-bold text-gray-900 border-b border-gray-50 pb-4">Visibility</h3>
             {[
-              ['isFeatured',     'Featured Product'],
-              ['isBestseller',   'Bestseller'],
-              ['isTrending',     'Trending'],
-              ['isNewArrival',   'New Arrival'],
-              ['isLimitedEdition','Limited Edition'],
+              ['isFeatured', 'Featured Product'],
+              ['isBestseller', 'Bestseller'],
+              ['isTrending', 'Trending'],
+              ['isNewArrival', 'New Arrival'],
+              ['isLimitedEdition', 'Limited Edition'],
             ].map(([name, label]) => (
               <div key={name} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
                 <div className="flex items-center gap-3">
@@ -701,13 +708,13 @@ export default function EditProduct({ params }) {
 
           {/* Actions */}
           <div className="flex gap-3">
-            <button 
+            <button
               type="button" onClick={() => router.push('/admin/products')}
               className="flex-1 px-6 py-4 rounded-2xl font-bold bg-white border border-gray-200 text-gray-500 hover:bg-gray-50 transition-all"
             >
               Cancel
             </button>
-            <button 
+            <button
               type="submit" disabled={saving}
               className="flex-2 bg-black text-white font-bold py-4 rounded-2xl shadow-lg hover:bg-gray-900 transition-all flex items-center justify-center gap-2"
             >

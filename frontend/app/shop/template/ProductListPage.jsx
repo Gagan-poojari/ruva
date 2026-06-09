@@ -31,7 +31,7 @@ const SAREE_FABRICS = [
   "Banarasi", "Kanjivaram", "Mysore Silk", "Patola", "Chanderi",
   "Maheshwari", "Tant", "Khadi", "Organza", "Georgette", "Net",
   "Ruffle", "Bandhani", "Paithani", "Leheriya", "Kasavu",
-  "Sambalpuri", "Baluchari", "Silk-cotton", "Cotton","Velvet", 
+  "Sambalpuri", "Baluchari", "Silk-cotton", "Cotton", "Velvet",
   "Satine", "silk", "Chiffon"
 ];
 
@@ -455,22 +455,19 @@ function FilterSheet({ open, onClose, category, setCategory, fabric, setFabric, 
               {/* Fabric */}
               <div className="mb-6">
                 <p className="text-[0.65rem] uppercase tracking-[0.22em] font-bold text-[#6b1a1a]/60 mb-3" style={{ fontFamily: "var(--font-label)" }}>Fabric</p>
-                <div className="relative">
-                  <select
-                    value={fabric}
-                    onChange={(e) => setFabric(e.target.value)}
-                    className="w-full pl-4 pr-10 py-3.5 rounded-2xl bg-white/80 border border-[#c87d1a]/20 text-sm font-bold text-[#3d0a0a] appearance-none focus:outline-none transition-all shadow-sm"
-                    style={{ fontFamily: "var(--font-label)" }}
-                  >
-                    <option value="">All Fabrics</option>
-                    {SAREE_FABRICS.map((f) => (
-                      <option key={f} value={f}>{f}</option>
-                    ))}
-                  </select>
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#6b1a1a]/60">
-                    <ChevronDown size={16} />
-                  </div>
-                </div>
+                <input
+                  type="text"
+                  name="fabric"
+                  value={productData.fabric}
+                  onChange={handleInputChange}
+                  placeholder="e.g. Kanjivaram, Organza..."
+                  list="fabric-suggestions"
+                  className="w-full bg-gray-50 border border-gray-100 text-gray-900 rounded-2xl py-3.5 px-5 outline-none focus:border-primary-500 transition-all font-medium"
+                  autoComplete="off"
+                />
+                <datalist id="fabric-suggestions">
+                  {SAREE_FABRICS.map(fab => <option key={fab} value={fab} />)}
+                </datalist>
               </div>
 
               <div className="flex gap-3">
@@ -832,14 +829,14 @@ function ProductListContent({ title = "Shop", defaultCategory = "", defaultIsFea
               <AnimatePresence mode="wait">
                 {view === "list" ? (
                   <motion.div
-  key="list"
-  initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-  className="grid grid-cols-2 gap-3 sm:grid-cols-1"
->
-  {visibleProducts.map((p, i) => (
-    <ListRow key={p._id} product={p} index={i} />
-  ))}
-</motion.div>
+                    key="list"
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    className="grid grid-cols-2 gap-3 sm:grid-cols-1"
+                  >
+                    {visibleProducts.map((p, i) => (
+                      <ListRow key={p._id} product={p} index={i} />
+                    ))}
+                  </motion.div>
                 ) : (
                   <motion.div
                     key="grid"

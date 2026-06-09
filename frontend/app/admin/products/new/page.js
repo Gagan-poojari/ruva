@@ -2,22 +2,22 @@
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { 
+import {
   ArrowLeft, Save, Upload, X, Loader2, Info, Plus, Sparkles, GripVertical
 } from 'lucide-react';
 import api from '@/utils/api';
 import toast from 'react-hot-toast';
 
 const SAREE_FABRICS = [
-  "Banarasi", "Kanjivaram", "Mysore Silk", "Patola", "Chanderi", 
-  "Maheshwari", "Tant", "Khadi", "Organza", "Georgette", "Net", 
-  "Ruffle", "Bandhani", "Paithani", "Leheriya", "Kasavu", 
-  "Sambalpuri", "Baluchari", "Silk-cotton", "Cotton","Velvet", 
+  "Banarasi", "Kanjivaram", "Mysore Silk", "Patola", "Chanderi",
+  "Maheshwari", "Tant", "Khadi", "Organza", "Georgette", "Net",
+  "Ruffle", "Bandhani", "Paithani", "Leheriya", "Kasavu",
+  "Sambalpuri", "Baluchari", "Silk-cotton", "Cotton", "Velvet",
   "Satine", "silk", "Chiffon"
 ];
 
 const CATEGORIES = [
-  "Sarees", "Blouses", "Silver Jewelry", 
+  "Sarees", "Blouses", "Silver Jewelry",
   "Crystal Bracelets", "Shawls", "Dupatta"
 ];
 
@@ -37,7 +37,7 @@ const createEmptyVariant = () => ({
 
 export default function NewProduct() {
   const router = useRouter();
-  
+
   const [saving, setSaving] = useState(false);
   const [productData, setProductData] = useState({
     name: '',
@@ -87,8 +87,8 @@ export default function NewProduct() {
       setProductData(prev => ({ ...prev, description: data.description }));
       toast.success('Description generated!', { id: toastId });
     } catch (error) {
-      const message = error.response?.status === 429 
-        ? 'AI limit reached. Please write your own description.' 
+      const message = error.response?.status === 429
+        ? 'AI limit reached. Please write your own description.'
         : 'Failed to generate description. Please try again.';
       toast.error(message, { id: toastId });
     } finally {
@@ -124,7 +124,7 @@ export default function NewProduct() {
   const handleBlouseSizeStockChange = (label, stockValue) => {
     setProductData(prev => ({
       ...prev,
-      blouseSizes: prev.blouseSizes.map(s => 
+      blouseSizes: prev.blouseSizes.map(s =>
         s.label === label ? { ...s, stock: Number(stockValue) || 0 } : s
       ),
     }));
@@ -144,9 +144,9 @@ export default function NewProduct() {
   /* ─── Drag-to-reorder main images ─── */
   const onDragStart = (index) => { dragIndex.current = index; };
   const onDragEnter = (index) => { dragOverIndex.current = index; };
-  const onDragEnd   = () => {
+  const onDragEnd = () => {
     const from = dragIndex.current;
-    const to   = dragOverIndex.current;
+    const to = dragOverIndex.current;
     if (from === null || to === null || from === to) return;
     setImages(prev => {
       const next = [...prev];
@@ -194,7 +194,7 @@ export default function NewProduct() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (images.length === 0) { toast.error('Please upload at least one image'); return; }
-    
+
     const isBlouse = productData.category === 'Blouses';
     if (isBlouse && productData.blouseSizes.length === 0) {
       toast.error('Please select at least one blouse size');
@@ -285,7 +285,7 @@ export default function NewProduct() {
             <div className="space-y-4">
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Product Name</label>
-                <input 
+                <input
                   type="text" name="name" value={productData.name} onChange={handleInputChange}
                   placeholder="e.g. Royal Banarasi Silk Saree"
                   className="w-full bg-gray-50 border border-gray-100 text-gray-900 rounded-2xl py-3.5 px-5 outline-none focus:border-primary-500 transition-all font-medium"
@@ -304,7 +304,7 @@ export default function NewProduct() {
                     Generate with AI
                   </button>
                 </div>
-                <textarea 
+                <textarea
                   name="description" value={productData.description} onChange={handleInputChange}
                   rows={6} placeholder="Describe the fabric, weave, and detailing..."
                   className="w-full bg-gray-50 border border-gray-100 text-gray-900 rounded-2xl py-3.5 px-5 outline-none focus:border-primary-500 transition-all font-medium resize-none"
@@ -322,16 +322,23 @@ export default function NewProduct() {
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Fabric</label>
-                  <select name="fabric" value={productData.fabric} onChange={handleInputChange}
-                    className="w-full bg-gray-50 border border-gray-100 text-gray-900 rounded-2xl py-3.5 px-5 outline-none focus:border-primary-500 transition-all font-medium appearance-none">
-                    <option value="">Select Fabric</option>
-                    {SAREE_FABRICS.map(fab => <option key={fab} value={fab}>{fab}</option>)}
-                    <option value="Other">Other</option>
-                  </select>
+                  <input
+                    type="text"
+                    name="fabric"
+                    value={productData.fabric}
+                    onChange={handleInputChange}
+                    placeholder="e.g. Kanjivaram, Organza..."
+                    list="fabric-suggestions"
+                    className="w-full bg-gray-50 border border-gray-100 text-gray-900 rounded-2xl py-3.5 px-5 outline-none focus:border-primary-500 transition-all font-medium"
+                    autoComplete="off"
+                  />
+                  <datalist id="fabric-suggestions">
+                    {SAREE_FABRICS.map(fab => <option key={fab} value={fab} />)}
+                  </datalist>
                 </div>
                 <div className="space-y-1.5 col-span-2">
                   <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Colors (Comma separated)</label>
-                  <input 
+                  <input
                     type="text" name="colors" value={productData.colors} onChange={handleInputChange}
                     placeholder="e.g. Ruby Red, Antique Gold"
                     className="w-full bg-gray-50 border border-gray-100 text-gray-900 rounded-2xl py-3.5 px-5 outline-none focus:border-primary-500 transition-all font-medium"
@@ -355,8 +362,8 @@ export default function NewProduct() {
                             type="button"
                             onClick={() => toggleBlouseSize(label)}
                             className={`w-full py-3 rounded-2xl border-2 transition-all font-bold text-sm flex flex-col items-center gap-0.5
-                              ${active 
-                                ? 'border-primary-500 bg-primary-50 text-primary-700' 
+                              ${active
+                                ? 'border-primary-500 bg-primary-50 text-primary-700'
                                 : 'border-gray-100 bg-gray-50 text-gray-400 hover:border-gray-200'
                               }`}
                           >
@@ -574,11 +581,11 @@ export default function NewProduct() {
           <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm space-y-4">
             <h3 className="text-lg font-bold text-gray-900 border-b border-gray-50 pb-4">Visibility</h3>
             {[
-              ['isFeatured',     'Featured Product'],
-              ['isBestseller',   'Bestseller'],
-              ['isTrending',     'Trending'],
-              ['isNewArrival',   'New Arrival'],
-              ['isLimitedEdition','Limited Edition'],
+              ['isFeatured', 'Featured Product'],
+              ['isBestseller', 'Bestseller'],
+              ['isTrending', 'Trending'],
+              ['isNewArrival', 'New Arrival'],
+              ['isLimitedEdition', 'Limited Edition'],
             ].map(([name, label]) => (
               <div key={name} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
                 <div className="flex items-center gap-3">
@@ -600,13 +607,13 @@ export default function NewProduct() {
 
           {/* Actions */}
           <div className="flex gap-3">
-            <button 
+            <button
               type="button" onClick={() => router.push('/admin/products')}
               className="flex-1 px-6 py-4 rounded-2xl font-bold bg-white border border-gray-200 text-gray-500 hover:bg-gray-50 transition-all"
             >
               Cancel
             </button>
-            <button 
+            <button
               type="submit" disabled={saving}
               className="flex-2 bg-black text-white font-bold py-4 rounded-2xl shadow-lg hover:bg-gray-900 transition-all flex items-center justify-center gap-2"
             >
