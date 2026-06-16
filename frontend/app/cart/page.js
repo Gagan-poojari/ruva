@@ -296,14 +296,21 @@ export default function CartPage() {
       />
 
       <div className="min-h-screen bg-[#faf7f4]">
-        {/* ── Top bar ── */}
-        {/* <div className="border-b border-gray-200 bg-white px-6 py-4 flex items-center justify-center">
-          <Link href="/" className="flex items-center gap-2">
-            <img src="/ruva_logo.png" alt="Ruva" className="h-8 w-auto" />
-          </Link>
-        </div> */}
+        {/* ── Your Cart text ── */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-4"
+        >
+          <h1
+            className="text-3xl sm:text-5xl text-[#2f0f45] font-bold"
+            style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
+          >
+            Your Cart
+          </h1>
+        </motion.div>
 
-        <div className="mx-auto max-w-6xl px-4 py-8 lg:py-12">
+        <div className="mx-auto max-w-6xl px-4 pb-8 lg:pb-12">
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-0 lg:gap-12">
 
             {/* ══════════════════════════════════════════
@@ -315,7 +322,7 @@ export default function CartPage() {
               transition={{ duration: 0.45 }}
               className="order-2 lg:order-1"
             >
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 sm:p-8">
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 sm:p-8 mt-2">
 
                 {/* Contact section (guest only) */}
                 {!user?.token && (
