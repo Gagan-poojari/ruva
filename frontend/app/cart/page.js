@@ -297,11 +297,11 @@ export default function CartPage() {
 
       <div className="min-h-screen bg-[#faf7f4]">
         {/* ── Top bar ── */}
-        <div className="border-b border-gray-200 bg-white px-6 py-4 flex items-center justify-center">
+        {/* <div className="border-b border-gray-200 bg-white px-6 py-4 flex items-center justify-center">
           <Link href="/" className="flex items-center gap-2">
             <img src="/ruva_logo.png" alt="Ruva" className="h-8 w-auto" />
           </Link>
-        </div>
+        </div> */}
 
         <div className="mx-auto max-w-6xl px-4 py-8 lg:py-12">
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-0 lg:gap-12">
