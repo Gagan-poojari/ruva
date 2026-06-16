@@ -1,23 +1,36 @@
 export function emptyShippingForm() {
   return {
-    houseLandmark: "",
-    area: "",
+    firstName: "",
+    lastName: "",
+    address: "",
+    apartment: "",
     city: "",
     state: "",
     pincode: "",
     email: "",
     phone: "",
     locationConfirmed: false,
+    // legacy fields kept for backward compat
+    houseLandmark: "",
+    area: "",
   };
 }
 
-/** Merge house/landmark + area into `street` for the order API. */
+/** Merge all address parts into the street field for the order API. */
 export function formatShippingForOrder(form) {
-  const house = (form.houseLandmark || "").trim();
-  const area = (form.area || "").trim();
-  const street = [house, area].filter(Boolean).join(", ");
+  const nameParts = [form.firstName?.trim(), form.lastName?.trim()].filter(Boolean);
+  const fullName = nameParts.join(" ");
+
+  const streetParts = [
+    form.address?.trim(),
+    form.apartment?.trim(),
+    form.houseLandmark?.trim(),
+    form.area?.trim(),
+  ].filter(Boolean);
+  const street = streetParts.join(", ");
 
   return {
+    name: fullName || undefined,
     street,
     city: (form.city || "").trim(),
     state: (form.state || "").trim(),
@@ -32,7 +45,8 @@ export function isShippingLocationComplete(form) {
     form.pincode?.length === 6 &&
       form.city?.trim() &&
       form.state?.trim() &&
-      form.area?.trim()
+      // Accept either new address field or legacy area field
+      (form.address?.trim() || form.area?.trim())
   );
 }
 

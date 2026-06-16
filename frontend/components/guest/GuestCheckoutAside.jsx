@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { ShieldCheck, Loader2 } from "lucide-react";
-import GuestCheckoutGate from "./GuestCheckoutGate";
 import ShippingAddressFields from "@/components/checkout/ShippingAddressFields";
 
 /**
@@ -14,9 +13,6 @@ export default function GuestCheckoutAside({
   grandTotal,
   shippingAddress,
   setShippingAddress,
-  checkoutMode,
-  onSelectGuest,
-  onSelectAccount,
   guestEmail,
   guestPhone,
   onGuestEmailChange,
@@ -24,7 +20,7 @@ export default function GuestCheckoutAside({
   placing,
   onPlaceGuestOrder,
 }) {
-  const canPay = checkoutMode === "guest";
+  const canPay = true;
 
   return (
     <aside className="rounded-3xl border border-[#d9b06d]/35 bg-white/80 backdrop-blur-md p-6 h-fit">
@@ -47,15 +43,41 @@ export default function GuestCheckoutAside({
         </div>
       </div>
 
-      <GuestCheckoutGate
-        checkoutMode={checkoutMode}
-        onSelectGuest={onSelectGuest}
-        onSelectAccount={onSelectAccount}
-        guestEmail={guestEmail}
-        guestPhone={guestPhone}
-        onGuestEmailChange={onGuestEmailChange}
-        onGuestPhoneChange={onGuestPhoneChange}
-      />
+      {/* Contact Section */}
+      <div className="my-5 space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-xs font-semibold text-[#6b4a2f]/80 flex items-center gap-1">
+            <span>Contact Information</span>
+          </p>
+          <Link
+            href="/login"
+            className="text-xs font-semibold text-[#4d1f73] hover:underline"
+          >
+            Sign in
+          </Link>
+        </div>
+        <div className="space-y-2">
+          <input
+            type="email"
+            id="guest-checkout-email"
+            value={guestEmail}
+            onChange={(e) => onGuestEmailChange(e.target.value)}
+            placeholder="Email Address for order updates *"
+            className="w-full rounded-xl border border-[#d9b06d]/35 bg-white px-3 py-2 text-sm outline-none focus:border-[#7c3ea0]/50"
+            autoComplete="email"
+          />
+          <input
+            type="tel"
+            id="guest-checkout-phone"
+            value={guestPhone}
+            onChange={(e) => onGuestPhoneChange(e.target.value)}
+            placeholder="Phone Number for shipping updates *"
+            maxLength={10}
+            className="w-full rounded-xl border border-[#d9b06d]/35 bg-white px-3 py-2 text-sm outline-none focus:border-[#7c3ea0]/50"
+            autoComplete="tel"
+          />
+        </div>
+      </div>
 
       <ShippingAddressFields
         shippingAddress={shippingAddress}

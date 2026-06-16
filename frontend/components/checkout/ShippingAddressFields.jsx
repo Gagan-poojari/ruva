@@ -3,14 +3,31 @@
 import { useState } from "react";
 import { MapPin, Loader2, Navigation, Search, Check, Pencil } from "lucide-react";
 import { useShippingLocation } from "@/hooks/useShippingLocation";
-import { isShippingAddressReady, isShippingLocationComplete } from "@/utils/shippingAddress";
+import { isShippingLocationComplete } from "@/utils/shippingAddress";
 
-const inputClass =
-  "w-full rounded-xl border border-[#d9b06d]/35 bg-white px-3 py-2 text-sm outline-none focus:border-[#7c3ea0]/50";
+const INDIAN_STATES = [
+  "Andhra Pradesh","Arunachal Pradesh","Assam","Bihar","Chhattisgarh","Goa","Gujarat",
+  "Haryana","Himachal Pradesh","Jharkhand","Karnataka","Kerala","Madhya Pradesh",
+  "Maharashtra","Manipur","Meghalaya","Mizoram","Nagaland","Odisha","Punjab",
+  "Rajasthan","Sikkim","Tamil Nadu","Telangana","Tripura","Uttar Pradesh",
+  "Uttarakhand","West Bengal","Andaman and Nicobar Islands","Chandigarh",
+  "Dadra and Nagar Haveli and Daman and Diu","Delhi","Jammu and Kashmir",
+  "Ladakh","Lakshadweep","Puducherry",
+];
 
-/**
- * Pincode / GPS fills area, city, state → user confirms or edits → house & landmark.
- */
+const inputCls =
+  "w-full border-0 border-b border-gray-200 bg-transparent px-0 py-2.5 text-sm text-gray-800 outline-none placeholder:text-gray-400 focus:border-gray-600 transition-colors";
+const labelCls = "absolute left-0 top-2 text-[10px] font-medium text-gray-400 uppercase tracking-wider pointer-events-none";
+
+function FloatingField({ label, children }) {
+  return (
+    <div className="relative pt-4 pb-1">
+      <span className={labelCls}>{label}</span>
+      {children}
+    </div>
+  );
+}
+
 export default function ShippingAddressFields({
   shippingAddress,
   setShippingAddress,
@@ -28,7 +45,9 @@ export default function ShippingAddressFields({
 
   const locationFilled = isShippingLocationComplete(shippingAddress);
   const locationConfirmed = Boolean(shippingAddress.locationConfirmed);
-  const canEnterHouse = isShippingAddressReady(shippingAddress);
+
+  const set = (field) => (e) =>
+    setShippingAddress((s) => ({ ...s, [field]: e.target.value }));
 
   const confirmLocation = () => {
     if (!locationFilled) return;
@@ -36,203 +55,210 @@ export default function ShippingAddressFields({
     setShippingAddress((s) => ({ ...s, locationConfirmed: true }));
   };
 
-  const startEditingLocation = () => {
+  const startEditing = () => {
     setIsEditingLocation(true);
     setShippingAddress((s) => ({ ...s, locationConfirmed: false }));
   };
 
-  const saveEditedLocation = () => {
-    if (!locationFilled) return;
-    setIsEditingLocation(false);
-    setShippingAddress((s) => ({ ...s, locationConfirmed: true }));
-  };
-
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-xs font-medium text-[#6b4a2f]/80 flex items-center gap-1">
-          <MapPin size={12} />
-          Delivery address
-        </p>
-        <button
-          type="button"
-          onClick={useCurrentLocation}
-          disabled={locating}
-          className="inline-flex items-center gap-1 rounded-full border border-[#7c3ea0]/40 bg-[#f8eddc]/60 px-2.5 py-1 text-[11px] font-medium text-[#4d1f73] hover:bg-[#f8eddc] transition disabled:opacity-60"
-        >
-          {locating ? (
-            <Loader2 size={11} className="animate-spin" />
-          ) : (
-            <Navigation size={11} />
-          )}
-          Use current location
-        </button>
-      </div>
+    <div className="space-y-0">
 
-      <div className="flex gap-2">
-        <div className="relative flex-1">
-          <input
-            id="shipping-pincode"
-            inputMode="numeric"
-            value={shippingAddress.pincode}
-            onChange={(e) => {
-              setIsEditingLocation(false);
-              onPincodeChange(e.target.value);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                lookupPincode(shippingAddress.pincode, { force: true });
-              }
-            }}
-            placeholder="Pincode *"
-            maxLength={6}
-            className={inputClass}
-          />
-          {pincodeLoading && (
-            <Loader2
-              size={14}
-              className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-[#7c3ea0]"
+      {/* ── Contact ── */}
+      {includeContactFields && (
+        <>
+          <FloatingField label="Email">
+            <input
+              id="shipping-email"
+              type="email"
+              value={shippingAddress.email}
+              onChange={set("email")}
+              placeholder="you@example.com"
+              autoComplete="email"
+              className={inputCls}
             />
-          )}
-        </div>
-        <button
-          type="button"
-          onClick={() => lookupPincode(shippingAddress.pincode, { force: true })}
-          disabled={pincodeLoading || shippingAddress.pincode?.length !== 6}
-          className="inline-flex shrink-0 items-center gap-1 rounded-xl border border-[#7c3ea0]/40 px-3 py-2 text-xs font-medium text-[#4d1f73] hover:bg-[#f8eddc]/60 disabled:opacity-50"
-          title="Find address by pincode"
-        >
-          <Search size={14} />
-          Find
-        </button>
-      </div>
-
-      {!locationFilled && (
-        <p className="text-[11px] text-[#6b4a2f]/65">
-          Enter pincode and tap Find, or use current location.
-        </p>
+          </FloatingField>
+          <div className="h-px bg-gray-100 my-3" />
+        </>
       )}
 
-      {locationFilled && isEditingLocation && (
-        <div className="space-y-2 rounded-xl border border-[#7c3ea0]/30 bg-white p-3">
-          <p className="text-xs font-medium text-[#4d1f73]">Edit your delivery area</p>
+      {/* ── Delivery header ── */}
+      <p className="text-base font-semibold text-gray-800 pt-2 pb-1">Delivery</p>
+
+      {/* Country (static) */}
+      <FloatingField label="Country / Region">
+        <div className={`${inputCls} flex items-center justify-between cursor-default`}>
+          <span>India</span>
+          <span className="text-gray-400">🇮🇳</span>
+        </div>
+      </FloatingField>
+
+      {/* First / Last name */}
+      <div className="grid grid-cols-2 gap-4">
+        <FloatingField label="First name">
           <input
-            value={shippingAddress.area}
-            onChange={(e) =>
-              setShippingAddress((s) => ({ ...s, area: e.target.value, locationConfirmed: false }))
-            }
-            placeholder="Area / locality *"
-            className={inputClass}
+            id="shipping-firstname"
+            type="text"
+            value={shippingAddress.firstName || ""}
+            onChange={set("firstName")}
+            placeholder="Priya"
+            autoComplete="given-name"
+            className={inputCls}
           />
-          <div className="grid grid-cols-2 gap-2">
-            <input
-              value={shippingAddress.city}
-              onChange={(e) =>
-                setShippingAddress((s) => ({ ...s, city: e.target.value, locationConfirmed: false }))
-              }
-              placeholder="City *"
-              className={inputClass}
-            />
-            <input
-              value={shippingAddress.state}
-              onChange={(e) =>
-                setShippingAddress((s) => ({ ...s, state: e.target.value, locationConfirmed: false }))
-              }
-              placeholder="State *"
-              className={inputClass}
-            />
-          </div>
+        </FloatingField>
+        <FloatingField label="Last name">
+          <input
+            id="shipping-lastname"
+            type="text"
+            value={shippingAddress.lastName || ""}
+            onChange={set("lastName")}
+            placeholder="Sharma"
+            autoComplete="family-name"
+            className={inputCls}
+          />
+        </FloatingField>
+      </div>
+
+      {/* Address + GPS lookup */}
+      <FloatingField label="Address">
+        <div className="flex items-end gap-2">
+          <input
+            id="shipping-address"
+            type="text"
+            value={shippingAddress.address || ""}
+            onChange={set("address")}
+            placeholder="House no., Street, Area"
+            autoComplete="street-address"
+            className={`${inputCls} flex-1`}
+          />
           <button
             type="button"
-            onClick={saveEditedLocation}
-            disabled={!isShippingLocationComplete(shippingAddress)}
-            className="w-full rounded-full border border-[#7c3ea0]/50 bg-[#f8eddc]/80 py-2 text-xs font-semibold text-[#4d1f73] hover:bg-[#f8eddc] disabled:opacity-50"
+            onClick={useCurrentLocation}
+            disabled={locating}
+            title="Use current location"
+            className="shrink-0 mb-2 text-[#4d1f73] hover:text-[#7c3ea0] transition disabled:opacity-50"
           >
-            Save & confirm
+            {locating ? <Loader2 size={16} className="animate-spin" /> : <Navigation size={16} />}
           </button>
         </div>
-      )}
+      </FloatingField>
 
-      {locationFilled && !isEditingLocation && !locationConfirmed && (
-        <div className="space-y-3 rounded-xl border border-[#d9b06d]/35 bg-[#f8eddc]/40 p-3">
-          <p className="text-sm font-medium text-[#2f0f45]">Is this delivery area correct?</p>
-          <div className="text-sm text-[#5d3a22]">
-            <p>{shippingAddress.area}</p>
-            <p>
-              {shippingAddress.city}, {shippingAddress.state} — {shippingAddress.pincode}
-            </p>
-          </div>
-          <div className="flex gap-2">
+      {/* Apartment (optional) */}
+      <FloatingField label="Apartment, suite, etc. (optional)">
+        <input
+          id="shipping-apartment"
+          type="text"
+          value={shippingAddress.apartment || ""}
+          onChange={set("apartment")}
+          placeholder="Flat 4B, Tower C"
+          autoComplete="address-line2"
+          className={inputCls}
+        />
+      </FloatingField>
+
+      {/* City */}
+      <FloatingField label="City">
+        <input
+          id="shipping-city"
+          type="text"
+          value={shippingAddress.city}
+          onChange={set("city")}
+          placeholder="Bengaluru"
+          autoComplete="address-level2"
+          className={inputCls}
+        />
+      </FloatingField>
+
+      {/* State + PIN */}
+      <div className="grid grid-cols-2 gap-4">
+        <FloatingField label="State">
+          <select
+            id="shipping-state"
+            value={shippingAddress.state}
+            onChange={set("state")}
+            className={`${inputCls} appearance-none cursor-pointer`}
+          >
+            <option value="">Select state</option>
+            {INDIAN_STATES.map((s) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
+        </FloatingField>
+
+        <FloatingField label="PIN code">
+          <div className="flex items-end gap-1">
+            <input
+              id="shipping-pincode"
+              inputMode="numeric"
+              maxLength={6}
+              value={shippingAddress.pincode}
+              onChange={(e) => {
+                setIsEditingLocation(false);
+                onPincodeChange(e.target.value);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  lookupPincode(shippingAddress.pincode, { force: true });
+                }
+              }}
+              placeholder="560001"
+              className={`${inputCls} flex-1`}
+            />
             <button
               type="button"
-              onClick={confirmLocation}
-              className="flex-1 inline-flex items-center justify-center gap-1 rounded-full bg-[linear-gradient(135deg,#4d1f73,#7c3ea0)] py-2 text-xs font-semibold text-[#fff0d7]"
+              onClick={() => lookupPincode(shippingAddress.pincode, { force: true })}
+              disabled={pincodeLoading || shippingAddress.pincode?.length !== 6}
+              className="shrink-0 mb-2 text-[#4d1f73] hover:text-[#7c3ea0] transition disabled:opacity-40"
+              title="Look up PIN code"
             >
-              <Check size={14} />
-              Yes, correct
+              {pincodeLoading ? <Loader2 size={15} className="animate-spin" /> : <Search size={15} />}
             </button>
-            <button
-              type="button"
-              onClick={startEditingLocation}
-              className="flex-1 inline-flex items-center justify-center gap-1 rounded-full border border-[#7c3ea0]/45 py-2 text-xs font-semibold text-[#4d1f73] hover:bg-white/80"
-            >
-              <Pencil size={13} />
-              No, edit
+          </div>
+        </FloatingField>
+      </div>
+
+      {/* PIN auto-fill confirmation */}
+      {locationFilled && !isEditingLocation && !locationConfirmed && (
+        <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-gray-700">
+          <p className="font-medium text-gray-800 mb-1">Confirm delivery area</p>
+          <p className="text-xs text-gray-500 mb-3">
+            {shippingAddress.city}, {shippingAddress.state} — {shippingAddress.pincode}
+          </p>
+          <div className="flex gap-2">
+            <button type="button" onClick={confirmLocation}
+              className="flex-1 flex items-center justify-center gap-1 rounded-lg bg-[#4d1f73] py-1.5 text-xs font-semibold text-white">
+              <Check size={13} /> Yes, correct
+            </button>
+            <button type="button" onClick={startEditing}
+              className="flex-1 flex items-center justify-center gap-1 rounded-lg border border-gray-300 py-1.5 text-xs font-semibold text-gray-600">
+              <Pencil size={12} /> Edit
             </button>
           </div>
         </div>
       )}
 
-      {locationFilled && !isEditingLocation && locationConfirmed && (
-        <div className="flex items-start justify-between gap-2 rounded-xl border border-emerald-600/25 bg-emerald-50/50 p-3 text-sm text-[#5d3a22]">
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-800/80 mb-1">
-              Delivery area confirmed
-            </p>
-            <p>{shippingAddress.area}</p>
-            <p>
-              {shippingAddress.city}, {shippingAddress.state} — {shippingAddress.pincode}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={startEditingLocation}
-            className="shrink-0 text-[11px] font-medium text-[#4d1f73] underline underline-offset-2"
-          >
+      {locationFilled && locationConfirmed && !isEditingLocation && (
+        <div className="mt-1 flex items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50/60 px-3 py-2 text-xs text-gray-600">
+          <span>
+            <span className="font-semibold text-emerald-700">✓ Area confirmed:</span>{" "}
+            {shippingAddress.city}, {shippingAddress.state}
+          </span>
+          <button type="button" onClick={startEditing}
+            className="text-[#4d1f73] underline underline-offset-2 font-medium">
             Edit
           </button>
         </div>
       )}
 
-      <input
-        id="shipping-house"
-        value={shippingAddress.houseLandmark}
-        onChange={(e) =>
-          setShippingAddress((s) => ({ ...s, houseLandmark: e.target.value }))
-        }
-        placeholder={
-          canEnterHouse
-            ? "House no. & landmark *"
-            : "Confirm delivery area above first"
-        }
-        className={inputClass}
-        disabled={!canEnterHouse}
-      />
-
-      {includeContactFields && (
-        <>
+      {/* Phone */}
+      <FloatingField label="Phone">
+        <div className="flex items-end gap-2">
+          <span className="mb-2.5 shrink-0 text-sm text-gray-500">🇮🇳 +91</span>
           <input
-            type="email"
-            id="shipping-email"
-            value={shippingAddress.email}
-            onChange={(e) => setShippingAddress((s) => ({ ...s, email: e.target.value }))}
-            placeholder="Email Address *"
-            className={inputClass}
-          />
-          <input
-            type="tel"
             id="shipping-phone"
+            type="tel"
+            inputMode="numeric"
+            maxLength={10}
             value={shippingAddress.phone}
             onChange={(e) =>
               setShippingAddress((s) => ({
@@ -240,12 +266,13 @@ export default function ShippingAddressFields({
                 phone: e.target.value.replace(/\D/g, "").slice(0, 10),
               }))
             }
-            placeholder="Phone Number *"
-            maxLength={10}
-            className={inputClass}
+            placeholder="98765 43210"
+            autoComplete="tel-national"
+            className={`${inputCls} flex-1`}
           />
-        </>
-      )}
+        </div>
+      </FloatingField>
+
     </div>
   );
 }
