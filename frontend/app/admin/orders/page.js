@@ -263,7 +263,7 @@ export default function OrdersPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <ul className="space-y-1.5 max-w-[280px]">
+                      <ul className="space-y-1.5 max-w-70">
                         {order.items?.map((item, idx) => (
                           <li key={idx} className="text-[11px] text-gray-700 leading-snug">
                             <span className="font-bold text-gray-900">{item.product?.name || 'Product'}</span>

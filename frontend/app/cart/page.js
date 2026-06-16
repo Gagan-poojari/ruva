@@ -55,14 +55,14 @@ export default function CartPage() {
   }, []);
 
   useEffect(() => {
-    if (!user?.token || rzKey) return;
+    if (rzKey) return;
     api
       .get("/orders/razorpay-key")
       .then(({ data }) => {
         if (data?.key) setRzKey(data.key);
       })
       .catch(() => {});
-  }, [user, rzKey]);
+  }, [rzKey]);
 
   const validateShippingFields = () => {
     if (!isShippingLocationComplete(shippingAddress)) {

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
 /** Redirect mistaken admin URLs (without /admin prefix) to the correct admin routes. */
-export function middleware(request) {
+export function proxy(request) {
   const { pathname } = request.nextUrl;
 
   if (pathname === '/dashboard' || pathname.startsWith('/dashboard/')) {
