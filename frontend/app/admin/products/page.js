@@ -5,6 +5,7 @@ import { Plus, Search, Edit3, Trash2, Layers, Package, ChevronLeft, ChevronRight
 import api from '@/utils/api';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
+import Image from 'next/image';
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50];
 
@@ -108,8 +109,8 @@ export default function ProductsPage() {
                     <tr key={product._id} className="hover:bg-gray-50/50 transition-colors group">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-4">
-                          <div className="w-12 h-16 rounded-lg bg-gray-100 overflow-hidden border border-gray-100 shrink-0">
-                            <img src={product.images?.[0]?.url || 'https://via.placeholder.com/150'} alt={product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                          <div className="relative w-12 h-16 rounded-lg bg-gray-100 overflow-hidden border border-gray-100 shrink-0">
+                            <Image src={product.images?.[0]?.url || 'https://via.placeholder.com/150'} alt={product.name} fill sizes="50px" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                           </div>
                           <div className="flex flex-col min-w-0">
                             <span className="text-sm font-bold text-gray-900 leading-tight line-clamp-1">{product.name}</span>

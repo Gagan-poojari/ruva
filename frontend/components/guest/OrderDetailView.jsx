@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 const STATUS_COLORS = {
   pending: { text: "#b45309", bg: "#fef3c7", border: "#f59e0b" },
   confirmed: { text: "#6d28d9", bg: "#ede9fe", border: "#8b5cf6" },
@@ -121,10 +123,12 @@ export default function OrderDetailView({ order }) {
                 className="flex items-center gap-2 rounded-xl border border-[#d9b06d]/25 bg-[#fffaf2] px-3 py-2"
               >
                 {img && (
-                  <img
+                  <Image
                     src={img}
                     alt=""
-                    className="w-10 h-10 rounded-lg object-cover"
+                    width={40}
+                    height={40}
+                    className="rounded-lg object-cover"
                   />
                 )}
                 <div>

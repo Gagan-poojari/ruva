@@ -420,13 +420,15 @@ export default function CartPage() {
                         className="flex items-start gap-3"
                       >
                         {/* Product image with qty badge */}
-                        <div className="relative shrink-0">
-                          <img
+                        <div className="relative w-16 h-16 shrink-0">
+                          <Image
                             src={imgSrc}
                             alt={item.name || "Cart item"}
-                            className="w-16 h-16 rounded-xl object-cover border border-gray-100"
+                            fill
+                            sizes="64px"
+                            className="rounded-xl object-cover border border-gray-100"
                           />
-                          <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-gray-500 text-[10px] font-bold text-white">
+                          <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-gray-500 text-[10px] font-bold text-white z-10">
                             {item.qty || 1}
                           </span>
                         </div>

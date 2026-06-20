@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import Script from "next/script";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
@@ -46,7 +47,7 @@ function OCard({o,onCancel,onRetry,retrying}){
       <div style={{display:"flex",flexWrap:"wrap",gap:8,marginBottom:can?12:0}}>
         {o.items?.map((it,i)=>(
           <div key={i} style={{display:"flex",alignItems:"center",gap:8,background:"rgba(255,245,220,.05)",padding:"6px 10px",borderRadius:10,border:"1px solid rgba(201,133,60,.12)"}}>
-            {it.product?.images?.[0] && <img src={it.product.images[0].url||it.product.images[0]} style={{width:32,height:32,borderRadius:6,objectFit:"cover"}} alt=""/>}
+            {it.product?.images?.[0] && <Image src={it.product.images[0].url||it.product.images[0]} width={32} height={32} style={{borderRadius:6,objectFit:"cover"}} alt=""/>}
             <div>
               <p style={{...CG,fontSize:"0.78rem",color:"#fff5dd",margin:0,fontWeight:600}}>{it.product?.name||"Product"}</p>
               <p style={{fontSize:"0.65rem",color:"rgba(255,232,176,.4)",margin:0}}>Qty: {it.qty}{it.size?" · "+it.size:""}</p>

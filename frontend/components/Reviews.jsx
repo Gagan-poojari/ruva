@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
 import api from "@/utils/api";
 import toast from "react-hot-toast";
@@ -93,10 +94,13 @@ function MediaCard({ item, index, onClick }) {
             <video src={item.mediaUrl} muted playsInline
               style={{ width:"100%", height:"100%", objectFit:"cover" }} />
           ) : (
-            <img src={item.mediaUrl} alt={item.userName}
+            <Image src={item.mediaUrl} alt={item.userName}
+              fill
+              sizes="(max-width: 640px) 100vw, 350px"
               className="rev-img"
-              style={{ width:"100%", height:"100%", objectFit:"cover",
-                transition:"transform 1.1s cubic-bezier(.22,1,.36,1)" }} />
+              style={{ objectFit:"cover",
+                transition:"transform 1.1s cubic-bezier(.22,1,.36,1)" }}
+              loading="lazy" />
           )}
 
           {/* vignette */}

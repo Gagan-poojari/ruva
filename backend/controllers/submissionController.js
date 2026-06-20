@@ -86,11 +86,15 @@ const uploadSubmission = async (req, res, next) => {
                     }
                 } else {
                     try {
-                        // Primary path: auto-detect type in Cloudinary.
                         uploadResult = await withTimeout(
                             cloudinary.uploader.upload(req.file.path, {
                                 ...baseOptions,
-                                resource_type: 'auto',
+                                resource_type: 'image',
+                                transformation: [
+                                    { width: 1200, crop: 'limit' },
+                                    { quality: 'auto:good' },
+                                    { fetch_format: 'auto' }
+                                ]
                             }),
                             CLOUDINARY_TIMEOUT_MS,
                             'Cloudinary upload timed out'

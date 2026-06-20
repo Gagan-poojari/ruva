@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { Heart, ShoppingBag, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
@@ -59,11 +60,13 @@ export default function WishlistPage() {
                 key={item.product || item._id}
                 className="rounded-2xl border border-[#d9b06d]/35 bg-white/80 backdrop-blur-sm overflow-hidden"
               >
-                <Link href={`/products/${item.product || item._id}`} className="block">
-                  <img
+                <Link href={`/products/${item.product || item._id}`} className="block relative h-72">
+                  <Image
                     src={item.image || item.images?.[0]?.url || "/sarees/silk_cotton_saree.png"}
                     alt={item.name || "Wishlist item"}
-                    className="w-full h-72 object-cover"
+                    fill
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 350px"
+                    className="w-full h-full object-cover"
                   />
                 </Link>
                 <div className="p-4">

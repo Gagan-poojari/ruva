@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import api from '@/utils/api';
 import toast from 'react-hot-toast';
+import Image from 'next/image';
 
 const SAREE_FABRICS = [
   "Banarasi", "Kanjivaram", "Mysore Silk", "Patola", "Chanderi", 
@@ -511,8 +512,8 @@ export default function EditProduct({ params }) {
                   className="relative group animate-fade-in"
                   style={{ cursor: 'grab' }}
                 >
-                  <div className="aspect-3/4 rounded-2xl overflow-hidden border border-gray-100 select-none">
-                    <img src={img.url} alt="" className="w-full h-full object-cover pointer-events-none" draggable={false} />
+                  <div className="relative aspect-3/4 rounded-2xl overflow-hidden border border-gray-100 select-none">
+                    <Image src={img.url} alt="" fill sizes="200px" className="w-full h-full object-cover pointer-events-none" draggable={false} />
                     {i === 0 && (
                       <div className="absolute bottom-2 left-2 bg-black/60 text-white text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full backdrop-blur-sm">
                         Cover

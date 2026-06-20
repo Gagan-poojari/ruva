@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, Suspense, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useSearchParams } from "next/navigation";
 import api from "@/utils/api";
 import toast from "react-hot-toast";
@@ -147,9 +148,11 @@ function GridCard({ product, index }) {
       >
         {/* ── image ── */}
         <div className="relative overflow-hidden" style={{ aspectRatio: "3/4" }}>
-          <img
+          <Image
             src={displayImage}
             alt={product.name}
+            fill
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
             className="w-full h-full object-cover transition-transform duration-1100 group-hover:scale-[1.07]"
             loading="lazy"
           />
@@ -286,10 +289,12 @@ function ListRow({ product, index }) {
       >
         {/* Image */}
         <div className="relative sm:w-27 sm:h-37.5 sm:rounded-xl sm:overflow-hidden sm:shrink-0 bg-[#f6efe5] overflow-hidden">
-          <div className="aspect-3/4 sm:aspect-auto sm:h-full">
-            <img
+          <div className="relative aspect-3/4 sm:aspect-auto sm:h-full w-full h-full">
+            <Image
               src={displayImage}
               alt={product.name}
+              fill
+              sizes="(max-width: 640px) 100vw, 150px"
               className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
               loading="lazy"
             />

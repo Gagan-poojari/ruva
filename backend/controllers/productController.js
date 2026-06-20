@@ -49,6 +49,11 @@ const uploadImagesToCloudinary = async (files = []) => {
                 cloudinary.uploader.upload(file.path, {
                     folder: 'saree-shop',
                     resource_type: 'image',
+                    transformation: [
+                        { width: 1200, crop: 'limit' },
+                        { quality: 'auto:good' },
+                        { fetch_format: 'auto' }
+                    ]
                 }),
                 CLOUDINARY_TIMEOUT_MS,
                 'Cloudinary product image upload timed out'

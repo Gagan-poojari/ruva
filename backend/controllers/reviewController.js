@@ -29,6 +29,13 @@ const createReview = async (req, res, next) => {
                     folder: 'ruva_reviews',
                     resource_type: isVideo ? 'video' : 'image',
                 };
+                if (!isVideo) {
+                    options.transformation = [
+                        { width: 1200, crop: 'limit' },
+                        { quality: 'auto:good' },
+                        { fetch_format: 'auto' }
+                    ];
+                }
                 if (isVideo) {
                     result = await cloudinary.uploader.upload_large(req.file.path, { ...options, chunk_size: 6000000 });
                 } else {
@@ -86,6 +93,13 @@ const updateReview = async (req, res, next) => {
                     folder: 'ruva_reviews',
                     resource_type: isVideo ? 'video' : 'image',
                 };
+                if (!isVideo) {
+                    options.transformation = [
+                        { width: 1200, crop: 'limit' },
+                        { quality: 'auto:good' },
+                        { fetch_format: 'auto' }
+                    ];
+                }
                 if (isVideo) {
                     result = await cloudinary.uploader.upload_large(req.file.path, { ...options, chunk_size: 6000000 });
                 } else {
