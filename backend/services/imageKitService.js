@@ -80,7 +80,7 @@ async function uploadImage(fileInput, options = {}) {
                     file = await sharp(fileInput)
                         .resize(846, 1264, {
                             fit: 'contain',
-                            background: { r: 255, g: 255, b: 255, alpha: 1 } // white background padding
+                            background: { r: 255, g: 255, b: 255, alpha: 1 } //white background padding
                         })
                         .toBuffer();
                 } catch (sharpError) {
