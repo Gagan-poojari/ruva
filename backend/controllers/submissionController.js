@@ -1,37 +1,7 @@
 const UserSubmission = require('../models/UserSubmission');
-const { cloudinary } = require('../config/cloudinary');
+const imageKitService = require('../services/imageKitService');
 const fs = require('fs/promises');
-
-const CLOUDINARY_TIMEOUT_MS = 2 * 60 * 1000;
-
-const withTimeout = (promise, timeoutMs, message) =>
-    new Promise((resolve, reject) => {
-        const timer = setTimeout(() => reject(new Error(message)), timeoutMs);
-        promise
-            .then((result) => {
-                clearTimeout(timer);
-                resolve(result);
-            })
-            .catch((error) => {
-                clearTimeout(timer);
-                reject(error);
-            });
-    });
-
-const uploadLargeToCloudinary = (filePath, options) =>
-    withTimeout(
-        new Promise((resolve, reject) => {
-            cloudinary.uploader.upload_large(filePath, options, (error, result) => {
-                if (error) {
-                    reject(error);
-                    return;
-                }
-                resolve(result);
-            });
-        }),
-        CLOUDINARY_TIMEOUT_MS,
-        'Cloudinary large upload timed out'
-    );
+const path = require('path');
 
 // @desc    Upload media submission
 // @route   POST /api/submissions
@@ -55,66 +25,17 @@ const uploadSubmission = async (req, res, next) => {
         if (req.file) {
             let uploadResult;
             try {
-                const baseOptions = {
-                    folder: 'ruva_user_submissions/approved',
-                    public_id: publicId,
-                };
                 const mimeType = String(req.file.mimetype || '').toLowerCase();
-                const fileName = String(req.file.originalname || '').toLowerCase();
-                const isLikelyVideo =
-                    mimeType.startsWith('video/') ||
-                    /\.(mp4|webm|mov|avi|mkv|m4v|3gp)$/i.test(fileName);
+                const isVideo = mimeType.startsWith('video/') || /\.(mp4|webm|mov|avi|mkv|m4v|3gp)$/i.test(req.file.originalname || '');
+                mediaType = isVideo ? 'video' : 'image';
 
-                if (isLikelyVideo) {
-                    // For small/medium videos, normal video upload is faster and more reliable.
-                    try {
-                        uploadResult = await withTimeout(
-                            cloudinary.uploader.upload(req.file.path, {
-                                ...baseOptions,
-                                resource_type: 'video',
-                            }),
-                            CLOUDINARY_TIMEOUT_MS,
-                            'Cloudinary video upload timed out'
-                        );
-                    } catch (videoUploadError) {
-                        // Fallback to chunked upload when direct upload fails.
-                        uploadResult = await uploadLargeToCloudinary(req.file.path, {
-                            ...baseOptions,
-                            resource_type: 'video',
-                            chunk_size: 20000000,
-                        });
-                    }
-                } else {
-                    try {
-                        uploadResult = await withTimeout(
-                            cloudinary.uploader.upload(req.file.path, {
-                                ...baseOptions,
-                                resource_type: 'image',
-                                transformation: [
-                                    { width: 1200, crop: 'limit' },
-                                    { quality: 'auto:good' },
-                                    { fetch_format: 'auto' }
-                                ]
-                            }),
-                            CLOUDINARY_TIMEOUT_MS,
-                            'Cloudinary upload timed out'
-                        );
-                    } catch (err) {
-                        const errorMessage = String(err?.message || '').toLowerCase();
-                        const isInvalidImage = errorMessage.includes('invalid image file');
+                const originalExt = path.extname(req.file.originalname || '');
+                const fileName = `${publicId}${originalExt || ''}`;
 
-                        if (!isInvalidImage) {
-                            throw err;
-                        }
-
-                        // Fallback path for videos mislabeled by client/browser metadata.
-                        uploadResult = await uploadLargeToCloudinary(req.file.path, {
-                            ...baseOptions,
-                            resource_type: 'video',
-                            chunk_size: 20000000,
-                        });
-                    }
-                }
+                uploadResult = await imageKitService.uploadImage(req.file.path, {
+                    folder: '/ruva_user_submissions/approved',
+                    fileName: fileName
+                });
             } finally {
                 // Always try to clean up the temp file
                 try {
@@ -124,57 +45,15 @@ const uploadSubmission = async (req, res, next) => {
                 }
             }
 
-            const uploadCandidates = Array.isArray(uploadResult)
-                ? uploadResult.filter((item) => item && typeof item === 'object')
-                : [uploadResult];
-            const normalizedResult =
-                uploadCandidates.find((item) => item.public_id || item.secure_url || item.url) ||
-                uploadCandidates[uploadCandidates.length - 1] ||
-                null;
-
-            mediaUrl =
-                normalizedResult?.secure_url ||
-                normalizedResult?.url ||
-                normalizedResult?.playback_url ||
-                normalizedResult?.eager?.[0]?.secure_url ||
-                normalizedResult?.eager?.[0]?.url ||
-                '';
-            resultPublicId = normalizedResult?.public_id || normalizedResult?.asset_id || '';
-            mediaType = normalizedResult?.resource_type === 'video' ? 'video' : 'image';
-
-            // Some Cloudinary flows return public_id without URL in upload response.
-            // Re-fetch the resource metadata to resolve a stable delivery URL.
-            if (!mediaUrl && resultPublicId) {
-                const resourceTypesToTry = mediaType === 'video' ? ['video', 'image'] : ['image', 'video'];
-                for (const type of resourceTypesToTry) {
-                    try {
-                        const resource = await withTimeout(
-                            cloudinary.api.resource(resultPublicId, { resource_type: type }),
-                            CLOUDINARY_TIMEOUT_MS,
-                            `Cloudinary resource lookup timed out for ${type}`
-                        );
-                        const resolvedUrl = resource?.secure_url || resource?.url;
-                        if (resolvedUrl) {
-                            mediaUrl = resolvedUrl;
-                            mediaType = type === 'video' ? 'video' : 'image';
-                            break;
-                        }
-                    } catch {
-                        // Try next resource type
-                    }
-                }
-            }
-
-            if (!mediaUrl || !resultPublicId) {
-                const cloudinaryMessage =
-                    normalizedResult?.error?.message ||
-                    normalizedResult?.message ||
-                    'Cloudinary failed to return valid URLs';
-                console.error('Cloudinary upload failed or returned unexpected object:', uploadResult);
-                console.error('Cloudinary normalized upload candidate keys:', normalizedResult ? Object.keys(normalizedResult) : null);
+            if (!uploadResult || !uploadResult.success) {
+                const errorMessage = uploadResult?.error || 'ImageKit failed to upload';
+                console.error('ImageKit upload failed:', uploadResult);
                 res.status(500);
-                throw new Error(cloudinaryMessage);
+                throw new Error(errorMessage);
             }
+
+            mediaUrl = uploadResult.url;
+            resultPublicId = uploadResult.publicId;
         }
 
         const submission = await UserSubmission.create({
@@ -245,30 +124,21 @@ const approveSubmission = async (req, res, next) => {
             throw new Error('Submission is already approved');
         }
 
-        // Move media from pending -> approved when possible.
-        // Some older docs may not include "/pending/" in publicId, so approval should still succeed.
+        // Move media from pending -> approved when possible (legacy Cloudinary support is no-op).
         try {
-            const hasPendingFolder = submission.publicId.includes('/pending/');
+            const hasPendingFolder = submission.publicId && submission.publicId.includes('/pending/');
 
             if (hasPendingFolder) {
-                const newPublicId = submission.publicId.replace('/pending/', '/approved/');
-                await cloudinary.uploader.rename(submission.publicId, newPublicId, { overwrite: true });
-
-                // Re-fetch URL after rename
-                const result = await cloudinary.api.resource(newPublicId, {
-                    resource_type: submission.mediaType,
-                });
-                submission.publicId = newPublicId;
-                submission.mediaUrl = result.secure_url || submission.mediaUrl;
+                console.warn(`Attempted to rename legacy Cloudinary file ${submission.publicId} but Cloudinary is decoupled.`);
             }
 
             submission.status = 'approved';
             await submission.save();
             res.json({ message: 'Submission approved successfully', submission });
-        } catch (cloudinaryError) {
-            console.error('Cloudinary approve/rename error:', cloudinaryError);
+        } catch (dbError) {
+            console.error('Approval DB error:', dbError);
             res.status(500);
-            throw new Error('Failed to approve submission media in Cloudinary');
+            throw new Error('Failed to approve submission in database');
         }
     } catch (error) {
         next(error);
@@ -289,10 +159,15 @@ const deleteSubmission = async (req, res, next) => {
 
         try {
             if (submission.publicId && submission.mediaType !== 'none') {
-                await cloudinary.uploader.destroy(submission.publicId, { resource_type: submission.mediaType });
+                const isLegacyCloudinary = submission.publicId.includes('/') || submission.publicId.startsWith('ruva_');
+                if (isLegacyCloudinary) {
+                    console.warn(`Skipping deletion of legacy Cloudinary asset: ${submission.publicId}`);
+                } else {
+                    await imageKitService.deleteImage(submission.publicId);
+                }
             }
         } catch (err) {
-            console.error(`Failed to delete media ${submission.publicId} from Cloudinary:`, err.message);
+            console.error(`Failed to delete media ${submission.publicId} from ImageKit:`, err.message);
         }
 
         await submission.deleteOne();

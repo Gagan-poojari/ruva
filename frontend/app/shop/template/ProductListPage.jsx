@@ -146,8 +146,7 @@ function GridCard({ product, index }) {
         className="group relative block  overflow-hidden bg-white"
         style={{ boxShadow: "0 8px 32px rgba(42,5,5,0.09), 0 1px 4px rgba(201,133,60,0.08)" }}
       >
-        {/* ── image ── */}
-        <div className="relative overflow-hidden" style={{ aspectRatio: "3/4" }}>
+        <div className="relative overflow-hidden" style={{ aspectRatio: "2/3" }}>
           <Image
             src={displayImage}
             alt={product.name}
@@ -289,7 +288,7 @@ function ListRow({ product, index }) {
       >
         {/* Image */}
         <div className="relative sm:w-27 sm:h-37.5 sm:rounded-xl sm:overflow-hidden sm:shrink-0 bg-[#f6efe5] overflow-hidden">
-          <div className="relative aspect-3/4 sm:aspect-auto sm:h-full w-full h-full">
+          <div className="relative aspect-[2/3] sm:aspect-auto sm:h-full w-full h-full">
             <Image
               src={displayImage}
               alt={product.name}

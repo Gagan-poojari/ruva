@@ -1,9 +1,7 @@
 const Product = require('../models/Product');
 const Order = require('../models/Order');
-const { cloudinary } = require('../config/cloudinary');
+const imageKitService = require('../services/imageKitService');
 const fs = require('fs/promises');
-
-const CLOUDINARY_TIMEOUT_MS = 2 * 60 * 1000;
 
 const withTimeout = (promise, timeoutMs, message) =>
     new Promise((resolve, reject) => {
@@ -29,40 +27,33 @@ const parseJsonArray = (value, fallback = []) => {
     }
 };
 
-const uploadImagesToCloudinary = async (files = []) => {
+const uploadImagesToImageKit = async (files = []) => {
     const uploadedImages = [];
 
     for (const file of files) {
-        let uploadResult;
         try {
-            const isCloudinaryResult = file?.secure_url && (file?.public_id || file?.filename);
+            const isAlreadyUploaded = file?.url && file?.publicId;
 
-            if (isCloudinaryResult) {
+            if (isAlreadyUploaded) {
                 uploadedImages.push({
-                    url: file.secure_url || file.url,
-                    publicId: file.public_id || file.filename,
+                    url: file.url,
+                    publicId: file.publicId,
                 });
                 continue;
             }
 
-            uploadResult = await withTimeout(
-                cloudinary.uploader.upload(file.path, {
-                    folder: 'saree-shop',
-                    resource_type: 'image',
-                    transformation: [
-                        { width: 1200, crop: 'limit' },
-                        { quality: 'auto:good' },
-                        { fetch_format: 'auto' }
-                    ]
-                }),
-                CLOUDINARY_TIMEOUT_MS,
-                'Cloudinary product image upload timed out'
-            );
-
-            uploadedImages.push({
-                url: uploadResult.secure_url || uploadResult.url,
-                publicId: uploadResult.public_id || uploadResult.asset_id,
+            const result = await imageKitService.uploadImage(file.path, {
+                folder: '/saree-shop',
             });
+
+            if (result.success) {
+                uploadedImages.push({
+                    url: result.url,
+                    publicId: result.publicId,
+                });
+            } else {
+                console.error('ImageKit upload error:', result.error);
+            }
         } finally {
             if (file?.path) {
                 try {
@@ -84,7 +75,7 @@ const buildColorVariants = async (rawVariants, files = []) => {
     for (let idx = 0; idx < variants.length; idx += 1) {
         const variant = variants[idx];
         const variantFiles = files.filter((file) => file.fieldname === `variantImages_${idx}`);
-        const uploadedVariantImages = await uploadImagesToCloudinary(variantFiles);
+        const uploadedVariantImages = await uploadImagesToImageKit(variantFiles);
         const variantImages = [
             ...(Array.isArray(variant?.images) ? variant.images : []),
             ...uploadedVariantImages,
@@ -274,7 +265,7 @@ const createProduct = async (req, res, next) => {
         }
 
         const baseFiles = (req.files || []).filter((file) => file.fieldname === 'images');
-        const images = await uploadImagesToCloudinary(baseFiles);
+        const images = await uploadImagesToImageKit(baseFiles);
 
         const parsedSizes = parseJsonArray(sizes);
         const parsedTags = parseJsonArray(tags);
@@ -366,7 +357,7 @@ const updateProduct = async (req, res, next) => {
             // Append newly uploaded images
             if (req.files && req.files.length > 0) {
                 const baseFiles = req.files.filter((file) => file.fieldname === 'images');
-                const newImages = await uploadImagesToCloudinary(baseFiles);
+                const newImages = await uploadImagesToImageKit(baseFiles);
                 product.images = [...product.images, ...newImages];
             }
 
@@ -389,13 +380,13 @@ const deleteProduct = async (req, res, next) => {
         const product = await Product.findById(req.params.id);
 
         if (product) {
-            // Remove images from cloudinary
+            // Remove images from ImageKit
             if (product.images && product.images.length > 0) {
                 for (const image of product.images) {
                     try {
-                        await cloudinary.uploader.destroy(image.publicId);
+                        await imageKitService.deleteImage(image.publicId);
                     } catch (err) {
-                        console.error(`Failed to delete image ${image.publicId} from Cloudinary:`, err.message);
+                        console.error(`Failed to delete image ${image.publicId} from ImageKit:`, err.message);
                     }
                 }
             }
@@ -404,9 +395,9 @@ const deleteProduct = async (req, res, next) => {
                 for (const variant of product.colorVariants) {
                     for (const image of variant.images || []) {
                         try {
-                            await cloudinary.uploader.destroy(image.publicId);
+                            await imageKitService.deleteImage(image.publicId);
                         } catch (err) {
-                            console.error(`Failed to delete variant image ${image.publicId} from Cloudinary:`, err.message);
+                            console.error(`Failed to delete variant image ${image.publicId} from ImageKit:`, err.message);
                         }
                     }
                 }

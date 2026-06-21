@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { getReviews, createReview, updateReview, deleteReview } = require('../controllers/reviewController');
 const { protect, admin } = require('../middleware/authMiddleware');
-const { submissionDiskParser } = require('../config/cloudinary');
+const { submissionDiskParser } = require('../config/multer');
 
 // Public
 router.get('/', getReviews);

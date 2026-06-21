@@ -1,5 +1,5 @@
 const Review = require('../models/Review');
-const { cloudinary } = require('../config/cloudinary');
+const imageKitService = require('../services/imageKitService');
 const fs = require('fs/promises');
 
 // @desc  Get all reviews (public)
@@ -25,34 +25,21 @@ const createReview = async (req, res, next) => {
             mediaType = isVideo ? 'video' : 'image';
             let result;
             try {
-                const options = {
-                    folder: 'ruva_reviews',
-                    resource_type: isVideo ? 'video' : 'image',
-                };
-                if (!isVideo) {
-                    options.transformation = [
-                        { width: 1200, crop: 'limit' },
-                        { quality: 'auto:good' },
-                        { fetch_format: 'auto' }
-                    ];
-                }
-                if (isVideo) {
-                    result = await cloudinary.uploader.upload_large(req.file.path, { ...options, chunk_size: 6000000 });
-                } else {
-                    result = await cloudinary.uploader.upload(req.file.path, options);
-                }
+                result = await imageKitService.uploadImage(req.file.path, {
+                    folder: '/ruva_reviews',
+                });
             } finally {
                 try { await fs.unlink(req.file.path); } catch { }
             }
 
-            if (!result || (!result.secure_url && !result.url)) {
-                console.error("Cloudinary upload failed in createReview:", JSON.stringify(result, null, 2));
+            if (!result || !result.success) {
+                console.error("ImageKit upload failed in createReview:", result ? result.error : 'Unknown error');
                 res.status(500);
-                throw new Error(`Cloudinary upload failed: ${result?.error?.message || 'Missing URLs'}`);
+                throw new Error(`ImageKit upload failed: ${result ? result.error : 'Missing response'}`);
             }
 
-            mediaUrl = result.secure_url || result.url;
-            publicId = result.public_id;
+            mediaUrl = result.url;
+            publicId = result.publicId;
         }
 
         const review = await Review.create({
@@ -79,9 +66,9 @@ const updateReview = async (req, res, next) => {
 
         // Replace media if a new file is uploaded
         if (req.file) {
-            // delete old from cloudinary
+            // delete old from ImageKit
             if (review.publicId) {
-                try { await cloudinary.uploader.destroy(review.publicId, { resource_type: review.mediaType === 'video' ? 'video' : 'image' }); } catch { }
+                try { await imageKitService.deleteImage(review.publicId); } catch { }
             }
             const isVideo =
                 req.file.mimetype?.startsWith('video/') ||
@@ -89,34 +76,21 @@ const updateReview = async (req, res, next) => {
             review.mediaType = isVideo ? 'video' : 'image';
             let result;
             try {
-                const options = {
-                    folder: 'ruva_reviews',
-                    resource_type: isVideo ? 'video' : 'image',
-                };
-                if (!isVideo) {
-                    options.transformation = [
-                        { width: 1200, crop: 'limit' },
-                        { quality: 'auto:good' },
-                        { fetch_format: 'auto' }
-                    ];
-                }
-                if (isVideo) {
-                    result = await cloudinary.uploader.upload_large(req.file.path, { ...options, chunk_size: 6000000 });
-                } else {
-                    result = await cloudinary.uploader.upload(req.file.path, options);
-                }
+                result = await imageKitService.uploadImage(req.file.path, {
+                    folder: '/ruva_reviews',
+                });
             } finally {
                 try { await fs.unlink(req.file.path); } catch { }
             }
 
-            if (!result || (!result.secure_url && !result.url)) {
-                console.error("Cloudinary upload failed in updateReview:", JSON.stringify(result, null, 2));
+            if (!result || !result.success) {
+                console.error("ImageKit upload failed in updateReview:", result ? result.error : 'Unknown error');
                 res.status(500);
-                throw new Error(`Cloudinary upload failed: ${result?.error?.message || 'Missing URLs'}`);
+                throw new Error(`ImageKit upload failed: ${result ? result.error : 'Missing response'}`);
             }
 
-            review.mediaUrl = result.secure_url || result.url;
-            review.publicId = result.public_id;
+            review.mediaUrl = result.url;
+            review.publicId = result.publicId;
         }
 
         const updated = await review.save();
@@ -132,7 +106,7 @@ const deleteReview = async (req, res, next) => {
         if (!review) { res.status(404); throw new Error('Review not found'); }
 
         if (review.publicId) {
-            try { await cloudinary.uploader.destroy(review.publicId, { resource_type: review.mediaType === 'video' ? 'video' : 'image' }); } catch { }
+            try { await imageKitService.deleteImage(review.publicId); } catch { }
         }
         await review.deleteOne();
         res.json({ message: 'Review deleted' });

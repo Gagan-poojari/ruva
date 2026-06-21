@@ -286,7 +286,7 @@ export default function ProductDetailsPage() {
                 key={`${img.url}-${idx}`}
                 className="min-w-[85%] sm:min-w-[70%] lg:min-w-full snap-center rounded-3xl overflow-hidden border border-[#c87d1a]/15 bg-white/60"
               >
-                <div className="relative aspect-3/4 bg-[#f6efe5] overflow-hidden">
+                <div className="relative aspect-[2/3] bg-[#f6efe5] overflow-hidden">
                   <Image
                     src={img.url}
                     alt={`${product.name} view ${idx + 1}`}
@@ -510,7 +510,7 @@ export default function ProductDetailsPage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {Array.from({ length: 8 }).map((_, i) => (
                 <div key={i} className="rounded-2xl overflow-hidden animate-pulse">
-                  <div className="aspect-3/4 bg-[#f0e8da]" />
+                  <div className="aspect-[2/3] bg-[#f0e8da]" />
                   <div className="p-3 space-y-2">
                     <div className="h-3 bg-[#f0e8da] rounded w-3/4" />
                     <div className="h-3 bg-[#f0e8da] rounded w-1/2" />
@@ -533,7 +533,7 @@ export default function ProductDetailsPage() {
                       href={`/products/${item._id}`}
                       className="group rounded-2xl overflow-hidden border border-[#c87d1a]/15 bg-white hover:shadow-lg transition-shadow"
                     >
-                      <div className="relative aspect-3/4 bg-[#f6efe5] overflow-hidden">
+                      <div className="relative aspect-[2/3] bg-[#f6efe5] overflow-hidden">
                         <Image
                           src={image}
                           alt={item.name}

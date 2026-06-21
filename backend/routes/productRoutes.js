@@ -9,7 +9,7 @@ const {
     createProductReview,
 } = require('../controllers/productController');
 const { protect, admin } = require('../middleware/authMiddleware');
-const { submissionDiskParser } = require('../config/cloudinary');
+const { submissionDiskParser } = require('../config/multer');
 
 router.route('/')
     .get(getProducts)

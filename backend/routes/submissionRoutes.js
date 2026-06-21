@@ -8,7 +8,7 @@ const {
     deleteSubmission,
 } = require('../controllers/submissionController');
 const { protect, admin } = require('../middleware/authMiddleware');
-const { submissionDiskParser } = require('../config/cloudinary');
+const { submissionDiskParser } = require('../config/multer');
 
 // Public – homepage review wall
 router.get('/approved', getApprovedSubmissions);

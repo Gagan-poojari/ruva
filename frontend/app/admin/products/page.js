@@ -109,7 +109,7 @@ export default function ProductsPage() {
                     <tr key={product._id} className="hover:bg-gray-50/50 transition-colors group">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-4">
-                          <div className="relative w-12 h-16 rounded-lg bg-gray-100 overflow-hidden border border-gray-100 shrink-0">
+                          <div className="relative w-12 aspect-[2/3] rounded-lg bg-gray-100 overflow-hidden border border-gray-100 shrink-0">
                             <Image src={product.images?.[0]?.url || 'https://via.placeholder.com/150'} alt={product.name} fill sizes="50px" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                           </div>
                           <div className="flex flex-col min-w-0">
